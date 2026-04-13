@@ -1,10 +1,12 @@
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GameManager.hpp>
+#include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/Enums.hpp>
 #include <Geode/ui/OverlayManager.hpp>
-#include <Geode/cocos/sprite_nodes/CCSpriteFrameCache.h>
-#include <cstdio>
 #include "PhysicsWorld.h"
+
+#include <algorithm>
+#include <cmath>
 
 using namespace geode::prelude;
 
@@ -17,8 +19,63 @@ void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt) {
     gm->loadIcon(iconId, typeInt, requestId);
 }
 
-bool spriteFrameExists(char const* name) {
-    return CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(name) != nullptr;
+CCRect worldBoundsFromNode(CCNode* n) {
+    CCRect const bb = n->boundingBox();
+    CCNode* parent = n->getParent();
+    if (!parent) {
+        return bb;
+    }
+    auto const corner = [&](float x, float y) {
+        return parent->convertToWorldSpace(ccp(x, y));
+    };
+    float const minX = bb.origin.x;
+    float const minY = bb.origin.y;
+    float const maxX = bb.origin.x + bb.size.width;
+    float const maxY = bb.origin.y + bb.size.height;
+    CCPoint const c0 = corner(minX, minY);
+    CCPoint const c1 = corner(maxX, minY);
+    CCPoint const c2 = corner(minX, maxY);
+    CCPoint const c3 = corner(maxX, maxY);
+    float minWx = std::min({c0.x, c1.x, c2.x, c3.x});
+    float maxWx = std::max({c0.x, c1.x, c2.x, c3.x});
+    float minWy = std::min({c0.y, c1.y, c2.y, c3.y});
+    float maxWy = std::max({c0.y, c1.y, c2.y, c3.y});
+    return CCRectMake(minWx, minWy, maxWx - minWx, maxWy - minWy);
+}
+
+CCRect unionRects(CCRect const& a, CCRect const& b) {
+    float const minX = std::min(a.getMinX(), b.getMinX());
+    float const minY = std::min(a.getMinY(), b.getMinY());
+    float const maxX = std::max(a.getMaxX(), b.getMaxX());
+    float const maxY = std::max(a.getMaxY(), b.getMaxY());
+    return CCRectMake(minX, minY, maxX - minX, maxY - minY);
+}
+
+CCRect unionWorldBoundsTree(CCNode* n, int depth = 0) {
+    if (!n || depth > 64) {
+        return CCRectZero;
+    }
+    CCRect acc = worldBoundsFromNode(n);
+    if (CCArray* children = n->getChildren()) {
+        for (int i = 0; i < children->count(); ++i) {
+            auto* ch = dynamic_cast<CCNode*>(children->objectAtIndex(i));
+            if (!ch) {
+                continue;
+            }
+            acc = unionRects(acc, unionWorldBoundsTree(ch, depth + 1));
+        }
+    }
+    return acc;
+}
+
+float visualWidthForPlayer(SimplePlayer* player) {
+    CCRect const world = unionWorldBoundsTree(player);
+    float const ww = std::fabs(world.size.width);
+    if (ww > 1.0f) {
+        return ww;
+    }
+    float const cw = player->getContentSize().width;
+    return cw > 1.0f ? cw : 1.0f;
 }
 
 } // namespace
@@ -35,68 +92,31 @@ class PhysicsOverlay : public CCNode {
 
 public:
     CREATE_FUNC(PhysicsOverlay);
-    bool init();
+    bool init() override;
     void update(float dt) override;
     void onExit() override;
 
 private:
     void tryBuildPlayerVisual();
+    static void applyGmColorsAndFrame(SimplePlayer* player, int frameId);
 };
 
-static CCNode* createPlayerIconForFrame(int frameId) {
+void PhysicsOverlay::applyGmColorsAndFrame(SimplePlayer* player, int frameId) {
     auto* gm = GameManager::get();
-    if (!gm)
-        return nullptr;
+    if (!gm || !player)
+        return;
 
-    if (frameId < 1)
-        frameId = 1;
-
-    char mainName[48];
-    std::snprintf(mainName, sizeof(mainName), "player_%02d_001.png", frameId);
-
-    CCSprite* main = CCSprite::createWithSpriteFrameName(mainName);
-    if (!main)
-        main = CCSprite::createWithSpriteFrameName("player_01_001.png");
-    if (!main)
-        main = CCSprite::create("player_01_001.png");
-    if (!main)
-        return nullptr;
-
-    main->setColor(gm->colorForIdx(gm->getPlayerColor()));
-
-    auto* root = CCNode::create();
-    CCSize const sz = main->getContentSize();
-    root->setContentSize(sz);
-    root->setAnchorPoint({0.5f, 0.5f});
-
-    CCPoint const center = ccp(sz.width * 0.5f, sz.height * 0.5f);
-
+    player->updatePlayerFrame(frameId, IconType::Cube);
+    player->setColors(
+        gm->colorForIdx(gm->getPlayerColor()),
+        gm->colorForIdx(gm->getPlayerColor2())
+    );
     if (gm->getPlayerGlow()) {
-        char glowName[48];
-        std::snprintf(glowName, sizeof(glowName), "player_%02d_glow_001.png", frameId);
-        if (spriteFrameExists(glowName)) {
-            if (auto* glow = CCSprite::createWithSpriteFrameName(glowName)) {
-                glow->setColor(gm->colorForIdx(gm->getPlayerGlowColor()));
-                glow->setPosition(center);
-                root->addChild(glow, -1);
-            }
-        }
+        player->setGlowOutline(gm->colorForIdx(gm->getPlayerGlowColor()));
+    } else {
+        player->disableGlowOutline();
     }
-
-    main->setPosition(center);
-    root->addChild(main, 0);
-
-    char detailName[48];
-    std::snprintf(detailName, sizeof(detailName), "player_%02d_002.png", frameId);
-    if (spriteFrameExists(detailName)) {
-        if (auto* detail = CCSprite::createWithSpriteFrameName(detailName)) {
-            detail->setColor(gm->colorForIdx(gm->getPlayerColor2()));
-            detail->setPosition(center);
-            root->addChild(detail, 1);
-        }
-    }
-
-    return root;
+    player->updateColors();
 }
 
 void PhysicsOverlay::tryBuildPlayerVisual() {
@@ -110,17 +130,20 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     if (!gm->isIconLoaded(m_frameId, m_iconTypeInt))
         return;
 
-    auto* visual = createPlayerIconForFrame(m_frameId);
-    if (!visual)
+    auto* player = SimplePlayer::create(m_frameId);
+    if (!player)
         return;
 
-    float const w = visual->getContentSize().width;
-    float const scale = m_targetSize / (w > 1.0f ? w : 1.0f);
-    visual->setScale(scale);
-    visual->setPosition({m_winSize.width / 2, m_winSize.height / 2});
+    this->addChild(player);
 
-    this->addChild(visual);
-    m_playerVisual = visual;
+    applyGmColorsAndFrame(player, m_frameId);
+
+    float const w = visualWidthForPlayer(player);
+    float const scale = m_targetSize / w;
+    player->setScale(scale);
+    player->setPosition({m_winSize.width / 2, m_winSize.height / 2});
+
+    m_playerVisual = player;
     m_visualBuilt = true;
 }
 
