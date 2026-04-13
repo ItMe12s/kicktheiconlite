@@ -9,8 +9,8 @@
 static constexpr float PPM = 50.0f;
 
 static constexpr float kDragSpring = 250.0f;
-static constexpr float kDragDamping = 15.0f;
-static constexpr float kDragAngularDamping = 0.5f;
+static constexpr float kDragDamping = 10.0f;
+static constexpr float kDragAngularDamping = 0.25f;
 
 static constexpr float kEarthGravity = 9.8f;
 static constexpr float kGravityScale = 2.0f;

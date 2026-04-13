@@ -21,11 +21,12 @@ namespace {
 // CCMenu uses -128.
 constexpr int kPhysicsOverlayTouchPriority = -6767;
 
-constexpr float kWallShakeDuration = 0.2f;
+constexpr float kWallShakeDuration = 0.25f;
 constexpr float kMaxWallShakeStrength = 5.0f;
-constexpr float kWallShakeSpeedToStrength = 0.005f;
+constexpr float kWallShakeSpeedToStrength = 0.0025f;
+constexpr float kMinWallShakeSpeed = 150.0f;
 
-constexpr int kScreenShakeIntervals = 20;
+constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;
 
@@ -306,11 +307,13 @@ void PhysicsOverlay::update(float dt) {
 
     if (m_physics->consumeWallImpact()) {
         float const speed = m_physics->getPlayerSpeed();
-        float const strength = std::min(
-            kMaxWallShakeStrength,
-            speed * kWallShakeSpeedToStrength
-        );
-        globalScreenShake(kWallShakeDuration, strength);
+        if (speed >= kMinWallShakeSpeed) {
+            float const strength = std::min(
+                kMaxWallShakeStrength,
+                speed * kWallShakeSpeedToStrength
+            );
+            globalScreenShake(kWallShakeDuration, strength);
+        }
     }
 
     if (!m_playerVisual)
