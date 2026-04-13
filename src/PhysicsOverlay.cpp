@@ -80,6 +80,12 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
     m_physics->setDragTargetPixels(locationInNode.x, locationInNode.y);
     m_physics->setDragging(true);
     m_grabActive = true;
+
+    m_hitstopRemaining = 0.0f;
+    m_whiteFlashRemaining = 0.0f;
+    if (m_whiteFlashSprite) {
+        m_whiteFlashSprite->stopAllActions();
+    }
     return true;
 }
 
@@ -220,7 +226,7 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
         }
 
         float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
-        if (preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
+        if (!m_grabActive && preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
             m_hitstopRemaining = kImpactHitstopSeconds;
             m_whiteFlashRemaining = kImpactFlashTotalSeconds;
             m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;

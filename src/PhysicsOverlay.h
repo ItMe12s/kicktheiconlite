@@ -67,9 +67,9 @@ public:
     void onExit() override;
 
     bool ccTouchBegan(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    bool ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    bool ccTouchEnded(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    bool ccTouchCancelled(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchEnded(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    void ccTouchCancelled(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
 
 private:
     void tryBuildPlayerVisual();
