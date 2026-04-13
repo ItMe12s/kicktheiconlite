@@ -25,6 +25,20 @@ constexpr float kWallShakeDuration = 0.2f;
 constexpr float kMaxWallShakeStrength = 5.0f;
 constexpr float kWallShakeSpeedToStrength = 0.005f;
 
+constexpr int kScreenShakeIntervals = 20;
+constexpr float kScreenShakeSampleMin = -1.0f;
+constexpr float kScreenShakeSampleMax = 1.0f;
+
+constexpr int kMaxWorldBoundsTreeDepth = 64;
+constexpr float kMinVisualWidthPx = 1.0f;
+
+constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
+constexpr float kPlayerTargetSizeFraction = 0.15f;
+constexpr int kMinPlayerFrameId = 1;
+constexpr float kRadToDeg = 180.0f / 3.14159265f;
+constexpr int kPhysicsOverlaySchedulerPriority = 0;
+constexpr int kPhysicsOverlayZOrder = 1000;
+
 void globalScreenShake(float duration, float strength) {
     CCScene* scene = CCScene::get();
     if (!scene) {
@@ -34,11 +48,11 @@ void globalScreenShake(float duration, float strength) {
     CCPoint const base = scene->getPosition();
     scene->stopAllActions();
 
-    int const intervals = 20;
+    int const intervals = kScreenShakeIntervals;
     float const stepDuration = duration / static_cast<float>(intervals);
 
     thread_local std::mt19937 rng{std::random_device{}()};
-    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    std::uniform_real_distribution<float> dist(kScreenShakeSampleMin, kScreenShakeSampleMax);
 
     CCArray* actions = CCArray::create();
     for (int i = 0; i < intervals; ++i) {
@@ -92,7 +106,7 @@ CCRect unionRects(CCRect const& a, CCRect const& b) {
 }
 
 CCRect unionWorldBoundsTree(CCNode* n, int depth = 0) {
-    if (!n || depth > 64) {
+    if (!n || depth > kMaxWorldBoundsTreeDepth) {
         return CCRectZero;
     }
     CCRect acc = worldBoundsFromNode(n);
@@ -111,11 +125,11 @@ CCRect unionWorldBoundsTree(CCNode* n, int depth = 0) {
 float visualWidthForPlayer(SimplePlayer* player) {
     CCRect const world = unionWorldBoundsTree(player);
     float const ww = std::fabs(world.size.width);
-    if (ww > 1.0f) {
+    if (ww > kMinVisualWidthPx) {
         return ww;
     }
     float const cw = player->getContentSize().width;
-    return cw > 1.0f ? cw : 1.0f;
+    return cw > kMinVisualWidthPx ? cw : kMinVisualWidthPx;
 }
 
 } // namespace
@@ -124,7 +138,7 @@ class PhysicsOverlay : public CCLayer {
     PhysicsWorld* m_physics = nullptr;
     CCNode* m_playerVisual = nullptr;
 
-    int m_frameId = 1;
+    int m_frameId = kMinPlayerFrameId;
     int m_iconTypeInt = static_cast<int>(IconType::Cube);
     bool m_visualBuilt = false;
     bool m_grabActive = false;
@@ -204,7 +218,7 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
     float const dx = locationInNode.x - state.x;
     float const dy = locationInNode.y - state.y;
     float const distSq = dx * dx + dy * dy;
-    float const grabRadius = m_targetSize * 0.666f;
+    float const grabRadius = m_targetSize * kGrabRadiusFraction;
     if (distSq > grabRadius * grabRadius)
         return false;
 
@@ -255,15 +269,15 @@ bool PhysicsOverlay::init() {
 
     m_winSize = CCDirector::get()->getWinSize();
     float smaller = m_winSize.width < m_winSize.height ? m_winSize.width : m_winSize.height;
-    m_targetSize = smaller * 0.15f;
+    m_targetSize = smaller * kPlayerTargetSizeFraction;
 
     auto* gm = GameManager::get();
     if (!gm)
         return false;
 
     m_frameId = gm->getPlayerFrame();
-    if (m_frameId < 1)
-        m_frameId = 1;
+    if (m_frameId < kMinPlayerFrameId)
+        m_frameId = kMinPlayerFrameId;
 
     requestCubeIconLoad(gm, m_frameId, m_iconTypeInt);
 
@@ -277,7 +291,7 @@ bool PhysicsOverlay::init() {
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
-    CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, 0, false);
+    CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, kPhysicsOverlaySchedulerPriority, false);
     return true;
 }
 
@@ -304,7 +318,7 @@ void PhysicsOverlay::update(float dt) {
 
     auto state = m_physics->getPlayerState();
     m_playerVisual->setPosition({state.x, state.y});
-    m_playerVisual->setRotation(-state.angle * (180.0f / 3.14159265f));
+    m_playerVisual->setRotation(-state.angle * kRadToDeg);
 }
 
 void PhysicsOverlay::onEnter() {
@@ -326,7 +340,7 @@ $on_mod(Loaded) {
         auto overlay = PhysicsOverlay::create();
         if (!overlay)
             return;
-        overlay->setZOrder(1000);
+        overlay->setZOrder(kPhysicsOverlayZOrder);
         geode::OverlayManager::get()->addChild(overlay);
     });
 }

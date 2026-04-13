@@ -12,6 +12,28 @@ static constexpr float kDragSpring = 250.0f;
 static constexpr float kDragDamping = 15.0f;
 static constexpr float kDragAngularDamping = 0.5f;
 
+static constexpr float kEarthGravity = 9.8f;
+static constexpr float kGravityScale = 2.0f;
+static constexpr int kWorldIterations = 10;
+
+static constexpr float kWallHalfThickness = 0.5f;
+static constexpr float kWallLengthPadding = 4.0f;
+static constexpr float kWallThickness = 1.0f;
+static constexpr float kArenaCenterFrac = 0.5f;
+
+static constexpr float kPlayerDensity = 1.0f;
+static constexpr float kPlayerInitialXFrac = 0.25f;
+static constexpr float kPlayerInitialYFrac = 0.75f;
+static constexpr float kPlayerInitialVelX = 10.0f;
+static constexpr float kPlayerInitialVelY = 5.0f;
+static constexpr float kPlayerInitialAngularVel = 30.0f;
+static constexpr float kPlayerFriction = 0.3f;
+
+static constexpr float kDefaultDragTargetXFrac = 0.5f;
+static constexpr float kDefaultDragTargetYFrac = 0.5f;
+
+static constexpr float kMaxDeltaTime = 1.0f / 30.0f;
+
 struct PhysicsWorld::Impl {
     World world;
     Body wallBottom;
@@ -21,30 +43,30 @@ struct PhysicsWorld::Impl {
     Body player;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
-        : world(Vec2(0.0f, -9.8f * 2.0f), 10) // I'm making all this physics configurable later
+        : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
     {
         float ww = worldW / PPM;
         float wh = worldH / PPM;
         float bw = bodyW / PPM;
         float bh = bodyH / PPM;
 
-        wallBottom.position.Set(ww * 0.5f, -0.5f);
-        wallBottom.width.Set(ww + 4.0f, 1.0f);
+        wallBottom.position.Set(ww * kArenaCenterFrac, -kWallHalfThickness);
+        wallBottom.width.Set(ww + kWallLengthPadding, kWallThickness);
 
-        wallTop.position.Set(ww * 0.5f, wh + 0.5f);
-        wallTop.width.Set(ww + 4.0f, 1.0f);
+        wallTop.position.Set(ww * kArenaCenterFrac, wh + kWallHalfThickness);
+        wallTop.width.Set(ww + kWallLengthPadding, kWallThickness);
 
-        wallLeft.position.Set(-0.5f, wh * 0.5f);
-        wallLeft.width.Set(1.0f, wh + 4.0f);
+        wallLeft.position.Set(-kWallHalfThickness, wh * kArenaCenterFrac);
+        wallLeft.width.Set(kWallThickness, wh + kWallLengthPadding);
 
-        wallRight.position.Set(ww + 0.5f, wh * 0.5f);
-        wallRight.width.Set(1.0f, wh + 4.0f);
+        wallRight.position.Set(ww + kWallHalfThickness, wh * kArenaCenterFrac);
+        wallRight.width.Set(kWallThickness, wh + kWallLengthPadding);
 
-        player.Set(Vec2(bw, bh), 1.0f);
-        player.position.Set(ww * 0.25f, wh * 0.75f);
-        player.velocity.Set(10.0f, 5.0f);
-        player.angularVelocity = 30.0f;
-        player.friction = 0.3f;
+        player.Set(Vec2(bw, bh), kPlayerDensity);
+        player.position.Set(ww * kPlayerInitialXFrac, wh * kPlayerInitialYFrac);
+        player.velocity.Set(kPlayerInitialVelX, kPlayerInitialVelY);
+        player.angularVelocity = kPlayerInitialAngularVel;
+        player.friction = kPlayerFriction;
 
         world.Add(&wallBottom);
         world.Add(&wallTop);
@@ -59,8 +81,8 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
     , m_worldW(worldW)
     , m_worldH(worldH)
     , m_dragging(false)
-    , m_dragTargetX(worldW * 0.5f)
-    , m_dragTargetY(worldH * 0.5f)
+    , m_dragTargetX(worldW * kDefaultDragTargetXFrac)
+    , m_dragTargetY(worldH * kDefaultDragTargetYFrac)
 {}
 
 PhysicsWorld::~PhysicsWorld() {
@@ -103,8 +125,8 @@ void PhysicsWorld::setDragTargetPixels(float x, float y) {
 
 void PhysicsWorld::step(float dt) {
     // Those who lag:
-    if (dt > 1.0f / 30.0f)
-        dt = 1.0f / 30.0f;
+    if (dt > kMaxDeltaTime)
+        dt = kMaxDeltaTime;
 
     if (m_dragging) {
         Body& p = m_impl->player;
