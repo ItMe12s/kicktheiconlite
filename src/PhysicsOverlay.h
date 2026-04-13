@@ -5,6 +5,7 @@
 #include <Geode/binding/SimplePlayer.hpp>
 
 #include <memory>
+#include <numbers>
 
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
@@ -15,24 +16,24 @@ class CCDrawNode;
 class CCSprite;
 }
 
-// CCMenu uses -128.
-constexpr int kPhysicsOverlayTouchPriority = -6767;
+constexpr int kPhysicsOverlayZOrder = 1000;
+constexpr int kPhysicsOverlayTouchPriority = -6767; // CCMenu uses -128.
+constexpr int kPhysicsOverlaySchedulerPriority = 0;
 
-constexpr float kWallShakeDuration = 0.25f;
-constexpr float kMaxWallShakeStrength = 5.0f;
-constexpr float kWallShakeSpeedToStrength = 0.0025f;
-constexpr float kMinWallShakeSpeed = 150.0f;
+constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 
-constexpr float kImpactMinSpeed = 1800.0f;
 constexpr float kImpactHitstopSeconds = 0.15f;
 constexpr float kImpactFlashTotalSeconds = 0.15f;
 constexpr float kImpactFlashPhaseSeconds = 0.05f;
 constexpr float kImpactFlashCooldownSeconds = 0.7f;
+constexpr float kWallShakeDuration = 0.25f;
 
-constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
-constexpr float kRadToDeg = 180.0f / 3.14159265f;
-constexpr int kPhysicsOverlaySchedulerPriority = 0;
-constexpr int kPhysicsOverlayZOrder = 1000;
+constexpr float kImpactMinSpeed = 1800.0f;
+constexpr float kMinWallShakeSpeed = 150.0f;
+constexpr float kWallShakeSpeedToStrength = 0.0025f;
+constexpr float kMaxWallShakeStrength = 5.0f;
+
+constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
 
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
@@ -66,9 +67,9 @@ public:
     void onExit() override;
 
     bool ccTouchBegan(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    void ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    void ccTouchEnded(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
-    void ccTouchCancelled(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    bool ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    bool ccTouchEnded(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
+    bool ccTouchCancelled(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
 
 private:
     void tryBuildPlayerVisual();

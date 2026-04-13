@@ -117,8 +117,11 @@ PlayerRootResult tryBuildPlayerRoot(
     }
 
     auto* root = CCNode::create();
-    root->setPosition({winSize.width / 2, winSize.height / 2});
-    root->addChild(player, 0);
+    root->setPosition({
+        winSize.width * kPlayerRootAnchorXFrac,
+        winSize.height * kPlayerRootAnchorYFrac
+    });
+    root->addChild(player, kPlayerVisualLocalZOrder);
     overlay->addChild(root);
 
     applyGmColorsAndFrame(player, frameId);

@@ -22,6 +22,16 @@ constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;
 
+constexpr int kMotionBlurOverlayLocalZ = 1;
+constexpr int kWhiteFlashOverlayLocalZ = 2;
+
+constexpr int kMinCaptureTextureSize = 32;
+
+constexpr int kBlurStepDivisor = 4;
+constexpr float kMinSpeedForInverse = 1e-6f;
+
+constexpr float kBoundsCenterFrac = 0.5f;
+
 CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
     auto* p = new CCGLProgram();
     if (!p->initWithVertexShaderByteArray(vert, frag)) {
@@ -90,8 +100,8 @@ CCGLProgram* createColorInvertProgram() {
 
 int captureSizeForTarget(float targetSize) {
     int captureSize = static_cast<int>(std::ceil(targetSize * kBlurCaptureScale));
-    if (captureSize < 32) {
-        captureSize = 32;
+    if (captureSize < kMinCaptureTextureSize) {
+        captureSize = kMinCaptureTextureSize;
     }
     return captureSize;
 }
@@ -138,7 +148,7 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     blurSprite->setPosition({0, 0});
     blurSprite->setVisible(false);
     blurSprite->setFlipY(true);
-    playerRoot->addChild(blurSprite, 1);
+    playerRoot->addChild(blurSprite, kMotionBlurOverlayLocalZ);
 
     auto* whiteFlashSprite = CCSprite::createWithTexture(rtTex);
     if (!whiteFlashSprite) {
@@ -155,7 +165,7 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     whiteFlashSprite->setPosition({0, 0});
     whiteFlashSprite->setVisible(false);
     whiteFlashSprite->setFlipY(true);
-    playerRoot->addChild(whiteFlashSprite, 2);
+    playerRoot->addChild(whiteFlashSprite, kWhiteFlashOverlayLocalZ);
 
     auto* whiteFlashProgram = createWhiteFlashProgram();
     if (!whiteFlashProgram) {
@@ -248,10 +258,10 @@ void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
 
     float const t = std::min(speed / kMaxBlurSpeedPx, 1.0f);
     float const spreadUv = t * kBlurUvSpread;
-    float const invSpeed = speed > 1e-6f ? 1.0f / speed : 0.0f;
+    float const invSpeed = speed > kMinSpeedForInverse ? 1.0f / speed : 0.0f;
     float const nx = -vel.vx * invSpeed;
     float const ny = -vel.vy * invSpeed;
-    float const stepUv = spreadUv * (1.0f / 4.0f);
+    float const stepUv = spreadUv * (1.0f / static_cast<float>(kBlurStepDivisor));
     blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
 
     if (!impactFlashActive) {
@@ -268,9 +278,9 @@ void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
 
     player->setPosition({0, 0});
     CCRect const bb = player->boundingBox();
-    float const cx = bb.origin.x + bb.size.width * 0.5f;
-    float const cy = bb.origin.y + bb.size.height * 0.5f;
-    float const h = static_cast<float>(captureSize) * 0.5f;
+    float const cx = bb.origin.x + bb.size.width * kBoundsCenterFrac;
+    float const cy = bb.origin.y + bb.size.height * kBoundsCenterFrac;
+    float const h = static_cast<float>(captureSize) * kBoundsCenterFrac;
     player->setPosition({h - cx, h - cy});
 
     renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);

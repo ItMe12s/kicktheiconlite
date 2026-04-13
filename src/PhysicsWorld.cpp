@@ -7,11 +7,7 @@
 #include <cmath>
 #include <memory>
 
-static constexpr float PPM = 50.0f;
-
-static constexpr float kDragSpring = 250.0f;
-static constexpr float kDragDamping = 10.0f;
-static constexpr float kDragAngularDamping = 0.25f;
+static constexpr float kPixelsPerMeter = 50.0f;
 
 static constexpr float kEarthGravity = 9.8f;
 static constexpr float kGravityScale = 2.0f;
@@ -30,6 +26,9 @@ static constexpr float kPlayerInitialVelY = 5.0f;
 static constexpr float kPlayerInitialAngularVel = 30.0f;
 static constexpr float kPlayerFriction = 0.3f;
 
+static constexpr float kDragSpring = 250.0f;
+static constexpr float kDragDamping = 10.0f;
+static constexpr float kDragAngularDamping = 0.25f;
 static constexpr float kDefaultDragTargetXFrac = 0.5f;
 static constexpr float kDefaultDragTargetYFrac = 0.5f;
 
@@ -46,10 +45,10 @@ struct PhysicsWorld::Impl {
     Impl(float worldW, float worldH, float bodyW, float bodyH)
         : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
     {
-        float ww = worldW / PPM;
-        float wh = worldH / PPM;
-        float bw = bodyW / PPM;
-        float bh = bodyH / PPM;
+        float ww = worldW / kPixelsPerMeter;
+        float wh = worldH / kPixelsPerMeter;
+        float bw = bodyW / kPixelsPerMeter;
+        float bh = bodyH / kPixelsPerMeter;
 
         wallBottom.position.Set(ww * kArenaCenterFrac, -kWallHalfThickness);
         wallBottom.width.Set(ww + kWallLengthPadding, kWallThickness);
@@ -94,8 +93,8 @@ void PhysicsWorld::setDragging(bool on) {
 
 void PhysicsWorld::setDragGrabOffsetPixels(float offsetX, float offsetY) {
     Body const& p = m_impl->player;
-    float const wx = offsetX / PPM;
-    float const wy = offsetY / PPM;
+    float const wx = offsetX / kPixelsPerMeter;
+    float const wy = offsetY / kPixelsPerMeter;
     float const c = std::cos(p.rotation);
     float const s = std::sin(p.rotation);
     // World offset (meters) -> body-local: R(-theta) * w
@@ -137,8 +136,8 @@ void PhysicsWorld::step(float dt) {
         float const ry = s * m_grabLocalX + c * m_grabLocalY;
         float const gpx = p.position.x + rx;
         float const gpy = p.position.y + ry;
-        float const tx = m_dragTargetX / PPM;
-        float const ty = m_dragTargetY / PPM;
+        float const tx = m_dragTargetX / kPixelsPerMeter;
+        float const ty = m_dragTargetY / kPixelsPerMeter;
         float const ex = tx - gpx;
         float const ey = ty - gpy;
         // Velocity at grab point v + omega x r  -> (vx - w*ry, vy + w*rx)
@@ -158,15 +157,15 @@ void PhysicsWorld::step(float dt) {
 
 PhysicsState PhysicsWorld::getPlayerState() const {
     return {
-        m_impl->player.position.x * PPM,
-        m_impl->player.position.y * PPM,
+        m_impl->player.position.x * kPixelsPerMeter,
+        m_impl->player.position.y * kPixelsPerMeter,
         m_impl->player.rotation
     };
 }
 
 float PhysicsWorld::getPlayerSpeed() const {
     Vec2 const& v = m_impl->player.velocity;
-    return std::hypot(v.x, v.y) * PPM;
+    return std::hypot(v.x, v.y) * kPixelsPerMeter;
 }
 
 float PhysicsWorld::getPreStepPlayerSpeedPx() const {
@@ -175,7 +174,7 @@ float PhysicsWorld::getPreStepPlayerSpeedPx() const {
 
 PhysicsVelocity PhysicsWorld::getPlayerVelocityPixels() const {
     Vec2 const& v = m_impl->player.velocity;
-    return { v.x * PPM, v.y * PPM };
+    return { v.x * kPixelsPerMeter, v.y * kPixelsPerMeter };
 }
 
 bool PhysicsWorld::hasPlayerWallContact() const {

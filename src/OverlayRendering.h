@@ -12,6 +12,11 @@ class CCSprite;
 
 namespace overlay_rendering {
 
+constexpr float kMinBlurSpeedPx = 8.0f;
+constexpr float kMaxBlurSpeedPx = 1200.0f;
+constexpr float kBlurUvSpread = 0.038f;
+constexpr float kBlurCaptureScale = 2.6f;
+
 class MotionBlurSprite : public cocos2d::CCSprite {
     cocos2d::CCGLProgram* m_blurProg = nullptr;
     GLint m_locBlurDir = -1;
@@ -36,11 +41,6 @@ enum class ImpactFlashMode {
     WhiteSilhouette,
     InvertSilhouette,
 };
-
-constexpr float kMinBlurSpeedPx = 8.0f;
-constexpr float kMaxBlurSpeedPx = 1200.0f;
-constexpr float kBlurUvSpread = 0.038f;
-constexpr float kBlurCaptureScale = 2.6f;
 
 int captureSizeForTarget(float targetSize);
 

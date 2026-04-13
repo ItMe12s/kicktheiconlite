@@ -11,6 +11,10 @@ constexpr float kMinVisualWidthPx = 1.0f;
 constexpr float kPlayerTargetSizeFraction = 0.15f;
 constexpr int kMinPlayerFrameId = 1;
 
+constexpr float kPlayerRootAnchorXFrac = 0.5f;
+constexpr float kPlayerRootAnchorYFrac = 0.5f;
+constexpr int kPlayerVisualLocalZOrder = 0;
+
 void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt);
 
 cocos2d::CCRect worldBoundsFromNode(cocos2d::CCNode* n);

@@ -9,6 +9,26 @@
 
 using namespace geode::prelude;
 
+namespace {
+
+constexpr int kImpactFlashBackdropZOrder = -1;
+
+constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
+
+inline ccColor4F flashBackdropBlackFill() {
+    return ccc4f(0, 0, 0, 1);
+}
+
+inline ccColor4F flashBackdropWhiteFill() {
+    return ccc4f(1, 1, 1, 1);
+}
+
+inline ccColor4F flashBackdropBorderTransparent() {
+    return ccc4f(0, 0, 0, 0);
+}
+
+} // namespace
+
 void PhysicsOverlay::tryBuildPlayerVisual() {
     if (m_visualBuilt) {
         return;
@@ -133,26 +153,26 @@ bool PhysicsOverlay::init() {
     if (m_flashBackdrop) {
         m_flashBackdrop->drawRect(
             CCRectMake(0, 0, m_winSize.width, m_winSize.height),
-            ccc4f(0, 0, 0, 1),
+            flashBackdropBlackFill(),
             0.0f,
-            ccc4f(0, 0, 0, 0)
+            flashBackdropBorderTransparent()
         );
         m_flashBackdrop->setPosition({0, 0});
         m_flashBackdrop->setVisible(false);
-        this->addChild(m_flashBackdrop, -1);
+        this->addChild(m_flashBackdrop, kImpactFlashBackdropZOrder);
     }
 
     m_flashBackdropWhite = CCDrawNode::create();
     if (m_flashBackdropWhite) {
         m_flashBackdropWhite->drawRect(
             CCRectMake(0, 0, m_winSize.width, m_winSize.height),
-            ccc4f(1, 1, 1, 1),
+            flashBackdropWhiteFill(),
             0.0f,
-            ccc4f(0, 0, 0, 0)
+            flashBackdropBorderTransparent()
         );
         m_flashBackdropWhite->setPosition({0, 0});
         m_flashBackdropWhite->setVisible(false);
-        this->addChild(m_flashBackdropWhite, -1);
+        this->addChild(m_flashBackdropWhite, kImpactFlashBackdropZOrder);
     }
 
     this->setTouchEnabled(true);
@@ -234,7 +254,7 @@ overlay_rendering::ImpactFlashMode PhysicsOverlay::currentImpactFlashMode() cons
     if (elapsed < kImpactFlashPhaseSeconds) {
         return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
     }
-    if (elapsed < 2.0f * kImpactFlashPhaseSeconds) {
+    if (elapsed < static_cast<float>(kImpactFlashInvertPhaseEndPhaseCount) * kImpactFlashPhaseSeconds) {
         return overlay_rendering::ImpactFlashMode::InvertSilhouette;
     }
     return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
