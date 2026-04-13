@@ -1,4 +1,5 @@
 #include "OverlayRendering.h"
+#include "OverlayShaders.h"
 
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
@@ -20,56 +21,6 @@ namespace {
 constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;
-
-char const* kMotionBlurVert = R"(attribute vec4 a_position;
-attribute vec4 a_color;
-attribute vec2 a_texCoord;
-#ifdef GL_ES
-varying lowp vec4 v_fragmentColor;
-varying mediump vec2 v_texCoord;
-#else
-varying vec4 v_fragmentColor;
-varying vec2 v_texCoord;
-#endif
-void main() {
-    gl_Position = CC_MVPMatrix * a_position;
-    v_fragmentColor = a_color;
-    v_texCoord = a_texCoord;
-}
-)";
-
-char const* kMotionBlurFrag = R"(#ifdef GL_ES
-precision lowp float;
-#endif
-varying vec4 v_fragmentColor;
-varying vec2 v_texCoord;
-uniform sampler2D CC_Texture0;
-uniform vec2 u_blurDir;
-void main() {
-    vec4 s =
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * -4.0) * 0.05 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * -3.0) * 0.09 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * -2.0) * 0.12 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * -1.0) * 0.15 +
-        texture2D(CC_Texture0, v_texCoord) * 0.18 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * 1.0) * 0.15 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * 2.0) * 0.12 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * 3.0) * 0.09 +
-        texture2D(CC_Texture0, v_texCoord + u_blurDir * 4.0) * 0.05;
-    gl_FragColor = s * v_fragmentColor;
-}
-)";
-
-char const* kWhiteFlashFrag = R"(#ifdef GL_ES
-precision lowp float;
-#endif
-varying vec2 v_texCoord;
-uniform sampler2D CC_Texture0;
-void main() {
-    float a = texture2D(CC_Texture0, v_texCoord).a;
-    gl_FragColor = vec4(a, a, a, a);
-}
-)";
 
 } // namespace
 
@@ -100,7 +51,7 @@ MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, 
 
 CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
     auto* p = new CCGLProgram();
-    if (!p->initWithVertexShaderByteArray(kMotionBlurVert, kMotionBlurFrag)) {
+    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kMotionBlurFrag)) {
         delete p;
         return nullptr;
     }
@@ -119,7 +70,7 @@ CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
 
 CCGLProgram* createWhiteFlashProgram() {
     auto* p = new CCGLProgram();
-    if (!p->initWithVertexShaderByteArray(kMotionBlurVert, kWhiteFlashFrag)) {
+    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kWhiteFlashFrag)) {
         delete p;
         return nullptr;
     }

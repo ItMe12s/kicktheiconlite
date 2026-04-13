@@ -13,6 +13,24 @@ project(frickyou VERSION 1.0.0)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.vert"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.frag"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/white_flash.frag"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/OverlayShaders_embed.cpp.in"
+)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.vert" MOTION_BLUR_VERT)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.frag" MOTION_BLUR_FRAG)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/white_flash.frag" WHITE_FLASH_FRAG)
+set(SHADER_EMBED_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${SHADER_EMBED_GEN_DIR}")
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/OverlayShaders_embed.cpp.in"
+  "${SHADER_EMBED_GEN_DIR}/OverlayShaders_embed.cpp"
+  @ONLY
+)
+target_sources(${PROJECT_NAME} PRIVATE "${SHADER_EMBED_GEN_DIR}/OverlayShaders_embed.cpp")
+
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
 else()
