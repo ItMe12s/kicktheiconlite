@@ -356,12 +356,14 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         return;
     }
     m_blurSprite->setShaderProgram(m_blurProgram);
+    m_blurSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     {
         float const cw = m_blurSprite->getContentSize().width;
         m_blurSprite->setScale(cw > 0.0f ? static_cast<float>(m_captureSize) / cw : 1.0f);
     }
     m_blurSprite->setPosition({0, 0});
     m_blurSprite->setVisible(false);
+    m_blurSprite->setFlipY(true);
     root->addChild(m_blurSprite, 1);
 
     m_playerRoot = root;
