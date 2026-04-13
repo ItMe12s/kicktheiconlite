@@ -8,6 +8,10 @@
 #include "PhysicsWorld.h"
 #include "PlayerVisual.h"
 
+namespace cocos2d {
+class CCLayerColor;
+}
+
 // CCMenu uses -128.
 constexpr int kPhysicsOverlayTouchPriority = -6767;
 
@@ -15,6 +19,11 @@ constexpr float kWallShakeDuration = 0.25f;
 constexpr float kMaxWallShakeStrength = 5.0f;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMinWallShakeSpeed = 150.0f;
+
+constexpr float kImpactMinSpeed = 1600.0f;
+constexpr float kImpactHitstopSeconds = 0.075f;
+constexpr float kImpactWhiteFlashSeconds = 0.05f;
+constexpr GLubyte kImpactWhiteFlashPeakOpacity = 200;
 
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265f;
@@ -36,6 +45,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     bool m_grabActive = false;
     float m_targetSize = 0.0f;
     cocos2d::CCSize m_winSize{};
+    float m_hitstopRemaining = 0.0f;
+    cocos2d::CCLayerColor* m_whiteFlash = nullptr;
 
 public:
     CREATE_FUNC(PhysicsOverlay);

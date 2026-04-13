@@ -2,6 +2,7 @@
 
 #include <Geode/cocos/actions/CCActionInterval.h>
 #include <Geode/cocos/cocoa/CCArray.h>
+#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
@@ -164,6 +165,22 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     out.locBlurDir = locBlurDir;
     out.blurSprite = blurSprite;
     return out;
+}
+
+void runOverlayWhiteFlash(CCLayerColor* layer, float duration, unsigned char peakOpacity) {
+    if (!layer) {
+        return;
+    }
+    layer->stopAllActions();
+    layer->setOpacity(0);
+    float const up = duration * 0.35f;
+    float const down = duration * 0.65f;
+    CCSequence* seq = CCSequence::create(
+        CCFadeTo::create(up, static_cast<GLubyte>(peakOpacity)),
+        CCFadeTo::create(down, 0),
+        nullptr
+    );
+    layer->runAction(seq);
 }
 
 void globalScreenShake(float duration, float strength) {

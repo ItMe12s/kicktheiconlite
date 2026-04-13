@@ -152,6 +152,8 @@ void PhysicsWorld::step(float dt) {
         p.torque -= kDragAngularDamping * p.angularVelocity;
     }
 
+    m_preStepSpeedPx = getPlayerSpeed();
+
     m_impl->world.Step(dt);
 }
 
@@ -166,6 +168,10 @@ PhysicsState PhysicsWorld::getPlayerState() const {
 float PhysicsWorld::getPlayerSpeed() const {
     Vec2 const& v = m_impl->player.velocity;
     return std::hypot(v.x, v.y) * PPM;
+}
+
+float PhysicsWorld::getPreStepPlayerSpeedPx() const {
+    return m_preStepSpeedPx;
 }
 
 PhysicsVelocity PhysicsWorld::getPlayerVelocityPixels() const {

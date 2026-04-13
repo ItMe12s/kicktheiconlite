@@ -6,6 +6,10 @@
 
 #include "PhysicsWorld.h"
 
+namespace cocos2d {
+class CCLayerColor;
+}
+
 namespace overlay_rendering {
 
 class MotionBlurSprite : public cocos2d::CCSprite {
@@ -41,6 +45,8 @@ struct MotionBlurAttachResult {
 MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
 
 void globalScreenShake(float duration, float strength);
+
+void runOverlayWhiteFlash(cocos2d::CCLayerColor* layer, float duration, unsigned char peakOpacity);
 
 void refreshPlayerMotionBlur(
     float dt,

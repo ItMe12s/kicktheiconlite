@@ -1,5 +1,6 @@
 #include "PhysicsOverlay.h"
 
+#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
 
 #include <algorithm>
@@ -127,6 +128,13 @@ bool PhysicsOverlay::init() {
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
+    m_whiteFlash = CCLayerColor::create(ccc4(255, 255, 255, 0), m_winSize.width, m_winSize.height);
+    if (m_whiteFlash) {
+        m_whiteFlash->setAnchorPoint({0, 0});
+        m_whiteFlash->setPosition({0, 0});
+        this->addChild(m_whiteFlash, 10000);
+    }
+
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, kPhysicsOverlaySchedulerPriority, false);
     return true;
 }
@@ -140,16 +148,33 @@ void PhysicsOverlay::update(float dt) {
         tryBuildPlayerVisual();
     }
 
-    m_physics->step(dt);
+    if (m_hitstopRemaining > 0.0f) {
+        m_hitstopRemaining -= dt;
+        if (m_hitstopRemaining < 0.0f) {
+            m_hitstopRemaining = 0.0f;
+        }
+    } else {
+        m_physics->step(dt);
 
-    if (m_physics->consumeWallImpact()) {
-        float const speed = m_physics->getPlayerSpeed();
-        if (speed >= kMinWallShakeSpeed) {
-            float const strength = std::min(
-                kMaxWallShakeStrength,
-                speed * kWallShakeSpeedToStrength
-            );
-            overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+        if (m_physics->consumeWallImpact()) {
+            float const postSpeed = m_physics->getPlayerSpeed();
+            if (postSpeed >= kMinWallShakeSpeed) {
+                float const strength = std::min(
+                    kMaxWallShakeStrength,
+                    postSpeed * kWallShakeSpeedToStrength
+                );
+                overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+            }
+
+            float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
+            if (preSpeed >= kImpactMinSpeed) {
+                m_hitstopRemaining = kImpactHitstopSeconds;
+                overlay_rendering::runOverlayWhiteFlash(
+                    m_whiteFlash,
+                    kImpactWhiteFlashSeconds,
+                    static_cast<unsigned char>(kImpactWhiteFlashPeakOpacity)
+                );
+            }
         }
     }
 
@@ -182,6 +207,7 @@ void PhysicsOverlay::onExit() {
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     delete m_physics;
     m_physics = nullptr;
+    m_whiteFlash = nullptr;
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;

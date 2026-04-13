@@ -19,6 +19,8 @@ public:
     float getPlayerSpeed() const;
     PhysicsVelocity getPlayerVelocityPixels() const;
 
+    float getPreStepPlayerSpeedPx() const;
+
     void setDragging(bool on);
     void setDragTargetPixels(float x, float y);
     void setDragGrabOffsetPixels(float offsetX, float offsetY);
@@ -37,4 +39,5 @@ private:
     float m_grabLocalX = 0.0f;
     float m_grabLocalY = 0.0f;
     bool m_wasPlayerAgainstWall = false;
+    float m_preStepSpeedPx = 0.0f;
 };
