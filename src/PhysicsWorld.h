@@ -4,6 +4,11 @@ struct PhysicsState {
     float x, y, angle;
 };
 
+struct PhysicsVelocity {
+    float vx;
+    float vy;
+};
+
 class PhysicsWorld {
 public:
     PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH);
@@ -12,6 +17,7 @@ public:
     PhysicsState getPlayerState() const;
 
     float getPlayerSpeed() const;
+    PhysicsVelocity getPlayerVelocityPixels() const;
 
     void setDragging(bool on);
     void setDragTargetPixels(float x, float y);

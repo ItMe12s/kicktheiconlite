@@ -8,6 +8,10 @@
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
+#include <Geode/cocos/misc_nodes/CCRenderTexture.h>
+#include <Geode/cocos/shaders/CCGLProgram.h>
+#include <Geode/cocos/sprite_nodes/CCSprite.h>
+#include <Geode/cocos/textures/CCTexture2D.h>
 #include "PhysicsWorld.h"
 
 #include <algorithm>
@@ -39,6 +43,102 @@ constexpr int kMinPlayerFrameId = 1;
 constexpr float kRadToDeg = 180.0f / 3.14159265f;
 constexpr int kPhysicsOverlaySchedulerPriority = 0;
 constexpr int kPhysicsOverlayZOrder = 1000;
+
+constexpr float kMinBlurSpeedPx = 8.0f;
+constexpr float kMaxBlurSpeedPx = 1200.0f;
+constexpr float kBlurUvSpread = 0.038f;
+constexpr float kBlurCaptureScale = 2.6f;
+
+char const* kMotionBlurVert = R"(attribute vec4 a_position;
+attribute vec4 a_color;
+attribute vec2 a_texCoord;
+#ifdef GL_ES
+varying lowp vec4 v_fragmentColor;
+varying mediump vec2 v_texCoord;
+#else
+varying vec4 v_fragmentColor;
+varying vec2 v_texCoord;
+#endif
+void main() {
+    gl_Position = CC_MVPMatrix * a_position;
+    v_fragmentColor = a_color;
+    v_texCoord = a_texCoord;
+}
+)";
+
+char const* kMotionBlurFrag = R"(#ifdef GL_ES
+precision lowp float;
+#endif
+varying vec4 v_fragmentColor;
+varying vec2 v_texCoord;
+uniform sampler2D CC_Texture0;
+uniform vec2 u_blurDir;
+void main() {
+    vec4 s =
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * -4.0) * 0.05 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * -3.0) * 0.09 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * -2.0) * 0.12 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * -1.0) * 0.15 +
+        texture2D(CC_Texture0, v_texCoord) * 0.18 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * 1.0) * 0.15 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * 2.0) * 0.12 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * 3.0) * 0.09 +
+        texture2D(CC_Texture0, v_texCoord + u_blurDir * 4.0) * 0.05;
+    gl_FragColor = s * v_fragmentColor;
+}
+)";
+
+class MotionBlurSprite : public CCSprite {
+public:
+    CCGLProgram* m_blurProg = nullptr;
+    GLint m_locBlurDir = -1;
+    float m_stepX = 0.0f;
+    float m_stepY = 0.0f;
+
+    void setBlurStep(float x, float y) {
+        m_stepX = x;
+        m_stepY = y;
+    }
+
+    void draw() override {
+        if (m_blurProg && m_locBlurDir >= 0) {
+            m_blurProg->use();
+            m_blurProg->setUniformLocationWith2f(m_locBlurDir, m_stepX, m_stepY);
+        }
+        CCSprite::draw();
+    }
+
+    static MotionBlurSprite* create(CCTexture2D* tex, CCGLProgram* prog, GLint locBlurDir) {
+        auto* s = new MotionBlurSprite();
+        s->m_blurProg = prog;
+        s->m_locBlurDir = locBlurDir;
+        if (s->initWithTexture(tex)) {
+            s->autorelease();
+            return s;
+        }
+        delete s;
+        return nullptr;
+    }
+};
+
+static CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
+    auto* p = new CCGLProgram();
+    if (!p->initWithVertexShaderByteArray(kMotionBlurVert, kMotionBlurFrag)) {
+        delete p;
+        return nullptr;
+    }
+    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
+    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
+    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
+    if (!p->link()) {
+        delete p;
+        return nullptr;
+    }
+    p->updateUniforms();
+    *outBlurDir = p->getUniformLocationForName("u_blurDir");
+    p->retain();
+    return p;
+}
 
 void globalScreenShake(float duration, float strength) {
     CCScene* scene = CCScene::get();
@@ -137,7 +237,13 @@ float visualWidthForPlayer(SimplePlayer* player) {
 
 class PhysicsOverlay : public CCLayer {
     PhysicsWorld* m_physics = nullptr;
-    CCNode* m_playerVisual = nullptr;
+    CCNode* m_playerRoot = nullptr;
+    SimplePlayer* m_player = nullptr;
+    MotionBlurSprite* m_blurSprite = nullptr;
+    CCRenderTexture* m_renderTexture = nullptr;
+    CCGLProgram* m_blurProgram = nullptr;
+    GLint m_locBlurDir = -1;
+    int m_captureSize = 0;
 
     int m_frameId = kMinPlayerFrameId;
     int m_iconTypeInt = static_cast<int>(IconType::Cube);
@@ -160,6 +266,7 @@ public:
 
 private:
     void tryBuildPlayerVisual();
+    void refreshPlayerMotionBlur(float dt);
     static void applyGmColorsAndFrame(SimplePlayer* player, int frameId);
     bool tryBeginGrab(CCPoint const& locationInNode);
     void endGrab();
@@ -198,17 +305,121 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     if (!player)
         return;
 
-    this->addChild(player);
+    auto* root = CCNode::create();
+    root->setPosition({m_winSize.width / 2, m_winSize.height / 2});
+    root->addChild(player, 0);
+    this->addChild(root);
 
     applyGmColorsAndFrame(player, m_frameId);
 
     float const w = visualWidthForPlayer(player);
     float const scale = m_targetSize / w;
     player->setScale(scale);
-    player->setPosition({m_winSize.width / 2, m_winSize.height / 2});
+    player->setPosition({0, 0});
 
-    m_playerVisual = player;
+    m_captureSize = static_cast<int>(std::ceil(m_targetSize * kBlurCaptureScale));
+    if (m_captureSize < 32) {
+        m_captureSize = 32;
+    }
+
+    m_renderTexture = CCRenderTexture::create(
+        m_captureSize,
+        m_captureSize,
+        kCCTexture2DPixelFormat_RGBA8888
+    );
+    if (!m_renderTexture) {
+        root->removeFromParentAndCleanup(true);
+        return;
+    }
+    m_renderTexture->retain();
+
+    m_blurProgram = createMotionBlurProgram(&m_locBlurDir);
+    if (!m_blurProgram || m_locBlurDir < 0) {
+        if (m_blurProgram) {
+            m_blurProgram->release();
+            m_blurProgram = nullptr;
+        }
+        m_renderTexture->release();
+        m_renderTexture = nullptr;
+        root->removeFromParentAndCleanup(true);
+        return;
+    }
+
+    CCTexture2D* rtTex = m_renderTexture->getSprite()->getTexture();
+    m_blurSprite = MotionBlurSprite::create(rtTex, m_blurProgram, m_locBlurDir);
+    if (!m_blurSprite) {
+        m_blurProgram->release();
+        m_blurProgram = nullptr;
+        m_renderTexture->release();
+        m_renderTexture = nullptr;
+        root->removeFromParentAndCleanup(true);
+        return;
+    }
+    m_blurSprite->setShaderProgram(m_blurProgram);
+    {
+        float const cw = m_blurSprite->getContentSize().width;
+        m_blurSprite->setScale(cw > 0.0f ? static_cast<float>(m_captureSize) / cw : 1.0f);
+    }
+    m_blurSprite->setPosition({0, 0});
+    m_blurSprite->setVisible(false);
+    root->addChild(m_blurSprite, 1);
+
+    m_playerRoot = root;
+    m_player = player;
     m_visualBuilt = true;
+}
+
+void PhysicsOverlay::refreshPlayerMotionBlur(float dt) {
+    (void)dt;
+    if (!m_player || !m_playerRoot || !m_renderTexture || !m_blurSprite || !m_physics) {
+        return;
+    }
+
+    PhysicsVelocity const vel = m_physics->getPlayerVelocityPixels();
+    float const speed = std::hypot(vel.vx, vel.vy);
+
+    if (speed < kMinBlurSpeedPx) {
+        m_player->setVisible(true);
+        m_blurSprite->setVisible(false);
+        return;
+    }
+
+    m_blurSprite->setVisible(true);
+
+    float const t = std::min(speed / kMaxBlurSpeedPx, 1.0f);
+    float const spreadUv = t * kBlurUvSpread;
+    float invSpeed = 1.0f / speed;
+    float const nx = -vel.vx * invSpeed;
+    float const ny = -vel.vy * invSpeed;
+    float const stepUv = spreadUv * (1.0f / 4.0f);
+    m_blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
+
+    m_player->retain();
+    CCNode* const parent = m_player->getParent();
+    if (parent) {
+        parent->removeChild(m_player, false);
+    }
+    this->addChild(m_player);
+    m_player->setVisible(true);
+
+    m_player->setPosition({0, 0});
+    CCRect const bb = m_player->boundingBox();
+    float const cx = bb.origin.x + bb.size.width * 0.5f;
+    float const cy = bb.origin.y + bb.size.height * 0.5f;
+    float const h = static_cast<float>(m_captureSize) * 0.5f;
+    m_player->setPosition({h - cx, h - cy});
+
+    m_renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+    m_player->visit();
+    m_renderTexture->end();
+
+    this->removeChild(m_player, false);
+    if (parent) {
+        parent->addChild(m_player);
+    }
+    m_player->setPosition({0, 0});
+    m_player->setVisible(false);
+    m_player->release();
 }
 
 bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
@@ -316,12 +527,13 @@ void PhysicsOverlay::update(float dt) {
         }
     }
 
-    if (!m_playerVisual)
+    if (!m_playerRoot || !m_player)
         return;
 
     auto state = m_physics->getPlayerState();
-    m_playerVisual->setPosition({state.x, state.y});
-    m_playerVisual->setRotation(-state.angle * kRadToDeg);
+    m_playerRoot->setPosition({state.x, state.y});
+    m_player->setRotation(-state.angle * kRadToDeg);
+    refreshPlayerMotionBlur(dt);
 }
 
 void PhysicsOverlay::onEnter() {
@@ -334,7 +546,20 @@ void PhysicsOverlay::onExit() {
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     delete m_physics;
     m_physics = nullptr;
-    m_playerVisual = nullptr;
+    if (m_playerRoot) {
+        m_playerRoot->removeFromParentAndCleanup(true);
+        m_playerRoot = nullptr;
+    }
+    m_player = nullptr;
+    m_blurSprite = nullptr;
+    if (m_blurProgram) {
+        m_blurProgram->release();
+        m_blurProgram = nullptr;
+    }
+    if (m_renderTexture) {
+        m_renderTexture->release();
+        m_renderTexture = nullptr;
+    }
     CCLayer::onExit();
 }
 

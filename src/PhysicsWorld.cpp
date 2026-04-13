@@ -168,6 +168,11 @@ float PhysicsWorld::getPlayerSpeed() const {
     return std::hypot(v.x, v.y) * PPM;
 }
 
+PhysicsVelocity PhysicsWorld::getPlayerVelocityPixels() const {
+    Vec2 const& v = m_impl->player.velocity;
+    return { v.x * PPM, v.y * PPM };
+}
+
 bool PhysicsWorld::hasPlayerWallContact() const {
     Body* const player = &m_impl->player;
     for (auto const& kv : m_impl->world.arbiters) {
