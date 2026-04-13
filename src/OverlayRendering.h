@@ -17,6 +17,8 @@ constexpr float kMaxBlurSpeedPx = 1200.0f;
 constexpr float kBlurUvSpread = 0.038f;
 constexpr float kBlurCaptureScale = 2.6f;
 
+constexpr float kScreenShakeCooldownExtraSeconds = 0.1f;
+
 class MotionBlurSprite : public cocos2d::CCSprite {
     cocos2d::CCGLProgram* m_blurProg = nullptr;
     GLint m_locBlurDir = -1;

@@ -30,6 +30,7 @@ public:
     bool consumeWallImpact();
 
 private:
+    void clampPlayerToScreenBoarder();
     bool hasPlayerWallContact() const;
     struct Impl;
     std::unique_ptr<Impl> m_impl;

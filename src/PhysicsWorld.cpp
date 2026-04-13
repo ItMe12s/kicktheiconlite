@@ -4,6 +4,7 @@
 #include "box2d-lite/Body.h"
 #include "box2d-lite/Arbiter.h"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -33,6 +34,8 @@ static constexpr float kDefaultDragTargetXFrac = 0.5f;
 static constexpr float kDefaultDragTargetYFrac = 0.5f;
 
 static constexpr float kMaxDeltaTime = 1.0f / 30.0f;
+
+static constexpr float kOutsideBarrierSlack = 1.2f;
 
 struct PhysicsWorld::Impl {
     World world;
@@ -86,6 +89,51 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
 {}
 
 PhysicsWorld::~PhysicsWorld() = default;
+
+void PhysicsWorld::clampPlayerToScreenBoarder() {
+    float const ww = m_worldW / kPixelsPerMeter;
+    float const wh = m_worldH / kPixelsPerMeter;
+    Body& p = m_impl->player;
+    float const a = p.width.x * 0.5f;
+    float const b = p.width.y * 0.5f;
+    float const c = std::cos(p.rotation);
+    float const s = std::sin(p.rotation);
+    float const ex = std::fabs(c) * a + std::fabs(s) * b;
+    float const ey = std::fabs(s) * a + std::fabs(c) * b;
+
+    float const left = p.position.x - ex;
+    float const right = p.position.x + ex;
+    float const bottom = p.position.y - ey;
+    float const top = p.position.y + ey;
+
+    float const padX = ww * (kOutsideBarrierSlack - 1.0f);
+    float const padY = wh * (kOutsideBarrierSlack - 1.0f);
+
+    float const snapMinX = ex;
+    float const snapMaxX = ww - ex;
+    float const snapMinY = ey;
+    float const snapMaxY = wh - ey;
+
+    if (snapMinX <= snapMaxX) {
+        if (left < -padX) {
+            p.position.x = snapMinX;
+        } else if (right > ww + padX) {
+            p.position.x = snapMaxX;
+        }
+    } else {
+        p.position.x = ww * 0.5f;
+    }
+
+    if (snapMinY <= snapMaxY) {
+        if (bottom < -padY) {
+            p.position.y = snapMinY;
+        } else if (top > wh + padY) {
+            p.position.y = snapMaxY;
+        }
+    } else {
+        p.position.y = wh * 0.5f;
+    }
+}
 
 void PhysicsWorld::setDragging(bool on) {
     m_dragging = on;
@@ -153,6 +201,7 @@ void PhysicsWorld::step(float dt) {
     m_preStepSpeedPx = getPlayerSpeed();
 
     m_impl->world.Step(dt);
+    clampPlayerToScreenBoarder();
 }
 
 PhysicsState PhysicsWorld::getPlayerState() const {

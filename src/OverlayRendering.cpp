@@ -9,6 +9,7 @@
 #include <Geode/cocos/textures/CCTexture2D.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <random>
 
@@ -197,6 +198,15 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
 }
 
 void globalScreenShake(float duration, float strength) {
+    using clock = std::chrono::steady_clock;
+    static double s_nextShakeAllowedSec = 0.0;
+    auto const now = clock::now();
+    double const nowSec =
+        std::chrono::duration<double>(now.time_since_epoch()).count();
+    if (nowSec < s_nextShakeAllowedSec) {
+        return;
+    }
+
     CCScene* scene = CCScene::get();
     if (!scene) {
         return;
@@ -207,6 +217,10 @@ void globalScreenShake(float duration, float strength) {
 
     int const intervals = kScreenShakeIntervals;
     float const stepDuration = duration / static_cast<float>(intervals);
+    float const totalShakeSec =
+        stepDuration * static_cast<float>(intervals + 1);
+    s_nextShakeAllowedSec =
+        nowSec + static_cast<double>(totalShakeSec + kScreenShakeCooldownExtraSeconds);
 
     thread_local std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist(kScreenShakeSampleMin, kScreenShakeSampleMax);
