@@ -2,6 +2,7 @@
 
 #include "box2d-lite/World.h"
 #include "box2d-lite/Body.h"
+#include "box2d-lite/Arbiter.h"
 
 #include <cmath>
 
@@ -138,4 +139,39 @@ PhysicsState PhysicsWorld::getPlayerState() const {
         m_impl->player.position.y * PPM,
         m_impl->player.rotation
     };
+}
+
+float PhysicsWorld::getPlayerSpeed() const {
+    Vec2 const& v = m_impl->player.velocity;
+    return std::hypot(v.x, v.y) * PPM;
+}
+
+bool PhysicsWorld::hasPlayerWallContact() const {
+    Body* const player = &m_impl->player;
+    for (auto const& kv : m_impl->world.arbiters) {
+        Arbiter const& arb = kv.second;
+        if (arb.numContacts <= 0) {
+            continue;
+        }
+        Body* const a = arb.body1;
+        Body* const b = arb.body2;
+        auto const isWall = [&](Body* w) {
+            return w == &m_impl->wallBottom || w == &m_impl->wallTop || w == &m_impl->wallLeft
+                || w == &m_impl->wallRight;
+        };
+        if (a == player && isWall(b)) {
+            return true;
+        }
+        if (b == player && isWall(a)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PhysicsWorld::consumeWallImpact() {
+    bool const now = hasPlayerWallContact();
+    bool const impact = now && !m_wasPlayerAgainstWall;
+    m_wasPlayerAgainstWall = now;
+    return impact;
 }

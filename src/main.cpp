@@ -3,12 +3,16 @@
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/Enums.hpp>
 #include <Geode/ui/OverlayManager.hpp>
+#include <Geode/cocos/actions/CCActionInterval.h>
+#include <Geode/cocos/cocoa/CCArray.h>
+#include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
 #include "PhysicsWorld.h"
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 using namespace geode::prelude;
 
@@ -16,6 +20,37 @@ namespace {
 
 // CCMenu uses -128.
 constexpr int kPhysicsOverlayTouchPriority = -6767;
+
+constexpr float kWallShakeDuration = 0.2f;
+constexpr float kMaxWallShakeStrength = 5.0f;
+constexpr float kWallShakeSpeedToStrength = 0.005f;
+
+void globalScreenShake(float duration, float strength) {
+    CCScene* scene = CCScene::get();
+    if (!scene) {
+        return;
+    }
+
+    CCPoint const base = scene->getPosition();
+    scene->stopAllActions();
+
+    int const intervals = 20;
+    float const stepDuration = duration / static_cast<float>(intervals);
+
+    thread_local std::mt19937 rng{std::random_device{}()};
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
+    CCArray* actions = CCArray::create();
+    for (int i = 0; i < intervals; ++i) {
+        float const t = static_cast<float>(i) / static_cast<float>(intervals);
+        float const falloff = (1.0f - t) * (1.0f - t);
+        float const offX = dist(rng) * strength * falloff;
+        float const offY = dist(rng) * strength * falloff;
+        actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x + offX, base.y + offY)));
+    }
+    actions->addObject(CCMoveTo::create(stepDuration, ccp(0.0f, 0.0f)));
+    scene->runAction(CCSequence::create(actions));
+}
 
 void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt) {
     if (gm->isIconLoaded(iconId, typeInt))
@@ -254,6 +289,15 @@ void PhysicsOverlay::update(float dt) {
         tryBuildPlayerVisual();
 
     m_physics->step(dt);
+
+    if (m_physics->consumeWallImpact()) {
+        float const speed = m_physics->getPlayerSpeed();
+        float const strength = std::min(
+            kMaxWallShakeStrength,
+            speed * kWallShakeSpeedToStrength
+        );
+        globalScreenShake(kWallShakeDuration, strength);
+    }
 
     if (!m_playerVisual)
         return;

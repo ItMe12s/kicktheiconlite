@@ -11,11 +11,16 @@ public:
     void step(float dt);
     PhysicsState getPlayerState() const;
 
+    float getPlayerSpeed() const;
+
     void setDragging(bool on);
     void setDragTargetPixels(float x, float y);
     void setDragGrabOffsetPixels(float offsetX, float offsetY);
 
+    bool consumeWallImpact();
+
 private:
+    bool hasPlayerWallContact() const;
     struct Impl;
     Impl* m_impl;
     float m_worldW = 0.0f;
@@ -25,4 +30,5 @@ private:
     float m_dragTargetY = 0.0f;
     float m_grabLocalX = 0.0f;
     float m_grabLocalY = 0.0f;
+    bool m_wasPlayerAgainstWall = false;
 };
