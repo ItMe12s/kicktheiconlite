@@ -36,6 +36,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_renderTexture = mr.renderTexture;
     m_blurProgram = mr.blurProgram;
     m_whiteFlashProgram = mr.whiteFlashProgram;
+    m_colorInvertProgram = mr.colorInvertProgram;
     m_blurSprite = mr.blurSprite;
     m_whiteFlashSprite = mr.whiteFlashSprite;
     m_visualBuilt = true;
@@ -141,6 +142,19 @@ bool PhysicsOverlay::init() {
         this->addChild(m_flashBackdrop, -1);
     }
 
+    m_flashBackdropWhite = CCDrawNode::create();
+    if (m_flashBackdropWhite) {
+        m_flashBackdropWhite->drawRect(
+            CCRectMake(0, 0, m_winSize.width, m_winSize.height),
+            ccc4f(1, 1, 1, 1),
+            0.0f,
+            ccc4f(0, 0, 0, 0)
+        );
+        m_flashBackdropWhite->setPosition({0, 0});
+        m_flashBackdropWhite->setVisible(false);
+        this->addChild(m_flashBackdropWhite, -1);
+    }
+
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
@@ -186,7 +200,7 @@ void PhysicsOverlay::update(float dt) {
             float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
             if (preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
                 m_hitstopRemaining = kImpactHitstopSeconds;
-                m_whiteFlashRemaining = kImpactWhiteFlashSeconds;
+                m_whiteFlashRemaining = kImpactFlashTotalSeconds;
                 m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
                 if (m_whiteFlashSprite) {
                     m_whiteFlashSprite->stopAllActions();
@@ -208,10 +222,27 @@ void PhysicsOverlay::update(float dt) {
     auto state = m_physics->getPlayerState();
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
-    bool const whiteFlashActive = m_whiteFlashRemaining > 0.0f;
-    if (m_flashBackdrop) {
-        m_flashBackdrop->setVisible(whiteFlashActive);
+
+    overlay_rendering::ImpactFlashMode flashMode = overlay_rendering::ImpactFlashMode::None;
+    if (m_whiteFlashRemaining > 0.0f) {
+        float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
+        if (elapsed < kImpactFlashPhaseSeconds) {
+            flashMode = overlay_rendering::ImpactFlashMode::WhiteSilhouette;
+        } else if (elapsed < 2.0f * kImpactFlashPhaseSeconds) {
+            flashMode = overlay_rendering::ImpactFlashMode::InvertSilhouette;
+        } else {
+            flashMode = overlay_rendering::ImpactFlashMode::WhiteSilhouette;
+        }
     }
+
+    bool const impactFlashActive = flashMode != overlay_rendering::ImpactFlashMode::None;
+    if (m_flashBackdrop) {
+        m_flashBackdrop->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::WhiteSilhouette);
+    }
+    if (m_flashBackdropWhite) {
+        m_flashBackdropWhite->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::InvertSilhouette);
+    }
+
     overlay_rendering::refreshPlayerMotionBlur(
         dt,
         m_player,
@@ -220,9 +251,11 @@ void PhysicsOverlay::update(float dt) {
         m_renderTexture,
         m_blurSprite,
         m_whiteFlashSprite,
+        m_whiteFlashProgram,
+        m_colorInvertProgram,
         m_physics,
         m_captureSize,
-        whiteFlashActive
+        flashMode
     );
 
     if (m_whiteFlashRemaining > 0.0f) {
@@ -257,6 +290,10 @@ void PhysicsOverlay::onExit() {
     if (m_whiteFlashProgram) {
         m_whiteFlashProgram->release();
         m_whiteFlashProgram = nullptr;
+    }
+    if (m_colorInvertProgram) {
+        m_colorInvertProgram->release();
+        m_colorInvertProgram = nullptr;
     }
     if (m_renderTexture) {
         m_renderTexture->release();

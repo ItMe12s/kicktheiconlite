@@ -27,6 +27,13 @@ public:
 
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
 cocos2d::CCGLProgram* createWhiteFlashProgram();
+cocos2d::CCGLProgram* createColorInvertProgram();
+
+enum class ImpactFlashMode {
+    None,
+    WhiteSilhouette,
+    InvertSilhouette,
+};
 
 constexpr float kMinBlurSpeedPx = 8.0f;
 constexpr float kMaxBlurSpeedPx = 1200.0f;
@@ -43,6 +50,7 @@ struct MotionBlurAttachResult {
     MotionBlurSprite* blurSprite = nullptr;
     cocos2d::CCSprite* whiteFlashSprite = nullptr;
     cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
 };
 
 MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
@@ -57,9 +65,11 @@ void refreshPlayerMotionBlur(
     cocos2d::CCRenderTexture* renderTexture,
     MotionBlurSprite* blurSprite,
     cocos2d::CCSprite* whiteFlashSprite,
+    cocos2d::CCGLProgram* whiteFlashProgram,
+    cocos2d::CCGLProgram* colorInvertProgram,
     PhysicsWorld* physics,
     int captureSize,
-    bool whiteFlashActive
+    ImpactFlashMode impactFlashMode
 );
 
 } // namespace overlay_rendering

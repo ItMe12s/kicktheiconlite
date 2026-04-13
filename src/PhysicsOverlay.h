@@ -21,10 +21,11 @@ constexpr float kMaxWallShakeStrength = 5.0f;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMinWallShakeSpeed = 150.0f;
 
-constexpr float kImpactMinSpeed = 1600.0f;
-constexpr float kImpactHitstopSeconds = 0.075f;
-constexpr float kImpactWhiteFlashSeconds = 0.05f;
-constexpr float kImpactFlashCooldownSeconds = 0.6f;
+constexpr float kImpactMinSpeed = 1800.0f;
+constexpr float kImpactHitstopSeconds = 0.15f;
+constexpr float kImpactFlashTotalSeconds = 0.15f;
+constexpr float kImpactFlashPhaseSeconds = 0.05f;
+constexpr float kImpactFlashCooldownSeconds = 0.7f;
 
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265f;
@@ -39,6 +40,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCRenderTexture* m_renderTexture = nullptr;
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
     cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
     int m_captureSize = 0;
 
     int m_frameId = player_visual::kMinPlayerFrameId;
@@ -52,6 +54,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_impactFlashCooldownRemaining = 0.0f;
     cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
+    cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
 
 public:
     CREATE_FUNC(PhysicsOverlay);

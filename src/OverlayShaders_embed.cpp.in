@@ -5,5 +5,6 @@ namespace overlay_rendering::shaders {
 char const kMotionBlurVert[] = R"OVLSH(@MOTION_BLUR_VERT@)OVLSH";
 char const kMotionBlurFrag[] = R"OVLSH(@MOTION_BLUR_FRAG@)OVLSH";
 char const kWhiteFlashFrag[] = R"OVLSH(@WHITE_FLASH_FRAG@)OVLSH";
+char const kColorInvertFrag[] = R"OVLSH(@COLOR_INVERT_FRAG@)OVLSH";
 
 } // namespace overlay_rendering::shaders

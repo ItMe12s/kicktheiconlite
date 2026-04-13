@@ -86,6 +86,24 @@ CCGLProgram* createWhiteFlashProgram() {
     return p;
 }
 
+CCGLProgram* createColorInvertProgram() {
+    auto* p = new CCGLProgram();
+    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kColorInvertFrag)) {
+        delete p;
+        return nullptr;
+    }
+    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
+    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
+    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
+    if (!p->link()) {
+        delete p;
+        return nullptr;
+    }
+    p->updateUniforms();
+    p->retain();
+    return p;
+}
+
 int captureSizeForTarget(float targetSize) {
     int captureSize = static_cast<int>(std::ceil(targetSize * kBlurCaptureScale));
     if (captureSize < 32) {
@@ -164,6 +182,15 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     }
     whiteFlashSprite->setShaderProgram(whiteFlashProgram);
 
+    auto* colorInvertProgram = createColorInvertProgram();
+    if (!colorInvertProgram) {
+        whiteFlashProgram->release();
+        blurProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+
     out.ok = true;
     out.renderTexture = renderTexture;
     out.blurProgram = blurProgram;
@@ -171,6 +198,7 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     out.blurSprite = blurSprite;
     out.whiteFlashSprite = whiteFlashSprite;
     out.whiteFlashProgram = whiteFlashProgram;
+    out.colorInvertProgram = colorInvertProgram;
     return out;
 }
 
@@ -209,9 +237,11 @@ void refreshPlayerMotionBlur(
     CCRenderTexture* renderTexture,
     MotionBlurSprite* blurSprite,
     CCSprite* whiteFlashSprite,
+    CCGLProgram* whiteFlashProgram,
+    CCGLProgram* colorInvertProgram,
     PhysicsWorld* physics,
     int captureSize,
-    bool whiteFlashActive
+    ImpactFlashMode impactFlashMode
 ) {
     (void)dt;
     (void)playerRoot;
@@ -222,7 +252,8 @@ void refreshPlayerMotionBlur(
     PhysicsVelocity const vel = physics->getPlayerVelocityPixels();
     float const speed = std::hypot(vel.vx, vel.vy);
 
-    bool const needCapture = (speed >= kMinBlurSpeedPx) || whiteFlashActive;
+    bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
+    bool const needCapture = (speed >= kMinBlurSpeedPx) || impactFlashActive;
 
     if (!needCapture) {
         player->setVisible(true);
@@ -241,7 +272,7 @@ void refreshPlayerMotionBlur(
     float const stepUv = spreadUv * (1.0f / 4.0f);
     blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
 
-    if (!whiteFlashActive) {
+    if (!impactFlashActive) {
         blurSprite->setVisible(true);
     }
 
@@ -270,7 +301,13 @@ void refreshPlayerMotionBlur(
     }
     player->setPosition({0, 0});
 
-    if (whiteFlashActive && whiteFlashSprite) {
+    if (impactFlashMode == ImpactFlashMode::WhiteSilhouette && whiteFlashSprite && whiteFlashProgram) {
+        whiteFlashSprite->setShaderProgram(whiteFlashProgram);
+        player->setVisible(false);
+        blurSprite->setVisible(false);
+        whiteFlashSprite->setVisible(true);
+    } else if (impactFlashMode == ImpactFlashMode::InvertSilhouette && whiteFlashSprite && colorInvertProgram) {
+        whiteFlashSprite->setShaderProgram(colorInvertProgram);
         player->setVisible(false);
         blurSprite->setVisible(false);
         whiteFlashSprite->setVisible(true);
