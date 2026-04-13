@@ -35,7 +35,8 @@ struct PhysicsWorld::Impl {
 
         player.Set(Vec2(bw, bh), 1.0f);
         player.position.Set(ww * 0.5f, wh * 0.5f);
-        player.velocity.Set(3.0f, 5.0f);
+        player.velocity.Set(10.0f, 5.0f);
+        player.angularVelocity = 10.0f;
         player.friction = 0.1f;
 
         world.Add(&wallBottom);

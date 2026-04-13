@@ -153,7 +153,7 @@ bool PhysicsOverlay::init() {
 
     m_winSize = CCDirector::get()->getWinSize();
     float smaller = m_winSize.width < m_winSize.height ? m_winSize.width : m_winSize.height;
-    m_targetSize = smaller * 0.125f;
+    m_targetSize = smaller * 0.15f;
 
     auto* gm = GameManager::get();
     if (!gm)
