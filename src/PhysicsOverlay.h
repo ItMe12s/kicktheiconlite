@@ -9,7 +9,7 @@
 #include "PlayerVisual.h"
 
 namespace cocos2d {
-class CCLayerColor;
+class CCSprite;
 }
 
 // CCMenu uses -128.
@@ -23,7 +23,6 @@ constexpr float kMinWallShakeSpeed = 150.0f;
 constexpr float kImpactMinSpeed = 1600.0f;
 constexpr float kImpactHitstopSeconds = 0.075f;
 constexpr float kImpactWhiteFlashSeconds = 0.05f;
-constexpr GLubyte kImpactWhiteFlashPeakOpacity = 200;
 
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265f;
@@ -37,6 +36,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
     cocos2d::CCRenderTexture* m_renderTexture = nullptr;
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
+    cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
     int m_captureSize = 0;
 
     int m_frameId = player_visual::kMinPlayerFrameId;
@@ -46,7 +46,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_targetSize = 0.0f;
     cocos2d::CCSize m_winSize{};
     float m_hitstopRemaining = 0.0f;
-    cocos2d::CCLayerColor* m_whiteFlash = nullptr;
+    float m_whiteFlashRemaining = 0.0f;
+    cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
 
 public:
     CREATE_FUNC(PhysicsOverlay);

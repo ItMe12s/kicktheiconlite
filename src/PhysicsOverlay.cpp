@@ -34,7 +34,9 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_player = pr.player;
     m_renderTexture = mr.renderTexture;
     m_blurProgram = mr.blurProgram;
+    m_whiteFlashProgram = mr.whiteFlashProgram;
     m_blurSprite = mr.blurSprite;
+    m_whiteFlashSprite = mr.whiteFlashSprite;
     m_visualBuilt = true;
 }
 
@@ -128,13 +130,6 @@ bool PhysicsOverlay::init() {
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
-    m_whiteFlash = CCLayerColor::create(ccc4(255, 255, 255, 0), m_winSize.width, m_winSize.height);
-    if (m_whiteFlash) {
-        m_whiteFlash->setAnchorPoint({0, 0});
-        m_whiteFlash->setPosition({0, 0});
-        this->addChild(m_whiteFlash, 10000);
-    }
-
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, kPhysicsOverlaySchedulerPriority, false);
     return true;
 }
@@ -169,22 +164,28 @@ void PhysicsOverlay::update(float dt) {
             float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
             if (preSpeed >= kImpactMinSpeed) {
                 m_hitstopRemaining = kImpactHitstopSeconds;
-                overlay_rendering::runOverlayWhiteFlash(
-                    m_whiteFlash,
-                    kImpactWhiteFlashSeconds,
-                    static_cast<unsigned char>(kImpactWhiteFlashPeakOpacity)
-                );
+                m_whiteFlashRemaining = kImpactWhiteFlashSeconds;
+                if (m_whiteFlashSprite) {
+                    m_whiteFlashSprite->stopAllActions();
+                }
             }
         }
     }
 
     if (!m_playerRoot || !m_player) {
+        if (m_whiteFlashRemaining > 0.0f) {
+            m_whiteFlashRemaining -= dt;
+            if (m_whiteFlashRemaining < 0.0f) {
+                m_whiteFlashRemaining = 0.0f;
+            }
+        }
         return;
     }
 
     auto state = m_physics->getPlayerState();
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
+    bool const whiteFlashActive = m_whiteFlashRemaining > 0.0f;
     overlay_rendering::refreshPlayerMotionBlur(
         dt,
         m_player,
@@ -192,9 +193,18 @@ void PhysicsOverlay::update(float dt) {
         this,
         m_renderTexture,
         m_blurSprite,
+        m_whiteFlashSprite,
         m_physics,
-        m_captureSize
+        m_captureSize,
+        whiteFlashActive
     );
+
+    if (m_whiteFlashRemaining > 0.0f) {
+        m_whiteFlashRemaining -= dt;
+        if (m_whiteFlashRemaining < 0.0f) {
+            m_whiteFlashRemaining = 0.0f;
+        }
+    }
 }
 
 void PhysicsOverlay::onEnter() {
@@ -207,16 +217,20 @@ void PhysicsOverlay::onExit() {
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     delete m_physics;
     m_physics = nullptr;
-    m_whiteFlash = nullptr;
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;
     }
     m_player = nullptr;
     m_blurSprite = nullptr;
+    m_whiteFlashSprite = nullptr;
     if (m_blurProgram) {
         m_blurProgram->release();
         m_blurProgram = nullptr;
+    }
+    if (m_whiteFlashProgram) {
+        m_whiteFlashProgram->release();
+        m_whiteFlashProgram = nullptr;
     }
     if (m_renderTexture) {
         m_renderTexture->release();

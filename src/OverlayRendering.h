@@ -7,7 +7,7 @@
 #include "PhysicsWorld.h"
 
 namespace cocos2d {
-class CCLayerColor;
+class CCSprite;
 }
 
 namespace overlay_rendering {
@@ -26,6 +26,7 @@ public:
 };
 
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
+cocos2d::CCGLProgram* createWhiteFlashProgram();
 
 constexpr float kMinBlurSpeedPx = 8.0f;
 constexpr float kMaxBlurSpeedPx = 1200.0f;
@@ -40,13 +41,13 @@ struct MotionBlurAttachResult {
     cocos2d::CCGLProgram* blurProgram = nullptr;
     GLint locBlurDir = -1;
     MotionBlurSprite* blurSprite = nullptr;
+    cocos2d::CCSprite* whiteFlashSprite = nullptr;
+    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
 };
 
 MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
 
 void globalScreenShake(float duration, float strength);
-
-void runOverlayWhiteFlash(cocos2d::CCLayerColor* layer, float duration, unsigned char peakOpacity);
 
 void refreshPlayerMotionBlur(
     float dt,
@@ -55,8 +56,10 @@ void refreshPlayerMotionBlur(
     cocos2d::CCLayer* hostLayer,
     cocos2d::CCRenderTexture* renderTexture,
     MotionBlurSprite* blurSprite,
+    cocos2d::CCSprite* whiteFlashSprite,
     PhysicsWorld* physics,
-    int captureSize
+    int captureSize,
+    bool whiteFlashActive
 );
 
 } // namespace overlay_rendering

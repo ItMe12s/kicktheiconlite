@@ -1,6 +1,5 @@
 #include "OverlayRendering.h"
 
-#include <Geode/cocos/actions/CCActionInterval.h>
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
@@ -61,6 +60,17 @@ void main() {
 }
 )";
 
+char const* kWhiteFlashFrag = R"(#ifdef GL_ES
+precision lowp float;
+#endif
+varying vec2 v_texCoord;
+uniform sampler2D CC_Texture0;
+void main() {
+    float a = texture2D(CC_Texture0, v_texCoord).a;
+    gl_FragColor = vec4(a, a, a, a);
+}
+)";
+
 } // namespace
 
 void MotionBlurSprite::setBlurStep(float x, float y) {
@@ -103,6 +113,24 @@ CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
     }
     p->updateUniforms();
     *outBlurDir = p->getUniformLocationForName("u_blurDir");
+    p->retain();
+    return p;
+}
+
+CCGLProgram* createWhiteFlashProgram() {
+    auto* p = new CCGLProgram();
+    if (!p->initWithVertexShaderByteArray(kMotionBlurVert, kWhiteFlashFrag)) {
+        delete p;
+        return nullptr;
+    }
+    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
+    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
+    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
+    if (!p->link()) {
+        delete p;
+        return nullptr;
+    }
+    p->updateUniforms();
     p->retain();
     return p;
 }
@@ -159,28 +187,40 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     blurSprite->setFlipY(true);
     playerRoot->addChild(blurSprite, 1);
 
+    auto* whiteFlashSprite = CCSprite::createWithTexture(rtTex);
+    if (!whiteFlashSprite) {
+        blurProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+    whiteFlashSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+    {
+        float const cw = whiteFlashSprite->getContentSize().width;
+        whiteFlashSprite->setScale(cw > 0.0f ? static_cast<float>(captureSize) / cw : 1.0f);
+    }
+    whiteFlashSprite->setPosition({0, 0});
+    whiteFlashSprite->setVisible(false);
+    whiteFlashSprite->setFlipY(true);
+    playerRoot->addChild(whiteFlashSprite, 2);
+
+    auto* whiteFlashProgram = createWhiteFlashProgram();
+    if (!whiteFlashProgram) {
+        blurProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+    whiteFlashSprite->setShaderProgram(whiteFlashProgram);
+
     out.ok = true;
     out.renderTexture = renderTexture;
     out.blurProgram = blurProgram;
     out.locBlurDir = locBlurDir;
     out.blurSprite = blurSprite;
+    out.whiteFlashSprite = whiteFlashSprite;
+    out.whiteFlashProgram = whiteFlashProgram;
     return out;
-}
-
-void runOverlayWhiteFlash(CCLayerColor* layer, float duration, unsigned char peakOpacity) {
-    if (!layer) {
-        return;
-    }
-    layer->stopAllActions();
-    layer->setOpacity(0);
-    float const up = duration * 0.35f;
-    float const down = duration * 0.65f;
-    CCSequence* seq = CCSequence::create(
-        CCFadeTo::create(up, static_cast<GLubyte>(peakOpacity)),
-        CCFadeTo::create(down, 0),
-        nullptr
-    );
-    layer->runAction(seq);
 }
 
 void globalScreenShake(float duration, float strength) {
@@ -217,32 +257,42 @@ void refreshPlayerMotionBlur(
     CCLayer* hostLayer,
     CCRenderTexture* renderTexture,
     MotionBlurSprite* blurSprite,
+    CCSprite* whiteFlashSprite,
     PhysicsWorld* physics,
-    int captureSize
+    int captureSize,
+    bool whiteFlashActive
 ) {
     (void)dt;
-    if (!player || !playerRoot || !renderTexture || !blurSprite || !physics) {
+    (void)playerRoot;
+    if (!player || !renderTexture || !blurSprite || !physics) {
         return;
     }
 
     PhysicsVelocity const vel = physics->getPlayerVelocityPixels();
     float const speed = std::hypot(vel.vx, vel.vy);
 
-    if (speed < kMinBlurSpeedPx) {
+    bool const needCapture = (speed >= kMinBlurSpeedPx) || whiteFlashActive;
+
+    if (!needCapture) {
         player->setVisible(true);
         blurSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
         return;
     }
 
-    blurSprite->setVisible(true);
-
     float const t = std::min(speed / kMaxBlurSpeedPx, 1.0f);
     float const spreadUv = t * kBlurUvSpread;
-    float invSpeed = 1.0f / speed;
+    float const invSpeed = speed > 1e-6f ? 1.0f / speed : 0.0f;
     float const nx = -vel.vx * invSpeed;
     float const ny = -vel.vy * invSpeed;
     float const stepUv = spreadUv * (1.0f / 4.0f);
     blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
+
+    if (!whiteFlashActive) {
+        blurSprite->setVisible(true);
+    }
 
     player->retain();
     CCNode* const parent = player->getParent();
@@ -268,7 +318,24 @@ void refreshPlayerMotionBlur(
         parent->addChild(player);
     }
     player->setPosition({0, 0});
-    player->setVisible(false);
+
+    if (whiteFlashActive && whiteFlashSprite) {
+        player->setVisible(false);
+        blurSprite->setVisible(false);
+        whiteFlashSprite->setVisible(true);
+    } else if (speed >= kMinBlurSpeedPx) {
+        blurSprite->setVisible(true);
+        player->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+    } else {
+        player->setVisible(true);
+        blurSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+    }
     player->release();
 }
 
