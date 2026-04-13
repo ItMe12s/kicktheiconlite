@@ -13,12 +13,14 @@ class CCSprite;
 namespace overlay_rendering {
 
 class MotionBlurSprite : public cocos2d::CCSprite {
-public:
     cocos2d::CCGLProgram* m_blurProg = nullptr;
     GLint m_locBlurDir = -1;
     float m_stepX = 0.0f;
     float m_stepY = 0.0f;
 
+    void setBlurUniforms(cocos2d::CCGLProgram* prog, GLint locBlurDir);
+
+public:
     void setBlurStep(float x, float y);
     void draw() override;
 
@@ -57,19 +59,21 @@ MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int capture
 
 void globalScreenShake(float duration, float strength);
 
-void refreshPlayerMotionBlur(
-    float dt,
-    SimplePlayer* player,
-    cocos2d::CCNode* playerRoot,
-    cocos2d::CCLayer* hostLayer,
-    cocos2d::CCRenderTexture* renderTexture,
-    MotionBlurSprite* blurSprite,
-    cocos2d::CCSprite* whiteFlashSprite,
-    cocos2d::CCGLProgram* whiteFlashProgram,
-    cocos2d::CCGLProgram* colorInvertProgram,
-    PhysicsWorld* physics,
-    int captureSize,
-    ImpactFlashMode impactFlashMode
-);
+struct MotionBlurRefreshArgs {
+    float dt = 0.0f;
+    SimplePlayer* player = nullptr;
+    cocos2d::CCNode* playerRoot = nullptr;
+    cocos2d::CCLayer* hostLayer = nullptr;
+    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    MotionBlurSprite* blurSprite = nullptr;
+    cocos2d::CCSprite* whiteFlashSprite = nullptr;
+    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
+    PhysicsWorld* physics = nullptr;
+    int captureSize = 0;
+    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
+};
+
+void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args);
 
 } // namespace overlay_rendering

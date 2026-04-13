@@ -22,7 +22,30 @@ constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;
 
+CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
+    auto* p = new CCGLProgram();
+    if (!p->initWithVertexShaderByteArray(vert, frag)) {
+        delete p;
+        return nullptr;
+    }
+    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
+    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
+    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
+    if (!p->link()) {
+        delete p;
+        return nullptr;
+    }
+    p->updateUniforms();
+    p->retain();
+    return p;
+}
+
 } // namespace
+
+void MotionBlurSprite::setBlurUniforms(CCGLProgram* prog, GLint locBlurDir) {
+    m_blurProg = prog;
+    m_locBlurDir = locBlurDir;
+}
 
 void MotionBlurSprite::setBlurStep(float x, float y) {
     m_stepX = x;
@@ -39,8 +62,7 @@ void MotionBlurSprite::draw() {
 
 MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, GLint locBlurDir) {
     auto* s = new MotionBlurSprite();
-    s->m_blurProg = prog;
-    s->m_locBlurDir = locBlurDir;
+    s->setBlurUniforms(prog, locBlurDir);
     if (s->initWithTexture(tex)) {
         s->autorelease();
         return s;
@@ -50,58 +72,20 @@ MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, 
 }
 
 CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
-    auto* p = new CCGLProgram();
-    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kMotionBlurFrag)) {
-        delete p;
+    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kMotionBlurFrag);
+    if (!p) {
         return nullptr;
     }
-    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
-    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
-    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
-    if (!p->link()) {
-        delete p;
-        return nullptr;
-    }
-    p->updateUniforms();
     *outBlurDir = p->getUniformLocationForName("u_blurDir");
-    p->retain();
     return p;
 }
 
 CCGLProgram* createWhiteFlashProgram() {
-    auto* p = new CCGLProgram();
-    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kWhiteFlashFrag)) {
-        delete p;
-        return nullptr;
-    }
-    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
-    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
-    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
-    if (!p->link()) {
-        delete p;
-        return nullptr;
-    }
-    p->updateUniforms();
-    p->retain();
-    return p;
+    return createLinkedProgram(shaders::kMotionBlurVert, shaders::kWhiteFlashFrag);
 }
 
 CCGLProgram* createColorInvertProgram() {
-    auto* p = new CCGLProgram();
-    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kColorInvertFrag)) {
-        delete p;
-        return nullptr;
-    }
-    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
-    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
-    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
-    if (!p->link()) {
-        delete p;
-        return nullptr;
-    }
-    p->updateUniforms();
-    p->retain();
-    return p;
+    return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
 }
 
 int captureSizeForTarget(float targetSize) {
@@ -225,26 +209,24 @@ void globalScreenShake(float duration, float strength) {
         float const offY = dist(rng) * strength * falloff;
         actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x + offX, base.y + offY)));
     }
-    actions->addObject(CCMoveTo::create(stepDuration, ccp(0.0f, 0.0f)));
+    actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x, base.y)));
     scene->runAction(CCSequence::create(actions));
 }
 
-void refreshPlayerMotionBlur(
-    float dt,
-    SimplePlayer* player,
-    CCNode* playerRoot,
-    CCLayer* hostLayer,
-    CCRenderTexture* renderTexture,
-    MotionBlurSprite* blurSprite,
-    CCSprite* whiteFlashSprite,
-    CCGLProgram* whiteFlashProgram,
-    CCGLProgram* colorInvertProgram,
-    PhysicsWorld* physics,
-    int captureSize,
-    ImpactFlashMode impactFlashMode
-) {
-    (void)dt;
-    (void)playerRoot;
+void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
+    (void)args.dt;
+    (void)args.playerRoot;
+    SimplePlayer* const player = args.player;
+    CCLayer* const hostLayer = args.hostLayer;
+    CCRenderTexture* const renderTexture = args.renderTexture;
+    MotionBlurSprite* const blurSprite = args.blurSprite;
+    CCSprite* const whiteFlashSprite = args.whiteFlashSprite;
+    CCGLProgram* const whiteFlashProgram = args.whiteFlashProgram;
+    CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
+    PhysicsWorld* const physics = args.physics;
+    int const captureSize = args.captureSize;
+    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
+
     if (!player || !renderTexture || !blurSprite || !physics) {
         return;
     }

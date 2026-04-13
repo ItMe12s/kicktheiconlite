@@ -10,7 +10,18 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(frickyou VERSION 1.0.0)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
+set(SOURCES
+  src/main.cpp
+  src/OverlayRendering.cpp
+  src/PhysicsOverlay.cpp
+  src/PhysicsWorld.cpp
+  src/PlayerVisual.cpp
+  src/box2d-lite/Arbiter.cpp
+  src/box2d-lite/Body.cpp
+  src/box2d-lite/Collide.cpp
+  src/box2d-lite/Joint.cpp
+  src/box2d-lite/World.cpp
+)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS

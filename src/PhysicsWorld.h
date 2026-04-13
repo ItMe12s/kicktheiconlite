@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 struct PhysicsState {
     float x, y, angle;
 };
@@ -30,7 +32,7 @@ public:
 private:
     bool hasPlayerWallContact() const;
     struct Impl;
-    Impl* m_impl;
+    std::unique_ptr<Impl> m_impl;
     float m_worldW = 0.0f;
     float m_worldH = 0.0f;
     bool m_dragging = false;

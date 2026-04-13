@@ -5,6 +5,7 @@
 #include "box2d-lite/Arbiter.h"
 
 #include <cmath>
+#include <memory>
 
 static constexpr float PPM = 50.0f;
 
@@ -77,7 +78,7 @@ struct PhysicsWorld::Impl {
 };
 
 PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
-    : m_impl(new Impl(worldW, worldH, bodyW, bodyH))
+    : m_impl(std::make_unique<Impl>(worldW, worldH, bodyW, bodyH))
     , m_worldW(worldW)
     , m_worldH(worldH)
     , m_dragging(false)
@@ -85,9 +86,7 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
     , m_dragTargetY(worldH * kDefaultDragTargetYFrac)
 {}
 
-PhysicsWorld::~PhysicsWorld() {
-    delete m_impl;
-}
+PhysicsWorld::~PhysicsWorld() = default;
 
 void PhysicsWorld::setDragging(bool on) {
     m_dragging = on;

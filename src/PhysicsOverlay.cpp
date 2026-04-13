@@ -122,7 +122,7 @@ bool PhysicsOverlay::init() {
 
     player_visual::requestCubeIconLoad(gm, m_frameId, m_iconTypeInt);
 
-    m_physics = new PhysicsWorld(
+    m_physics = std::make_unique<PhysicsWorld>(
         m_winSize.width, m_winSize.height,
         m_targetSize, m_targetSize
     );
@@ -163,78 +163,84 @@ bool PhysicsOverlay::init() {
     return true;
 }
 
-void PhysicsOverlay::update(float dt) {
-    if (!m_physics) {
-        return;
-    }
-
+void PhysicsOverlay::decrementCooldowns(float dt) {
     if (m_impactFlashCooldownRemaining > 0.0f) {
         m_impactFlashCooldownRemaining -= dt;
         if (m_impactFlashCooldownRemaining < 0.0f) {
             m_impactFlashCooldownRemaining = 0.0f;
         }
     }
+}
 
+void PhysicsOverlay::tryBuildVisualIfNeeded() {
     if (!m_visualBuilt) {
         tryBuildPlayerVisual();
     }
+}
 
+void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
     if (m_hitstopRemaining > 0.0f) {
         m_hitstopRemaining -= dt;
         if (m_hitstopRemaining < 0.0f) {
             m_hitstopRemaining = 0.0f;
         }
-    } else {
-        m_physics->step(dt);
-
-        if (m_physics->consumeWallImpact()) {
-            float const postSpeed = m_physics->getPlayerSpeed();
-            if (postSpeed >= kMinWallShakeSpeed) {
-                float const strength = std::min(
-                    kMaxWallShakeStrength,
-                    postSpeed * kWallShakeSpeedToStrength
-                );
-                overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
-            }
-
-            float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
-            if (preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
-                m_hitstopRemaining = kImpactHitstopSeconds;
-                m_whiteFlashRemaining = kImpactFlashTotalSeconds;
-                m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
-                if (m_whiteFlashSprite) {
-                    m_whiteFlashSprite->stopAllActions();
-                }
-            }
-        }
-    }
-
-    if (!m_playerRoot || !m_player) {
-        if (m_whiteFlashRemaining > 0.0f) {
-            m_whiteFlashRemaining -= dt;
-            if (m_whiteFlashRemaining < 0.0f) {
-                m_whiteFlashRemaining = 0.0f;
-            }
-        }
         return;
     }
 
+    m_physics->step(dt);
+
+    if (m_physics->consumeWallImpact()) {
+        float const postSpeed = m_physics->getPlayerSpeed();
+        if (postSpeed >= kMinWallShakeSpeed) {
+            float const strength = std::min(
+                kMaxWallShakeStrength,
+                postSpeed * kWallShakeSpeedToStrength
+            );
+            overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+        }
+
+        float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
+        if (preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
+            m_hitstopRemaining = kImpactHitstopSeconds;
+            m_whiteFlashRemaining = kImpactFlashTotalSeconds;
+            m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
+            if (m_whiteFlashSprite) {
+                m_whiteFlashSprite->stopAllActions();
+            }
+        }
+    }
+}
+
+void PhysicsOverlay::tickWhiteFlashWhenNoPlayer(float dt) {
+    if (m_whiteFlashRemaining > 0.0f) {
+        m_whiteFlashRemaining -= dt;
+        if (m_whiteFlashRemaining < 0.0f) {
+            m_whiteFlashRemaining = 0.0f;
+        }
+    }
+}
+
+void PhysicsOverlay::syncPlayerNodeFromPhysics() {
     auto state = m_physics->getPlayerState();
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
+}
 
-    overlay_rendering::ImpactFlashMode flashMode = overlay_rendering::ImpactFlashMode::None;
-    if (m_whiteFlashRemaining > 0.0f) {
-        float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
-        if (elapsed < kImpactFlashPhaseSeconds) {
-            flashMode = overlay_rendering::ImpactFlashMode::WhiteSilhouette;
-        } else if (elapsed < 2.0f * kImpactFlashPhaseSeconds) {
-            flashMode = overlay_rendering::ImpactFlashMode::InvertSilhouette;
-        } else {
-            flashMode = overlay_rendering::ImpactFlashMode::WhiteSilhouette;
-        }
+overlay_rendering::ImpactFlashMode PhysicsOverlay::currentImpactFlashMode() const {
+    if (m_whiteFlashRemaining <= 0.0f) {
+        return overlay_rendering::ImpactFlashMode::None;
     }
+    float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
+    if (elapsed < kImpactFlashPhaseSeconds) {
+        return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
+    }
+    if (elapsed < 2.0f * kImpactFlashPhaseSeconds) {
+        return overlay_rendering::ImpactFlashMode::InvertSilhouette;
+    }
+    return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
+}
 
+void PhysicsOverlay::updateFlashBackdrops(overlay_rendering::ImpactFlashMode flashMode) {
     bool const impactFlashActive = flashMode != overlay_rendering::ImpactFlashMode::None;
     if (m_flashBackdrop) {
         m_flashBackdrop->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::WhiteSilhouette);
@@ -242,28 +248,52 @@ void PhysicsOverlay::update(float dt) {
     if (m_flashBackdropWhite) {
         m_flashBackdropWhite->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::InvertSilhouette);
     }
+}
 
-    overlay_rendering::refreshPlayerMotionBlur(
-        dt,
-        m_player,
-        m_playerRoot,
-        this,
-        m_renderTexture,
-        m_blurSprite,
-        m_whiteFlashSprite,
-        m_whiteFlashProgram,
-        m_colorInvertProgram,
-        m_physics,
-        m_captureSize,
-        flashMode
-    );
-
+void PhysicsOverlay::tickWhiteFlashRemaining(float dt) {
     if (m_whiteFlashRemaining > 0.0f) {
         m_whiteFlashRemaining -= dt;
         if (m_whiteFlashRemaining < 0.0f) {
             m_whiteFlashRemaining = 0.0f;
         }
     }
+}
+
+void PhysicsOverlay::update(float dt) {
+    if (!m_physics) {
+        return;
+    }
+
+    decrementCooldowns(dt);
+    tryBuildVisualIfNeeded();
+    stepPhysicsUnlessHitstop(dt);
+
+    if (!m_playerRoot || !m_player) {
+        tickWhiteFlashWhenNoPlayer(dt);
+        return;
+    }
+
+    syncPlayerNodeFromPhysics();
+
+    overlay_rendering::ImpactFlashMode const flashMode = currentImpactFlashMode();
+    updateFlashBackdrops(flashMode);
+
+    overlay_rendering::refreshPlayerMotionBlur({
+        .dt = dt,
+        .player = m_player,
+        .playerRoot = m_playerRoot,
+        .hostLayer = this,
+        .renderTexture = m_renderTexture,
+        .blurSprite = m_blurSprite,
+        .whiteFlashSprite = m_whiteFlashSprite,
+        .whiteFlashProgram = m_whiteFlashProgram,
+        .colorInvertProgram = m_colorInvertProgram,
+        .physics = m_physics.get(),
+        .captureSize = m_captureSize,
+        .impactFlashMode = flashMode,
+    });
+
+    tickWhiteFlashRemaining(dt);
 }
 
 void PhysicsOverlay::onEnter() {
@@ -274,8 +304,7 @@ void PhysicsOverlay::onEnter() {
 void PhysicsOverlay::onExit() {
     endGrab();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
-    delete m_physics;
-    m_physics = nullptr;
+    m_physics.reset();
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;

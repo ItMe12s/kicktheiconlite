@@ -4,6 +4,8 @@
 #include <Geode/Enums.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
 
+#include <memory>
+
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
 #include "PlayerVisual.h"
@@ -33,7 +35,7 @@ constexpr int kPhysicsOverlaySchedulerPriority = 0;
 constexpr int kPhysicsOverlayZOrder = 1000;
 
 class PhysicsOverlay : public cocos2d::CCLayer {
-    PhysicsWorld* m_physics = nullptr;
+    std::unique_ptr<PhysicsWorld> m_physics;
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
     overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
@@ -72,4 +74,13 @@ private:
     void tryBuildPlayerVisual();
     bool tryBeginGrab(cocos2d::CCPoint const& locationInNode);
     void endGrab();
+
+    void decrementCooldowns(float dt);
+    void tryBuildVisualIfNeeded();
+    void stepPhysicsUnlessHitstop(float dt);
+    void tickWhiteFlashWhenNoPlayer(float dt);
+    void syncPlayerNodeFromPhysics();
+    overlay_rendering::ImpactFlashMode currentImpactFlashMode() const;
+    void updateFlashBackdrops(overlay_rendering::ImpactFlashMode mode);
+    void tickWhiteFlashRemaining(float dt);
 };
