@@ -37,12 +37,6 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_whiteFlashProgram = mr.whiteFlashProgram;
     m_blurSprite = mr.blurSprite;
     m_whiteFlashSprite = mr.whiteFlashSprite;
-    m_bgCaptureRT = mr.bgCaptureRT;
-    m_bgSprite = mr.bgSprite;
-    m_bgProgram = mr.bgProgram;
-    if (m_bgSprite) {
-        this->addChild(m_bgSprite, -1);
-    }
     m_visualBuilt = true;
 }
 
@@ -200,7 +194,6 @@ void PhysicsOverlay::update(float dt) {
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
     bool const whiteFlashActive = m_whiteFlashRemaining > 0.0f;
-    overlay_rendering::captureBwBackground(this, m_bgCaptureRT, m_bgSprite, whiteFlashActive);
     overlay_rendering::refreshPlayerMotionBlur(
         dt,
         m_player,
@@ -251,14 +244,5 @@ void PhysicsOverlay::onExit() {
         m_renderTexture->release();
         m_renderTexture = nullptr;
     }
-    if (m_bgProgram) {
-        m_bgProgram->release();
-        m_bgProgram = nullptr;
-    }
-    if (m_bgCaptureRT) {
-        m_bgCaptureRT->release();
-        m_bgCaptureRT = nullptr;
-    }
-    m_bgSprite = nullptr;
     CCLayer::onExit();
 }

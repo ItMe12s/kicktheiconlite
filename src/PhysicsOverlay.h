@@ -50,9 +50,6 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_whiteFlashRemaining = 0.0f;
     float m_impactFlashCooldownRemaining = 0.0f;
     cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
-    cocos2d::CCRenderTexture* m_bgCaptureRT = nullptr;
-    cocos2d::CCSprite* m_bgSprite = nullptr;
-    cocos2d::CCGLProgram* m_bgProgram = nullptr;
 
 public:
     CREATE_FUNC(PhysicsOverlay);

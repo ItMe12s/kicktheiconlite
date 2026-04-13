@@ -27,7 +27,6 @@ public:
 
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
 cocos2d::CCGLProgram* createWhiteFlashProgram();
-cocos2d::CCGLProgram* createBwBackgroundProgram();
 
 constexpr float kMinBlurSpeedPx = 8.0f;
 constexpr float kMaxBlurSpeedPx = 1200.0f;
@@ -44,21 +43,11 @@ struct MotionBlurAttachResult {
     MotionBlurSprite* blurSprite = nullptr;
     cocos2d::CCSprite* whiteFlashSprite = nullptr;
     cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCRenderTexture* bgCaptureRT = nullptr;
-    cocos2d::CCSprite* bgSprite = nullptr;
-    cocos2d::CCGLProgram* bgProgram = nullptr;
 };
 
 MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
 
 void globalScreenShake(float duration, float strength);
-
-void captureBwBackground(
-    cocos2d::CCLayer*        hostLayer,
-    cocos2d::CCRenderTexture* bgCaptureRT,
-    cocos2d::CCSprite*        bgSprite,
-    bool                      whiteFlashActive
-);
 
 void refreshPlayerMotionBlur(
     float dt,
