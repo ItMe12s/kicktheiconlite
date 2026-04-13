@@ -3,7 +3,7 @@
 #include "box2d-lite/World.h"
 #include "box2d-lite/Body.h"
 
-static constexpr float PPM = 50.0f; // pixels per meter
+static constexpr float PPM = 50.0f;
 
 struct PhysicsWorld::Impl {
     World world;
@@ -21,7 +21,6 @@ struct PhysicsWorld::Impl {
         float bw = bodyW / PPM;
         float bh = bodyH / PPM;
 
-        // Static walls (default Body() ctor → invMass = 0)
         wallBottom.position.Set(ww * 0.5f, -0.5f);
         wallBottom.width.Set(ww + 4.0f, 1.0f);
 
@@ -34,7 +33,6 @@ struct PhysicsWorld::Impl {
         wallRight.position.Set(ww + 0.5f, wh * 0.5f);
         wallRight.width.Set(1.0f, wh + 4.0f);
 
-        // Dynamic player body
         player.Set(Vec2(bw, bh), 1.0f);
         player.position.Set(ww * 0.5f, wh * 0.5f);
         player.velocity.Set(3.0f, 5.0f);
@@ -57,7 +55,7 @@ PhysicsWorld::~PhysicsWorld() {
 }
 
 void PhysicsWorld::step(float dt) {
-    // Cap dt to avoid tunneling on lag spikes
+    // Those who lag:
     if (dt > 1.0f / 30.0f)
         dt = 1.0f / 30.0f;
     m_impl->world.Step(dt);
