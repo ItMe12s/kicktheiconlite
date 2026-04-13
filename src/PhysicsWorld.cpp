@@ -3,7 +3,13 @@
 #include "box2d-lite/World.h"
 #include "box2d-lite/Body.h"
 
+#include <cmath>
+
 static constexpr float PPM = 50.0f;
+
+static constexpr float kDragSpring = 200.0f;
+static constexpr float kDragDamping = 15.0f;
+static constexpr float kDragAngularDamping = 2.0f;
 
 struct PhysicsWorld::Impl {
     World world;
@@ -14,7 +20,7 @@ struct PhysicsWorld::Impl {
     Body player;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
-        : world(Vec2(0.0f, -9.8f), 10)
+        : world(Vec2(0.0f, -9.8f * 2.0f), 10) // I'm making all this physics configurable later
     {
         float ww = worldW / PPM;
         float wh = worldH / PPM;
@@ -37,7 +43,7 @@ struct PhysicsWorld::Impl {
         player.position.Set(ww * 0.5f, wh * 0.5f);
         player.velocity.Set(10.0f, 5.0f);
         player.angularVelocity = 10.0f;
-        player.friction = 0.1f;
+        player.friction = 0.7f;
 
         world.Add(&wallBottom);
         world.Add(&wallTop);
@@ -49,16 +55,80 @@ struct PhysicsWorld::Impl {
 
 PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
     : m_impl(new Impl(worldW, worldH, bodyW, bodyH))
+    , m_worldW(worldW)
+    , m_worldH(worldH)
+    , m_dragging(false)
+    , m_dragTargetX(worldW * 0.5f)
+    , m_dragTargetY(worldH * 0.5f)
 {}
 
 PhysicsWorld::~PhysicsWorld() {
     delete m_impl;
 }
 
+void PhysicsWorld::setDragging(bool on) {
+    m_dragging = on;
+}
+
+void PhysicsWorld::setDragGrabOffsetPixels(float offsetX, float offsetY) {
+    Body const& p = m_impl->player;
+    float const wx = offsetX / PPM;
+    float const wy = offsetY / PPM;
+    float const c = std::cos(p.rotation);
+    float const s = std::sin(p.rotation);
+    // World offset (meters) -> body-local: R(-theta) * w
+    m_grabLocalX = c * wx + s * wy;
+    m_grabLocalY = -s * wx + c * wy;
+}
+
+void PhysicsWorld::setDragTargetPixels(float x, float y) {
+    float const minX = 0.0f;
+    float const minY = 0.0f;
+    float const maxX = m_worldW;
+    float const maxY = m_worldH;
+    if (x < minX) {
+        x = minX;
+    } else if (x > maxX) {
+        x = maxX;
+    }
+    if (y < minY) {
+        y = minY;
+    } else if (y > maxY) {
+        y = maxY;
+    }
+    m_dragTargetX = x;
+    m_dragTargetY = y;
+}
+
 void PhysicsWorld::step(float dt) {
     // Those who lag:
     if (dt > 1.0f / 30.0f)
         dt = 1.0f / 30.0f;
+
+    if (m_dragging) {
+        Body& p = m_impl->player;
+        float const th = p.rotation;
+        float const c = std::cos(th);
+        float const s = std::sin(th);
+        // Grab point in world (meters): center + R(theta) * local
+        float const rx = c * m_grabLocalX - s * m_grabLocalY;
+        float const ry = s * m_grabLocalX + c * m_grabLocalY;
+        float const gpx = p.position.x + rx;
+        float const gpy = p.position.y + ry;
+        float const tx = m_dragTargetX / PPM;
+        float const ty = m_dragTargetY / PPM;
+        float const ex = tx - gpx;
+        float const ey = ty - gpy;
+        // Velocity at grab point v + omega x r  -> (vx - w*ry, vy + w*rx)
+        float const vpx = p.velocity.x - p.angularVelocity * ry;
+        float const vpy = p.velocity.y + p.angularVelocity * rx;
+        float const Fx = kDragSpring * ex - kDragDamping * vpx;
+        float const Fy = kDragSpring * ey - kDragDamping * vpy;
+        p.AddForce(Vec2(Fx, Fy));
+        p.torque += rx * Fy - ry * Fx;
+        p.torque -= kDragAngularDamping * p.angularVelocity;
+    }
+
     m_impl->world.Step(dt);
 }
 

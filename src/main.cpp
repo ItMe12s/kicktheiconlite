@@ -3,6 +3,7 @@
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/Enums.hpp>
 #include <Geode/ui/OverlayManager.hpp>
+#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include "PhysicsWorld.h"
 
 #include <algorithm>
@@ -80,13 +81,14 @@ float visualWidthForPlayer(SimplePlayer* player) {
 
 } // namespace
 
-class PhysicsOverlay : public CCNode {
+class PhysicsOverlay : public CCLayer {
     PhysicsWorld* m_physics = nullptr;
     CCNode* m_playerVisual = nullptr;
 
     int m_frameId = 1;
     int m_iconTypeInt = static_cast<int>(IconType::Cube);
     bool m_visualBuilt = false;
+    bool m_grabActive = false;
     float m_targetSize = 0.0f;
     CCSize m_winSize{};
 
@@ -96,9 +98,16 @@ public:
     void update(float dt) override;
     void onExit() override;
 
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override;
+    void ccTouchMoved(CCTouch* touch, CCEvent* event) override;
+    void ccTouchEnded(CCTouch* touch, CCEvent* event) override;
+    void ccTouchCancelled(CCTouch* touch, CCEvent* event) override;
+
 private:
     void tryBuildPlayerVisual();
     static void applyGmColorsAndFrame(SimplePlayer* player, int frameId);
+    bool tryBeginGrab(CCPoint const& locationInNode);
+    void endGrab();
 };
 
 void PhysicsOverlay::applyGmColorsAndFrame(SimplePlayer* player, int frameId) {
@@ -147,8 +156,61 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_visualBuilt = true;
 }
 
+bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
+    if (!m_physics)
+        return false;
+
+    auto const state = m_physics->getPlayerState();
+    float const dx = locationInNode.x - state.x;
+    float const dy = locationInNode.y - state.y;
+    float const distSq = dx * dx + dy * dy;
+    float const grabRadius = m_targetSize * 0.65f;
+    if (distSq > grabRadius * grabRadius)
+        return false;
+
+    m_physics->setDragGrabOffsetPixels(dx, dy);
+    m_physics->setDragTargetPixels(locationInNode.x, locationInNode.y);
+    m_physics->setDragging(true);
+    m_grabActive = true;
+    return true;
+}
+
+void PhysicsOverlay::endGrab() {
+    if (!m_grabActive)
+        return;
+    m_grabActive = false;
+    if (m_physics)
+        m_physics->setDragging(false);
+}
+
+bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
+    if (!m_physics)
+        return false;
+    CCPoint const p = this->convertTouchToNodeSpace(touch);
+    return tryBeginGrab(p);
+}
+
+void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
+    if (!m_grabActive || !m_physics)
+        return;
+    CCPoint const p = this->convertTouchToNodeSpace(touch);
+    m_physics->setDragTargetPixels(p.x, p.y);
+}
+
+void PhysicsOverlay::ccTouchEnded(CCTouch* touch, CCEvent* event) {
+    (void)touch;
+    (void)event;
+    endGrab();
+}
+
+void PhysicsOverlay::ccTouchCancelled(CCTouch* touch, CCEvent* event) {
+    (void)touch;
+    (void)event;
+    endGrab();
+}
+
 bool PhysicsOverlay::init() {
-    if (!CCNode::init())
+    if (!CCLayer::init())
         return false;
 
     m_winSize = CCDirector::get()->getWinSize();
@@ -169,6 +231,10 @@ bool PhysicsOverlay::init() {
         m_winSize.width, m_winSize.height,
         m_targetSize, m_targetSize
     );
+
+    this->setContentSize(m_winSize);
+    this->setTouchEnabled(true);
+    this->setTouchMode(kCCTouchesOneByOne);
 
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, 0, false);
     return true;
@@ -192,11 +258,12 @@ void PhysicsOverlay::update(float dt) {
 }
 
 void PhysicsOverlay::onExit() {
+    endGrab();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     delete m_physics;
     m_physics = nullptr;
     m_playerVisual = nullptr;
-    CCNode::onExit();
+    CCLayer::onExit();
 }
 
 $on_mod(Loaded) {
