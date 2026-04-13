@@ -112,7 +112,7 @@ void Arbiter::PreStep(float inv_dt)
 		Vec2 dv = body2->velocity + Cross(body2->angularVelocity, r2) - body1->velocity - Cross(body1->angularVelocity, r1);
 		float vRel = Dot(dv, c->normal);
 		if (vRel < -1.0f)
-			c->bias += -0.4f * vRel;
+			c->bias += -0.65f * vRel;
 
 		if (World::accumulateImpulses)
 		{

@@ -4,6 +4,7 @@
 #include <Geode/Enums.hpp>
 #include <Geode/ui/OverlayManager.hpp>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
+#include <Geode/utils/cocos.hpp>
 #include "PhysicsWorld.h"
 
 #include <algorithm>
@@ -12,6 +13,9 @@
 using namespace geode::prelude;
 
 namespace {
+
+// CCMenu uses -128.
+constexpr int kPhysicsOverlayTouchPriority = -6767;
 
 void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt) {
     if (gm->isIconLoaded(iconId, typeInt))
@@ -96,6 +100,7 @@ public:
     CREATE_FUNC(PhysicsOverlay);
     bool init() override;
     void update(float dt) override;
+    void onEnter() override;
     void onExit() override;
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override;
@@ -164,7 +169,7 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
     float const dx = locationInNode.x - state.x;
     float const dy = locationInNode.y - state.y;
     float const distSq = dx * dx + dy * dy;
-    float const grabRadius = m_targetSize * 0.65f;
+    float const grabRadius = m_targetSize * 0.666f;
     if (distSq > grabRadius * grabRadius)
         return false;
 
@@ -235,6 +240,7 @@ bool PhysicsOverlay::init() {
     this->setContentSize(m_winSize);
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);
+    this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, 0, false);
     return true;
@@ -255,6 +261,11 @@ void PhysicsOverlay::update(float dt) {
     auto state = m_physics->getPlayerState();
     m_playerVisual->setPosition({state.x, state.y});
     m_playerVisual->setRotation(-state.angle * (180.0f / 3.14159265f));
+}
+
+void PhysicsOverlay::onEnter() {
+    CCLayer::onEnter();
+    handleTouchPriorityWith(this, kPhysicsOverlayTouchPriority, true);
 }
 
 void PhysicsOverlay::onExit() {

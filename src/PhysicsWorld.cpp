@@ -7,9 +7,9 @@
 
 static constexpr float PPM = 50.0f;
 
-static constexpr float kDragSpring = 200.0f;
+static constexpr float kDragSpring = 250.0f;
 static constexpr float kDragDamping = 15.0f;
-static constexpr float kDragAngularDamping = 2.0f;
+static constexpr float kDragAngularDamping = 0.5f;
 
 struct PhysicsWorld::Impl {
     World world;
@@ -40,10 +40,10 @@ struct PhysicsWorld::Impl {
         wallRight.width.Set(1.0f, wh + 4.0f);
 
         player.Set(Vec2(bw, bh), 1.0f);
-        player.position.Set(ww * 0.5f, wh * 0.5f);
+        player.position.Set(ww * 0.25f, wh * 0.75f);
         player.velocity.Set(10.0f, 5.0f);
-        player.angularVelocity = 10.0f;
-        player.friction = 0.7f;
+        player.angularVelocity = 30.0f;
+        player.friction = 0.3f;
 
         world.Add(&wallBottom);
         world.Add(&wallTop);
