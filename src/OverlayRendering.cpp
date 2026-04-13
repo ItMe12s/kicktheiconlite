@@ -86,6 +86,24 @@ CCGLProgram* createWhiteFlashProgram() {
     return p;
 }
 
+CCGLProgram* createBwBackgroundProgram() {
+    auto* p = new CCGLProgram();
+    if (!p->initWithVertexShaderByteArray(shaders::kMotionBlurVert, shaders::kBwBackgroundFrag)) {
+        delete p;
+        return nullptr;
+    }
+    p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
+    p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
+    p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
+    if (!p->link()) {
+        delete p;
+        return nullptr;
+    }
+    p->updateUniforms();
+    p->retain();
+    return p;
+}
+
 int captureSizeForTarget(float targetSize) {
     int captureSize = static_cast<int>(std::ceil(targetSize * kBlurCaptureScale));
     if (captureSize < 32) {
@@ -164,6 +182,47 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     }
     whiteFlashSprite->setShaderProgram(whiteFlashProgram);
 
+    CCSize const winSize = CCDirector::get()->getWinSize();
+    auto* bgCaptureRT = CCRenderTexture::create(
+        static_cast<int>(winSize.width),
+        static_cast<int>(winSize.height),
+        kCCTexture2DPixelFormat_RGBA8888
+    );
+    if (!bgCaptureRT) {
+        blurProgram->release();
+        whiteFlashProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+    bgCaptureRT->retain();
+
+    auto* bgProgram = createBwBackgroundProgram();
+    if (!bgProgram) {
+        bgCaptureRT->release();
+        blurProgram->release();
+        whiteFlashProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+
+    auto* bgSprite = CCSprite::createWithTexture(bgCaptureRT->getSprite()->getTexture());
+    if (!bgSprite) {
+        bgProgram->release();
+        bgCaptureRT->release();
+        blurProgram->release();
+        whiteFlashProgram->release();
+        renderTexture->release();
+        playerRoot->removeFromParentAndCleanup(true);
+        return out;
+    }
+    bgSprite->setShaderProgram(bgProgram);
+    bgSprite->setAnchorPoint({0.0f, 0.0f});
+    bgSprite->setPosition({0.0f, 0.0f});
+    bgSprite->setFlipY(true);
+    bgSprite->setVisible(false);
+
     out.ok = true;
     out.renderTexture = renderTexture;
     out.blurProgram = blurProgram;
@@ -171,6 +230,9 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     out.blurSprite = blurSprite;
     out.whiteFlashSprite = whiteFlashSprite;
     out.whiteFlashProgram = whiteFlashProgram;
+    out.bgCaptureRT = bgCaptureRT;
+    out.bgSprite = bgSprite;
+    out.bgProgram = bgProgram;
     return out;
 }
 
@@ -199,6 +261,27 @@ void globalScreenShake(float duration, float strength) {
     }
     actions->addObject(CCMoveTo::create(stepDuration, ccp(0.0f, 0.0f)));
     scene->runAction(CCSequence::create(actions));
+}
+
+void captureBwBackground(
+    CCLayer* hostLayer,
+    CCRenderTexture* bgCaptureRT,
+    CCSprite* bgSprite,
+    bool whiteFlashActive
+) {
+    if (!bgCaptureRT || !bgSprite) {
+        return;
+    }
+    if (!whiteFlashActive) {
+        bgSprite->setVisible(false);
+        return;
+    }
+    hostLayer->setVisible(false);
+    bgCaptureRT->beginWithClear(0.0f, 0.0f, 0.0f, 1.0f);
+    CCDirector::get()->getRunningScene()->visit();
+    bgCaptureRT->end();
+    hostLayer->setVisible(true);
+    bgSprite->setVisible(true);
 }
 
 void refreshPlayerMotionBlur(
