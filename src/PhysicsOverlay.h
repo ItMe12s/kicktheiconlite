@@ -23,6 +23,7 @@ constexpr float kMinWallShakeSpeed = 150.0f;
 constexpr float kImpactMinSpeed = 1600.0f;
 constexpr float kImpactHitstopSeconds = 0.075f;
 constexpr float kImpactWhiteFlashSeconds = 0.05f;
+constexpr float kImpactFlashCooldownSeconds = 0.6f;
 
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265f;
@@ -47,6 +48,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCSize m_winSize{};
     float m_hitstopRemaining = 0.0f;
     float m_whiteFlashRemaining = 0.0f;
+    float m_impactFlashCooldownRemaining = 0.0f;
     cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
 
 public:

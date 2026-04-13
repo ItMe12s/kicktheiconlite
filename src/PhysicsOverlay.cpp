@@ -139,6 +139,13 @@ void PhysicsOverlay::update(float dt) {
         return;
     }
 
+    if (m_impactFlashCooldownRemaining > 0.0f) {
+        m_impactFlashCooldownRemaining -= dt;
+        if (m_impactFlashCooldownRemaining < 0.0f) {
+            m_impactFlashCooldownRemaining = 0.0f;
+        }
+    }
+
     if (!m_visualBuilt) {
         tryBuildPlayerVisual();
     }
@@ -162,9 +169,10 @@ void PhysicsOverlay::update(float dt) {
             }
 
             float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
-            if (preSpeed >= kImpactMinSpeed) {
+            if (preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
                 m_hitstopRemaining = kImpactHitstopSeconds;
                 m_whiteFlashRemaining = kImpactWhiteFlashSeconds;
+                m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
                 if (m_whiteFlashSprite) {
                     m_whiteFlashSprite->stopAllActions();
                 }
