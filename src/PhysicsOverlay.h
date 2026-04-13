@@ -9,6 +9,7 @@
 #include "PlayerVisual.h"
 
 namespace cocos2d {
+class CCDrawNode;
 class CCSprite;
 }
 
@@ -50,6 +51,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_whiteFlashRemaining = 0.0f;
     float m_impactFlashCooldownRemaining = 0.0f;
     cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
+    cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
 
 public:
     CREATE_FUNC(PhysicsOverlay);

@@ -1,5 +1,6 @@
 #include "PhysicsOverlay.h"
 
+#include <Geode/cocos/draw_nodes/CCDrawNode.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
 
@@ -126,6 +127,20 @@ bool PhysicsOverlay::init() {
     );
 
     this->setContentSize(m_winSize);
+
+    m_flashBackdrop = CCDrawNode::create();
+    if (m_flashBackdrop) {
+        m_flashBackdrop->drawRect(
+            CCRectMake(0, 0, m_winSize.width, m_winSize.height),
+            ccc4f(0, 0, 0, 1),
+            0.0f,
+            ccc4f(0, 0, 0, 0)
+        );
+        m_flashBackdrop->setPosition({0, 0});
+        m_flashBackdrop->setVisible(false);
+        this->addChild(m_flashBackdrop, -1);
+    }
+
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
@@ -194,6 +209,9 @@ void PhysicsOverlay::update(float dt) {
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
     bool const whiteFlashActive = m_whiteFlashRemaining > 0.0f;
+    if (m_flashBackdrop) {
+        m_flashBackdrop->setVisible(whiteFlashActive);
+    }
     overlay_rendering::refreshPlayerMotionBlur(
         dt,
         m_player,
