@@ -5,36 +5,25 @@ varying vec2 v_texCoord;
 uniform float u_time;
 uniform float u_alpha;
 
+// Simplex-3D FBM + domain warp (z = time)
+const float noiseScale = 2.0;
+const float noiseTimeScale = 0.1;
+
 const int noiseSwirlSteps = 2;
 const float noiseSwirlValue = 1.0;
 const float noiseSwirlStepValue = noiseSwirlValue / float(noiseSwirlSteps);
 
-const float noiseScale = 2.0;
-const float noiseTimeScale = 0.1;
-
-const float chromaticAberration = 0.0035;
-
-vec3 mod289(vec3 x) {
-    return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-vec4 mod289(vec4 x) {
-    return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-vec4 permute(vec4 x) {
-    return mod289(((x * 34.0) + 1.0) * x);
-}
-
-vec4 taylorInvSqrt(vec4 r) {
-    return 1.79284291400159 - 0.85373472095314 * r;
-}
+// Ashima simplex 3D https://github.com/ashima/webgl-noise
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
 
 float simplex(vec3 v) {
     const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
     const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
 
-    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 i  = floor(v + dot(v, C.yyy));
     vec3 x0 = v - i + dot(i, C.xxx);
 
     vec3 g = step(x0.yzx, x0.xyz);
@@ -48,9 +37,9 @@ float simplex(vec3 v) {
 
     i = mod289(i);
     vec4 p = permute(permute(permute(
-                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                 i.z + vec4(0.0, i1.z, i2.z, 1.0))
+               + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+               + i.x + vec4(0.0, i1.x, i2.x, 1.0));
 
     float n_ = 0.142857142857;
     vec3 ns = n_ * D.wyz - D.xzx;
@@ -87,49 +76,53 @@ float simplex(vec3 v) {
 
     vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
     m = m * m;
-    return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+    return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1),
+                                  dot(p2, x2), dot(p3, x3)));
 }
 
 float fbm3(vec3 v) {
-    float result = simplex(v);
-    result += simplex(v * 2.0) / 2.0;
-    result += simplex(v * 4.0) / 4.0;
-    result /= (1.0 + 1.0 / 2.0 + 1.0 / 4.0);
-    return result;
+    float r = simplex(v);
+    r += simplex(v * 2.0) / 2.0;
+    r += simplex(v * 4.0) / 4.0;
+    return r / (1.0 + 1.0 / 2.0 + 1.0 / 4.0);
 }
 
 float fbm5(vec3 v) {
-    float result = simplex(v);
-    result += simplex(v * 2.0) / 2.0;
-    result += simplex(v * 4.0) / 4.0;
-    result += simplex(v * 8.0) / 8.0;
-    result += simplex(v * 16.0) / 16.0;
-    result /= (1.0 + 1.0 / 2.0 + 1.0 / 4.0 + 1.0 / 8.0 + 1.0 / 16.0);
-    return result;
+    float r = simplex(v);
+    r += simplex(v * 2.0) / 2.0;
+    r += simplex(v * 4.0) / 4.0;
+    r += simplex(v * 8.0) / 8.0;
+    r += simplex(v * 16.0) / 16.0;
+    return r / (1.0 + 1.0 / 2.0 + 1.0 / 4.0 + 1.0 / 8.0 + 1.0 / 16.0);
 }
 
-float getNoise(vec3 v) {
+// Warp p in-place, return warped vec3 for reuse
+vec3 warpDomain(vec3 v) {
     for (int i = 0; i < noiseSwirlSteps; i++) {
         v.xy += vec2(fbm3(v), fbm3(vec3(v.xy, v.z + 1000.0))) * noiseSwirlStepValue;
     }
-    return fbm5(v) / 2.0 + 0.5;
+    return v;
 }
 
 void main() {
     vec2 uv = v_texCoord;
-    vec2 fromCenter = uv - vec2(0.5);
-    float rLen = length(fromCenter);
-    vec2 radial = rLen > 1e-4 ? fromCenter / rLen : vec2(1.0, 0.0);
-
     float t = u_time * noiseTimeScale;
-    float nr = getNoise(vec3((uv + radial * chromaticAberration) * noiseScale, t));
-    float ng = getNoise(vec3(uv * noiseScale, t));
-    float nb = getNoise(vec3((uv - radial * chromaticAberration) * noiseScale, t));
 
-    vec3 n = vec3(nr, ng, nb);
-    n = n * n * n * n * 2.0;
-    vec3 nc = clamp(n, 0.0, 1.0);
+    vec3 warped = warpDomain(vec3(uv * noiseScale, t));
+
+    // Chromatic offset in noise-space
+    float strength = 0.03;
+    vec2 d = (uv - 0.5) * strength * noiseScale;
+
+    float r = fbm5(warped + vec3( d, 0.0)) / 2.0 + 0.5;
+    float g = fbm5(warped)                 / 2.0 + 0.5;
+    float b = fbm5(warped + vec3(-d, 0.0)) / 2.0 + 0.5;
+
+    r = r * r * r * r * 2.0;
+    g = g * g * g * g * 2.0;
+    b = b * b * b * b * 2.0;
+
+    vec3 nc = clamp(vec3(r, g, b), 0.0, 1.0);
     float a = u_alpha * max(max(nc.r, nc.g), nc.b);
-    // Premultiplied alpha for GL_ONE, GL_ONE_MINUS_SRC_ALPHA blend.
     gl_FragColor = vec4(nc * a, a);
 }

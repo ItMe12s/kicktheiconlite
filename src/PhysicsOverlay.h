@@ -31,6 +31,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
     overlay_rendering::FireAuraSprite* m_fireAuraSprite = nullptr;
     overlay_rendering::ImpactNoiseSprite* m_impactNoiseSprite = nullptr;
+    cocos2d::CCRenderTexture* m_impactNoiseRenderTexture = nullptr;
+    cocos2d::CCSprite* m_impactNoiseComposite = nullptr;
     cocos2d::CCRenderTexture* m_renderTexture = nullptr;
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
     cocos2d::CCGLProgram* m_fireAuraProgram = nullptr;
@@ -55,6 +57,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_fireAuraTime = 0.0f;
     float m_impactNoiseRemaining = 0.0f;
     float m_impactNoiseTime = 0.0f;
+    float m_impactNoiseExtraTimeSkip = 0.0f;
 
     cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
     int m_starPhaseIndex = -1;

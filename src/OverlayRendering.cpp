@@ -7,6 +7,7 @@
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
+#include <Geode/cocos/platform/CCGL.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/cocos/textures/CCTexture2D.h>
 
@@ -614,13 +615,58 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
     sprite->setShaderProgram(program);
     sprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     sprite->setAnchorPoint({0.0f, 0.0f});
-    float const cw = sprite->getContentSize().width;
-    float const ch = sprite->getContentSize().height;
-    sprite->setScaleX(cw > 0.0f ? winSize.width / cw : winSize.width);
-    sprite->setScaleY(ch > 0.0f ? winSize.height / ch : winSize.height);
     sprite->setPosition({0.0f, 0.0f});
     sprite->setVisible(false);
-    overlayLayer->addChild(sprite, kImpactNoiseZOrder);
+
+    int const rw = std::max(8, static_cast<int>(std::ceil(winSize.width * kImpactNoiseRenderScale)));
+    int const rh = std::max(8, static_cast<int>(std::ceil(winSize.height * kImpactNoiseRenderScale)));
+
+    CCRenderTexture* rt = CCRenderTexture::create(rw, rh, kCCTexture2DPixelFormat_RGBA8888);
+    CCSprite* composite = nullptr;
+    if (rt) {
+        rt->retain();
+        CCTexture2D* rtTex = rt->getSprite()->getTexture();
+        ccTexParams texParams{};
+        texParams.minFilter = kImpactNoiseCompositeNearestFilter ? GL_NEAREST : GL_LINEAR;
+        texParams.magFilter = kImpactNoiseCompositeNearestFilter ? GL_NEAREST : GL_LINEAR;
+        texParams.wrapS = GL_CLAMP_TO_EDGE;
+        texParams.wrapT = GL_CLAMP_TO_EDGE;
+        rtTex->setTexParameters(&texParams);
+
+        composite = CCSprite::createWithTexture(rtTex);
+        if (!composite) {
+            rt->release();
+            rt = nullptr;
+        } else {
+            composite->setID("impact-noise-composite"_spr);
+            composite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+            composite->setAnchorPoint({0.0f, 0.0f});
+            composite->setPosition({0.0f, 0.0f});
+            float const ccw = composite->getContentSize().width;
+            float const cch = composite->getContentSize().height;
+            composite->setScaleX(ccw > 0.0f ? winSize.width / ccw : winSize.width);
+            composite->setScaleY(cch > 0.0f ? winSize.height / cch : winSize.height);
+            composite->setFlipY(true);
+            composite->setVisible(false);
+            overlayLayer->addChild(composite, kImpactNoiseZOrder);
+
+            float const cw = sprite->getContentSize().width;
+            float const ch = sprite->getContentSize().height;
+            sprite->setScaleX(cw > 0.0f ? static_cast<float>(rw) / cw : static_cast<float>(rw));
+            sprite->setScaleY(ch > 0.0f ? static_cast<float>(rh) / ch : static_cast<float>(rh));
+            overlayLayer->addChild(sprite, kImpactNoiseZOrder - 1);
+            out.renderTexture = rt;
+            out.compositeSprite = composite;
+        }
+    }
+
+    if (!rt) {
+        float const cw = sprite->getContentSize().width;
+        float const ch = sprite->getContentSize().height;
+        sprite->setScaleX(cw > 0.0f ? winSize.width / cw : winSize.width);
+        sprite->setScaleY(ch > 0.0f ? winSize.height / ch : winSize.height);
+        overlayLayer->addChild(sprite, kImpactNoiseZOrder);
+    }
 
     out.ok = true;
     out.sprite = sprite;
@@ -635,16 +681,33 @@ void refreshImpactNoise(ImpactNoiseRefreshArgs const& args) {
         return;
     }
 
+    *timePtr += args.extraTimeSkip;
+    if (args.visible) {
+        *timePtr += args.dt;
+    }
+
     if (!args.visible) {
         sprite->setVisible(false);
+        if (args.compositeSprite) {
+            args.compositeSprite->setVisible(false);
+        }
         return;
     }
 
-    *timePtr += args.dt;
     float const tWrapped = std::fmod(*timePtr, 1000.0f);
 
     sprite->setNoiseState(tWrapped, args.alpha);
-    sprite->setVisible(true);
+
+    if (args.renderTexture && args.compositeSprite) {
+        args.renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+        sprite->setVisible(true);
+        sprite->visit();
+        sprite->setVisible(false);
+        args.renderTexture->end();
+        args.compositeSprite->setVisible(true);
+    } else {
+        sprite->setVisible(true);
+    }
 }
 
 } // namespace overlay_rendering

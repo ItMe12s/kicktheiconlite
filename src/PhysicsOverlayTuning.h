@@ -49,8 +49,13 @@ constexpr int kStarBurstCount = 5;
 constexpr int kImpactFlashBackdropZOrder = -1;
 constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
 
-constexpr float kImpactNoiseFadeSeconds = 1.5f;
+constexpr float kImpactNoiseFadeSeconds = 1.75f;
+constexpr float kImpactNoiseStackedImpactTimeSkip = 73.0f;
 constexpr int kImpactNoiseZOrder = 0;
+// Shader runs at (width * scale) x (height * scale) composite sprite samples that rt
+// true = GL_NEAREST, false = GL_LINEAR, Call it pixel art and not shit resolution ofc ;)
+constexpr bool kImpactNoiseCompositeNearestFilter = true;
+constexpr float kImpactNoiseRenderScale = 0.1f;
 
 constexpr int kStarBurstZOrder = 4;
 constexpr int kBigStarCount = 2;

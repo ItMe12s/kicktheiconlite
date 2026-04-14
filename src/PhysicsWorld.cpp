@@ -12,7 +12,7 @@
 static constexpr float kPixelsPerMeter = 50.0f;
 
 static constexpr float kEarthGravity = 9.8f;
-static constexpr float kGravityScale = 2.0f;
+static constexpr float kGravityScale = 1.75f;
 static constexpr int kWorldIterations = 10;
 
 static constexpr float kWallHalfThickness = 0.5f;

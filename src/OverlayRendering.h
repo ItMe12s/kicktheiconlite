@@ -8,6 +8,7 @@
 
 namespace cocos2d {
 class CCSprite;
+class CCRenderTexture;
 }
 
 namespace overlay_rendering {
@@ -131,6 +132,8 @@ struct ImpactNoiseAttachResult {
     bool ok = false;
     ImpactNoiseSprite* sprite = nullptr;
     cocos2d::CCGLProgram* program = nullptr;
+    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    cocos2d::CCSprite* compositeSprite = nullptr;
 };
 
 ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
@@ -164,7 +167,10 @@ void refreshFireAura(FireAuraRefreshArgs const& args);
 
 struct ImpactNoiseRefreshArgs {
     ImpactNoiseSprite* sprite = nullptr;
+    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    cocos2d::CCSprite* compositeSprite = nullptr;
     float dt = 0.0f;
+    float extraTimeSkip = 0.0f;
     float* time = nullptr;
     float alpha = 0.0f;
     bool visible = false;

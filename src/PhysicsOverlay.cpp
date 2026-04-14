@@ -215,6 +215,8 @@ bool PhysicsOverlay::init() {
     if (noiseAttach.ok) {
         m_impactNoiseSprite = noiseAttach.sprite;
         m_impactNoiseProgram = noiseAttach.program;
+        m_impactNoiseRenderTexture = noiseAttach.renderTexture;
+        m_impactNoiseComposite = noiseAttach.compositeSprite;
     }
 
     m_trailLayer = CCNode::create();
@@ -284,6 +286,9 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
 
             float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
             if (!m_grabActive && preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
+                if (m_impactNoiseRemaining > 0.0f) {
+                    m_impactNoiseExtraTimeSkip += kImpactNoiseStackedImpactTimeSkip;
+                }
                 m_hitstopRemaining = kImpactHitstopSeconds;
                 m_whiteFlashRemaining = kImpactFlashTotalSeconds;
                 m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
@@ -454,9 +459,15 @@ void PhysicsOverlay::updateImpactNoise(float dt) {
 
     bool const visible = !flashActive && m_impactNoiseRemaining > 0.0f;
 
+    float const extraSkip = m_impactNoiseExtraTimeSkip;
+    m_impactNoiseExtraTimeSkip = 0.0f;
+
     overlay_rendering::refreshImpactNoise({
         .sprite = m_impactNoiseSprite,
+        .renderTexture = m_impactNoiseRenderTexture,
+        .compositeSprite = m_impactNoiseComposite,
         .dt = dt,
+        .extraTimeSkip = extraSkip,
         .time = &m_impactNoiseTime,
         .alpha = alpha,
         .visible = visible,
@@ -562,7 +573,18 @@ void PhysicsOverlay::onExit() {
     m_player = nullptr;
     m_blurSprite = nullptr;
     m_fireAuraSprite = nullptr;
-    m_impactNoiseSprite = nullptr;
+    if (m_impactNoiseComposite) {
+        m_impactNoiseComposite->removeFromParentAndCleanup(true);
+        m_impactNoiseComposite = nullptr;
+    }
+    if (m_impactNoiseRenderTexture) {
+        m_impactNoiseRenderTexture->release();
+        m_impactNoiseRenderTexture = nullptr;
+    }
+    if (m_impactNoiseSprite) {
+        m_impactNoiseSprite->removeFromParentAndCleanup(true);
+        m_impactNoiseSprite = nullptr;
+    }
     m_whiteFlashSprite = nullptr;
     for (auto*& s : m_starSprites) { s = nullptr; }
     m_starPhaseIndex = -1;
