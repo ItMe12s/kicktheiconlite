@@ -16,6 +16,7 @@ set(SOURCES
   src/PhysicsOverlay.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
+  src/events/ClickEvents.cpp
   src/box2d-lite/Arbiter.cpp
   src/box2d-lite/Body.cpp
   src/box2d-lite/Collide.cpp
