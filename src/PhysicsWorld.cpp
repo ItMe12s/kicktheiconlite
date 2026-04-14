@@ -103,7 +103,7 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
 
 PhysicsWorld::~PhysicsWorld() = default;
 
-void PhysicsWorld::clampPlayerToScreenBoarder() {
+void PhysicsWorld::clampPlayerToScreenBorder() {
     float const ww = m_worldW / kPixelsPerMeter;
     float const wh = m_worldH / kPixelsPerMeter;
     Body& p = m_impl->player;
@@ -212,7 +212,7 @@ void PhysicsWorld::step(float dt) {
     m_preStepSpeedPx = getPlayerSpeed();
 
     m_impl->world.Step(dt);
-    clampPlayerToScreenBoarder();
+    clampPlayerToScreenBorder();
 }
 
 PhysicsState PhysicsWorld::getPlayerState() const {

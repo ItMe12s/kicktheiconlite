@@ -3,8 +3,6 @@
 
 #include "PhysicsOverlay.h"
 
-using namespace geode::prelude;
-
 $on_mod(Loaded) {
     geode::queueInMainThread([] {
         auto overlay = PhysicsOverlay::create();

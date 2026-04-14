@@ -238,8 +238,6 @@ void globalScreenShake(float duration, float strength) {
 }
 
 void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
-    (void)args.dt;
-    (void)args.playerRoot;
     SimplePlayer* const player = args.player;
     CCLayer* const hostLayer = args.hostLayer;
     CCRenderTexture* const renderTexture = args.renderTexture;

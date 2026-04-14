@@ -17,17 +17,17 @@ constexpr int kImpactFlashBackdropZOrder = -1;
 constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
 
 constexpr int kStarBurstZOrder = 3;
-constexpr int kBigStarCount = 3;
-constexpr int kSmallStarCount = 2;
+constexpr int kBigStarCount = 2;
+constexpr int kSmallStarCount = 3;
 
-constexpr float kBigStarRadiusMin = 0.15f;
-constexpr float kBigStarRadiusMax = 0.50f;
+constexpr float kBigStarRadiusMin = 0.05f;
+constexpr float kBigStarRadiusMax = 0.3f;
 
-constexpr float kSmallStarRadiusMin = 0.25f;
-constexpr float kSmallStarRadiusMax = 0.60f;
+constexpr float kSmallStarRadiusMin = 0.2f;
+constexpr float kSmallStarRadiusMax = 0.6f;
 
-constexpr float kBigStarScreenFrac = 0.88f;
-constexpr float kSmallStarScreenFrac = 0.24f;
+constexpr float kBigStarScreenFrac = 0.9f;
+constexpr float kSmallStarScreenFrac = 0.2f;
 
 constexpr float kStarScaleVariance = 0.15f;
 
@@ -281,7 +281,7 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
     }
 }
 
-void PhysicsOverlay::tickWhiteFlashWhenNoPlayer(float dt) {
+void PhysicsOverlay::decrementWhiteFlashRemaining(float dt) {
     if (m_whiteFlashRemaining > 0.0f) {
         m_whiteFlashRemaining -= dt;
         if (m_whiteFlashRemaining < 0.0f) {
@@ -321,28 +321,20 @@ void PhysicsOverlay::updateFlashBackdrops(overlay_rendering::ImpactFlashMode fla
     }
 }
 
-void PhysicsOverlay::tickWhiteFlashRemaining(float dt) {
-    if (m_whiteFlashRemaining > 0.0f) {
-        m_whiteFlashRemaining -= dt;
-        if (m_whiteFlashRemaining < 0.0f) {
-            m_whiteFlashRemaining = 0.0f;
-        }
-    }
-}
-
 int PhysicsOverlay::computeCurrentStarPhase() const {
     if (m_whiteFlashRemaining <= 0.0f) {
         return -1;
     }
     float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
     int const phase = static_cast<int>(elapsed / kImpactFlashPhaseSeconds);
-    return std::min(phase, 2);
+    return std::min(phase, kStarBurstMaxPhaseIndex);
 }
 
 void PhysicsOverlay::hideAllStars() {
     for (auto* s : m_starSprites) {
         if (s) {
             s->setVisible(false);
+            s->setColor(ccc3(255, 255, 255));
         }
     }
 }
@@ -393,6 +385,19 @@ void PhysicsOverlay::repositionStarBurst() {
         s->setScale(baseScale * (1.0f + varianceDist(rng)));
         s->setVisible(true);
     }
+
+    applyStarBurstTint();
+}
+
+void PhysicsOverlay::applyStarBurstTint() {
+    bool const whiteBackdrop =
+        currentImpactFlashMode() == overlay_rendering::ImpactFlashMode::InvertSilhouette;
+    ccColor3B const tint = whiteBackdrop ? ccc3(0, 0, 0) : ccc3(255, 255, 255);
+    for (auto* s : m_starSprites) {
+        if (s) {
+            s->setColor(tint);
+        }
+    }
 }
 
 void PhysicsOverlay::updateStarBurst() {
@@ -422,7 +427,7 @@ void PhysicsOverlay::update(float dt) {
     stepPhysicsUnlessHitstop(dt);
 
     if (!m_playerRoot || !m_player) {
-        tickWhiteFlashWhenNoPlayer(dt);
+        decrementWhiteFlashRemaining(dt);
         return;
     }
 
@@ -432,9 +437,7 @@ void PhysicsOverlay::update(float dt) {
     updateFlashBackdrops(flashMode);
 
     overlay_rendering::refreshPlayerMotionBlur({
-        .dt = dt,
         .player = m_player,
-        .playerRoot = m_playerRoot,
         .hostLayer = this,
         .renderTexture = m_renderTexture,
         .blurSprite = m_blurSprite,
@@ -446,7 +449,7 @@ void PhysicsOverlay::update(float dt) {
         .impactFlashMode = flashMode,
     });
 
-    tickWhiteFlashRemaining(dt);
+    decrementWhiteFlashRemaining(dt);
     updateStarBurst();
 }
 

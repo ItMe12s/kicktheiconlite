@@ -62,9 +62,7 @@ MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int capture
 void globalScreenShake(float duration, float strength);
 
 struct MotionBlurRefreshArgs {
-    float dt = 0.0f;
     SimplePlayer* player = nullptr;
-    cocos2d::CCNode* playerRoot = nullptr;
     cocos2d::CCLayer* hostLayer = nullptr;
     cocos2d::CCRenderTexture* renderTexture = nullptr;
     MotionBlurSprite* blurSprite = nullptr;

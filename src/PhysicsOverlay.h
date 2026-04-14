@@ -28,7 +28,10 @@ constexpr float kImpactFlashPhaseSeconds = 0.05f;
 constexpr float kImpactFlashCooldownSeconds = 0.7f;
 constexpr float kWallShakeDuration = 0.25f;
 
-constexpr float kImpactMinSpeed = 1800.0f;
+constexpr int kStarBurstMaxPhaseIndex =
+    static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
+
+constexpr float kImpactMinSpeed = 1400.0f;
 constexpr float kMinWallShakeSpeed = 150.0f;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMaxWallShakeStrength = 5.0f;
@@ -88,14 +91,14 @@ private:
     void decrementCooldowns(float dt);
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
-    void tickWhiteFlashWhenNoPlayer(float dt);
+    void decrementWhiteFlashRemaining(float dt);
     void syncPlayerNodeFromPhysics();
     overlay_rendering::ImpactFlashMode currentImpactFlashMode() const;
     void updateFlashBackdrops(overlay_rendering::ImpactFlashMode mode);
-    void tickWhiteFlashRemaining(float dt);
 
     int computeCurrentStarPhase() const;
     void repositionStarBurst();
+    void applyStarBurstTint();
     void hideAllStars();
     void updateStarBurst();
 };
