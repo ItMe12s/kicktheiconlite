@@ -22,7 +22,7 @@ struct SpriteState {
     double lastEndTime = 0.0;
 };
 
-std::unordered_set<cocos2d::CCSprite*>             g_tracked;
+std::unordered_set<cocos2d::CCSprite*>              g_tracked;
 std::unordered_map<cocos2d::CCSprite*, SpriteState> g_state;
 std::unordered_map<int, cocos2d::CCSprite*>         g_pending;
 
