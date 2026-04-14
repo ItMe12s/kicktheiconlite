@@ -37,6 +37,24 @@ public:
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
 cocos2d::CCGLProgram* createWhiteFlashProgram();
 cocos2d::CCGLProgram* createColorInvertProgram();
+cocos2d::CCGLProgram* createStarburstFrameProgram(GLint* outPhase, GLint* outOrigin, GLint* outAspect);
+
+class StarburstFrameSprite : public cocos2d::CCSprite {
+    cocos2d::CCGLProgram* m_prog = nullptr;
+    GLint m_locPhase = -1;
+    GLint m_locOrigin = -1;
+    GLint m_locAspect = -1;
+    float m_phase = 0.0f;
+    float m_originX = 0.5f;
+    float m_originY = 0.5f;
+    float m_aspect = 1.0f;
+
+public:
+    void setStarburstParams(float phase, float originX, float originY, float aspect);
+    void draw() override;
+
+    static StarburstFrameSprite* create(cocos2d::CCGLProgram* prog, GLint locPhase, GLint locOrigin, GLint locAspect);
+};
 
 enum class ImpactFlashMode {
     None,

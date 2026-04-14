@@ -99,6 +99,71 @@ CCGLProgram* createColorInvertProgram() {
     return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
 }
 
+CCGLProgram* createStarburstFrameProgram(GLint* outPhase, GLint* outOrigin, GLint* outAspect) {
+    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kStarburstFrameFrag);
+    if (!p) {
+        return nullptr;
+    }
+    *outPhase = p->getUniformLocationForName("u_phase");
+    *outOrigin = p->getUniformLocationForName("u_origin");
+    *outAspect = p->getUniformLocationForName("u_aspect");
+    return p;
+}
+
+namespace {
+
+CCTexture2D* sharedWhite1x1Texture() {
+    static CCRenderTexture* s_rt = nullptr;
+    if (!s_rt) {
+        s_rt = CCRenderTexture::create(1, 1, kCCTexture2DPixelFormat_RGBA8888);
+        if (!s_rt) {
+            return nullptr;
+        }
+        s_rt->beginWithClear(1.0f, 1.0f, 1.0f, 1.0f);
+        s_rt->end();
+        s_rt->retain();
+    }
+    return s_rt->getSprite()->getTexture();
+}
+
+} // namespace
+
+void StarburstFrameSprite::setStarburstParams(float phase, float originX, float originY, float aspect) {
+    m_phase = phase;
+    m_originX = originX;
+    m_originY = originY;
+    m_aspect = aspect;
+}
+
+void StarburstFrameSprite::draw() {
+    if (m_prog && m_locPhase >= 0 && m_locOrigin >= 0 && m_locAspect >= 0) {
+        m_prog->use();
+        m_prog->setUniformLocationWith1f(m_locPhase, m_phase);
+        m_prog->setUniformLocationWith2f(m_locOrigin, m_originX, m_originY);
+        m_prog->setUniformLocationWith1f(m_locAspect, m_aspect);
+    }
+    CCSprite::draw();
+}
+
+StarburstFrameSprite* StarburstFrameSprite::create(CCGLProgram* prog, GLint locPhase, GLint locOrigin, GLint locAspect) {
+    CCTexture2D* tex = sharedWhite1x1Texture();
+    if (!tex || !prog) {
+        return nullptr;
+    }
+    auto* s = new StarburstFrameSprite();
+    s->m_prog = prog;
+    s->m_locPhase = locPhase;
+    s->m_locOrigin = locOrigin;
+    s->m_locAspect = locAspect;
+    if (s->initWithTexture(tex)) {
+        s->setShaderProgram(prog);
+        s->autorelease();
+        return s;
+    }
+    delete s;
+    return nullptr;
+}
+
 int captureSizeForTarget(float targetSize) {
     int captureSize = static_cast<int>(std::ceil(targetSize * kBlurCaptureScale));
     if (captureSize < kMinCaptureTextureSize) {

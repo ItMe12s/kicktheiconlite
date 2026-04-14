@@ -181,6 +181,36 @@ bool PhysicsOverlay::init() {
         this->addChild(m_flashBackdropWhite, kImpactFlashBackdropZOrder);
     }
 
+    {
+        GLint locPhase = -1;
+        GLint locOrigin = -1;
+        GLint locAspect = -1;
+        m_starburstProgram = overlay_rendering::createStarburstFrameProgram(&locPhase, &locOrigin, &locAspect);
+        if (m_starburstProgram && locPhase >= 0 && locOrigin >= 0 && locAspect >= 0) {
+            m_starburstFrame = overlay_rendering::StarburstFrameSprite::create(
+                m_starburstProgram,
+                locPhase,
+                locOrigin,
+                locAspect
+            );
+            if (m_starburstFrame) {
+                m_starburstFrame->setAnchorPoint({0.0f, 0.0f});
+                m_starburstFrame->setPosition({0.0f, 0.0f});
+                m_starburstFrame->setScaleX(m_winSize.width);
+                m_starburstFrame->setScaleY(m_winSize.height);
+                m_starburstFrame->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
+                m_starburstFrame->setVisible(false);
+                this->addChild(m_starburstFrame, kImpactFlashBackdropZOrder);
+            } else {
+                m_starburstProgram->release();
+                m_starburstProgram = nullptr;
+            }
+        } else if (m_starburstProgram) {
+            m_starburstProgram->release();
+            m_starburstProgram = nullptr;
+        }
+    }
+
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
@@ -311,6 +341,9 @@ void PhysicsOverlay::update(float dt) {
     stepPhysicsUnlessHitstop(dt);
 
     if (!m_playerRoot || !m_player) {
+        if (m_starburstFrame) {
+            m_starburstFrame->setVisible(false);
+        }
         tickWhiteFlashWhenNoPlayer(dt);
         return;
     }
@@ -319,6 +352,20 @@ void PhysicsOverlay::update(float dt) {
 
     overlay_rendering::ImpactFlashMode const flashMode = currentImpactFlashMode();
     updateFlashBackdrops(flashMode);
+
+    if (m_starburstFrame) {
+        if (flashMode == overlay_rendering::ImpactFlashMode::WhiteSilhouette) {
+            m_starburstFrame->setVisible(true);
+            CCPoint const p = m_playerRoot->getPosition();
+            float const ox = p.x / m_winSize.width;
+            float const oy = 1.0f - p.y / m_winSize.height;
+            float const aspect = m_winSize.width / m_winSize.height;
+            float const phase = 1.0f;
+            m_starburstFrame->setStarburstParams(phase, ox, oy, aspect);
+        } else {
+            m_starburstFrame->setVisible(false);
+        }
+    }
 
     overlay_rendering::refreshPlayerMotionBlur({
         .dt = dt,
@@ -347,6 +394,10 @@ void PhysicsOverlay::onExit() {
     endGrab();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
+    if (m_starburstFrame) {
+        m_starburstFrame->removeFromParentAndCleanup(true);
+        m_starburstFrame = nullptr;
+    }
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;
@@ -365,6 +416,10 @@ void PhysicsOverlay::onExit() {
     if (m_colorInvertProgram) {
         m_colorInvertProgram->release();
         m_colorInvertProgram = nullptr;
+    }
+    if (m_starburstProgram) {
+        m_starburstProgram->release();
+        m_starburstProgram = nullptr;
     }
     if (m_renderTexture) {
         m_renderTexture->release();

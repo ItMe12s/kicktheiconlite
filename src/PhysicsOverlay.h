@@ -48,6 +48,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
     cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
     cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
+    cocos2d::CCGLProgram* m_starburstProgram = nullptr;
+    overlay_rendering::StarburstFrameSprite* m_starburstFrame = nullptr;
     int m_captureSize = 0;
 
     int m_frameId = player_visual::kMinPlayerFrameId;
