@@ -73,6 +73,13 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     for (int i = 0; i < kStarBurstCount; ++i) {
         auto* star = CCSprite::create("star1_hd.png"_spr);
         if (star) {
+            switch (i) {
+                case 0: star->setID("star-burst-0"_spr); break;
+                case 1: star->setID("star-burst-1"_spr); break;
+                case 2: star->setID("star-burst-2"_spr); break;
+                case 3: star->setID("star-burst-3"_spr); break;
+                default: star->setID("star-burst-4"_spr); break;
+            }
             star->setVisible(false);
             star->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
             m_playerRoot->addChild(star, kStarBurstZOrder);
@@ -183,6 +190,7 @@ bool PhysicsOverlay::init() {
 
     m_flashBackdrop = CCDrawNode::create();
     if (m_flashBackdrop) {
+        m_flashBackdrop->setID("impact-flash-backdrop"_spr);
         m_flashBackdrop->drawRect(
             CCRectMake(0, 0, m_winSize.width, m_winSize.height),
             flashBackdropBlackFill(),
@@ -196,6 +204,7 @@ bool PhysicsOverlay::init() {
 
     m_flashBackdropWhite = CCDrawNode::create();
     if (m_flashBackdropWhite) {
+        m_flashBackdropWhite->setID("impact-flash-backdrop-white"_spr);
         m_flashBackdropWhite->drawRect(
             CCRectMake(0, 0, m_winSize.width, m_winSize.height),
             flashBackdropWhiteFill(),
@@ -209,9 +218,12 @@ bool PhysicsOverlay::init() {
 
     m_trailLayer = CCNode::create();
     if (m_trailLayer) {
+        m_trailLayer->setID("sandevistan-trail-layer"_spr);
         m_trailLayer->setPosition({0, 0});
         this->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
     }
+
+    setID("physics-overlay"_spr);
 
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);

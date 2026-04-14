@@ -240,6 +240,7 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
         playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
+    blurSprite->setID("motion-blur-sprite"_spr);
     blurSprite->setShaderProgram(blurProgram);
     blurSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     {
@@ -258,6 +259,7 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
         playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
+    whiteFlashSprite->setID("white-flash-sprite"_spr);
     whiteFlashSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     {
         float const cw = whiteFlashSprite->getContentSize().width;
@@ -341,6 +343,7 @@ FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
         program->release();
         return out;
     }
+    sprite->setID("fire-aura-sprite"_spr);
     sprite->setShaderProgram(program);
     sprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     float const cw = sprite->getContentSize().width;

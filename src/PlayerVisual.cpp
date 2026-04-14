@@ -8,7 +8,9 @@
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <string>
 
 using namespace geode::prelude;
 
@@ -16,16 +18,18 @@ namespace {
 
 constexpr int kSandevistanBlendWalkMaxDepth = 64;
 
+std::atomic<std::uint32_t> s_trailGhostSerial{0};
+
 void applyAdditiveBlendRecursive(CCNode* n, int depth) {
     if (!n || depth > kSandevistanBlendWalkMaxDepth) {
         return;
     }
-    if (auto* const spr = dynamic_cast<CCSprite*>(n)) {
+    if (auto* const spr = typeinfo_cast<CCSprite*>(n)) {
         spr->setBlendFunc({GL_SRC_ALPHA, GL_ONE});
     }
     if (CCArray* const ch = n->getChildren()) {
         for (unsigned i = 0; i < static_cast<unsigned>(ch->count()); ++i) {
-            applyAdditiveBlendRecursive(dynamic_cast<CCNode*>(ch->objectAtIndex(i)), depth + 1);
+            applyAdditiveBlendRecursive(typeinfo_cast<CCNode*>(ch->objectAtIndex(i)), depth + 1);
         }
     }
 }
@@ -81,7 +85,7 @@ public:
     }
 
     void update(float time) override {
-        auto* const p = dynamic_cast<SimplePlayer*>(getTarget());
+        auto* const p = typeinfo_cast<SimplePlayer*>(getTarget());
         if (!p) {
             return;
         }
@@ -142,7 +146,7 @@ CCRect unionWorldBoundsTree(CCNode* n, int depth) {
     CCRect acc = worldBoundsFromNode(n);
     if (CCArray* children = n->getChildren()) {
         for (int i = 0; i < children->count(); ++i) {
-            auto* ch = dynamic_cast<CCNode*>(children->objectAtIndex(i));
+            auto* ch = typeinfo_cast<CCNode*>(children->objectAtIndex(i));
             if (!ch) {
                 continue;
             }
@@ -202,8 +206,10 @@ PlayerRootResult tryBuildPlayerRoot(
     if (!player) {
         return out;
     }
+    player->setID("player-icon"_spr);
 
     auto* root = CCNode::create();
+    root->setID("player-icon-root"_spr);
     root->setPosition({
         winSize.width * kPlayerRootAnchorXFrac,
         winSize.height * kPlayerRootAnchorYFrac
@@ -245,6 +251,11 @@ bool spawnFadingGhost(
     auto* player = SimplePlayer::create(frameId);
     if (!player) {
         return false;
+    }
+    if (auto* const mod = Mod::get()) {
+        std::string const ghostId =
+            std::string(mod->getId()) + "/trail-ghost-" + std::to_string(++s_trailGhostSerial);
+        player->setID(ghostId);
     }
 
     player->updatePlayerFrame(frameId, IconType::Cube);
