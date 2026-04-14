@@ -87,6 +87,38 @@ MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, 
     return nullptr;
 }
 
+void ImpactNoiseSprite::setNoiseUniforms(CCGLProgram* prog, GLint locTime, GLint locAlpha) {
+    m_noiseProg = prog;
+    m_locTime = locTime;
+    m_locAlpha = locAlpha;
+}
+
+void ImpactNoiseSprite::setNoiseState(float time, float alpha) {
+    m_time = time;
+    m_alpha = alpha;
+}
+
+void ImpactNoiseSprite::draw() {
+    if (m_noiseProg && m_locTime >= 0 && m_locAlpha >= 0) {
+        m_noiseProg->use();
+        m_noiseProg->setUniformLocationWith1f(m_locTime, m_time);
+        m_noiseProg->setUniformLocationWith1f(m_locAlpha, m_alpha);
+    }
+    CCSprite::draw();
+}
+
+ImpactNoiseSprite* ImpactNoiseSprite::create(CCTexture2D* tex, CCGLProgram* prog, GLint locTime, GLint locAlpha) {
+    auto* s = new ImpactNoiseSprite();
+    s->setNoiseUniforms(prog, locTime, locAlpha);
+    if (s->initWithTexture(tex)) {
+        s->setColor(ccc3(255, 255, 255));
+        s->autorelease();
+        return s;
+    }
+    delete s;
+    return nullptr;
+}
+
 void FireAuraSprite::setFireUniforms(
     CCGLProgram* prog,
     GLint locVelocity,
@@ -178,6 +210,16 @@ CCGLProgram* createWhiteFlashProgram() {
 
 CCGLProgram* createColorInvertProgram() {
     return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
+}
+
+CCGLProgram* createImpactNoiseProgram(GLint* outTime, GLint* outAlpha) {
+    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kImpactNoiseFrag);
+    if (!p) {
+        return nullptr;
+    }
+    *outTime = p->getUniformLocationForName("u_time");
+    *outAlpha = p->getUniformLocationForName("u_alpha");
+    return p;
 }
 
 CCGLProgram* createFireAuraProgram(
@@ -540,6 +582,69 @@ void refreshFireAura(FireAuraRefreshArgs const& args) {
     fireAura->setFireColors(primaryRgb, secondaryRgb);
     fireAura->setFireState(vx, vy, tWrapped, intensity);
     fireAura->setVisible(true);
+}
+
+ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) {
+    ImpactNoiseAttachResult out{};
+    if (!overlayLayer || winSize.width <= 0.0f || winSize.height <= 0.0f) {
+        return out;
+    }
+
+    CCTexture2D* tex = createOneByOneWhiteTexture();
+    if (!tex) {
+        return out;
+    }
+
+    GLint locTime = -1;
+    GLint locAlpha = -1;
+    CCGLProgram* program = createImpactNoiseProgram(&locTime, &locAlpha);
+    if (!program || locTime < 0 || locAlpha < 0) {
+        if (program) {
+            program->release();
+        }
+        return out;
+    }
+
+    ImpactNoiseSprite* sprite = ImpactNoiseSprite::create(tex, program, locTime, locAlpha);
+    if (!sprite) {
+        program->release();
+        return out;
+    }
+    sprite->setID("impact-noise-sprite"_spr);
+    sprite->setShaderProgram(program);
+    sprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+    sprite->setAnchorPoint({0.0f, 0.0f});
+    float const cw = sprite->getContentSize().width;
+    float const ch = sprite->getContentSize().height;
+    sprite->setScaleX(cw > 0.0f ? winSize.width / cw : winSize.width);
+    sprite->setScaleY(ch > 0.0f ? winSize.height / ch : winSize.height);
+    sprite->setPosition({0.0f, 0.0f});
+    sprite->setVisible(false);
+    overlayLayer->addChild(sprite, kImpactNoiseZOrder);
+
+    out.ok = true;
+    out.sprite = sprite;
+    out.program = program;
+    return out;
+}
+
+void refreshImpactNoise(ImpactNoiseRefreshArgs const& args) {
+    ImpactNoiseSprite* const sprite = args.sprite;
+    float* const timePtr = args.time;
+    if (!sprite || !timePtr) {
+        return;
+    }
+
+    if (!args.visible) {
+        sprite->setVisible(false);
+        return;
+    }
+
+    *timePtr += args.dt;
+    float const tWrapped = std::fmod(*timePtr, 1000.0f);
+
+    sprite->setNoiseState(tWrapped, args.alpha);
+    sprite->setVisible(true);
 }
 
 } // namespace overlay_rendering

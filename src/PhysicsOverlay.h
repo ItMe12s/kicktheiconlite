@@ -12,6 +12,7 @@ class SimplePlayer;
 namespace overlay_rendering {
 class MotionBlurSprite;
 class FireAuraSprite;
+class ImpactNoiseSprite;
 enum class ImpactFlashMode : int;
 }
 
@@ -29,11 +30,13 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     SimplePlayer* m_player = nullptr;
     overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
     overlay_rendering::FireAuraSprite* m_fireAuraSprite = nullptr;
+    overlay_rendering::ImpactNoiseSprite* m_impactNoiseSprite = nullptr;
     cocos2d::CCRenderTexture* m_renderTexture = nullptr;
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
     cocos2d::CCGLProgram* m_fireAuraProgram = nullptr;
     cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
     cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
+    cocos2d::CCGLProgram* m_impactNoiseProgram = nullptr;
     int m_captureSize = 0;
 
     int m_frameId = 0;
@@ -50,6 +53,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
     float m_physicsAccumulator = 0.0f;
     float m_fireAuraTime = 0.0f;
+    float m_impactNoiseRemaining = 0.0f;
+    float m_impactNoiseTime = 0.0f;
 
     cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
     int m_starPhaseIndex = -1;
@@ -89,4 +94,5 @@ private:
     void hideAllStars();
     void updateStarBurst();
     void updateSandevistanTrail(float dt);
+    void updateImpactNoise(float dt);
 };

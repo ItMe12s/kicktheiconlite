@@ -30,6 +30,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/white_flash.frag"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/color_invert.frag"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/fire_aura.frag"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/impact_noise.frag"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/OverlayShaders_embed.cpp.in"
 )
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.vert" MOTION_BLUR_VERT)
@@ -37,6 +38,7 @@ file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/motion_blur.frag" MOTION_BLUR
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/white_flash.frag" WHITE_FLASH_FRAG)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/color_invert.frag" COLOR_INVERT_FRAG)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/fire_aura.frag" FIRE_AURA_FRAG)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/impact_noise.frag" IMPACT_NOISE_FRAG)
 set(SHADER_EMBED_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${SHADER_EMBED_GEN_DIR}")
 configure_file(

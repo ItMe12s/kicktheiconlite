@@ -211,6 +211,12 @@ bool PhysicsOverlay::init() {
         this->addChild(m_flashBackdropWhite, kImpactFlashBackdropZOrder);
     }
 
+    auto const noiseAttach = overlay_rendering::attachImpactNoise(this, m_winSize);
+    if (noiseAttach.ok) {
+        m_impactNoiseSprite = noiseAttach.sprite;
+        m_impactNoiseProgram = noiseAttach.program;
+    }
+
     m_trailLayer = CCNode::create();
     if (m_trailLayer) {
         m_trailLayer->setID("sandevistan-trail-layer"_spr);
@@ -281,6 +287,7 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
                 m_hitstopRemaining = kImpactHitstopSeconds;
                 m_whiteFlashRemaining = kImpactFlashTotalSeconds;
                 m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
+                m_impactNoiseRemaining = kImpactNoiseFadeSeconds;
                 if (m_whiteFlashSprite) {
                     m_whiteFlashSprite->stopAllActions();
                 }
@@ -432,6 +439,30 @@ void PhysicsOverlay::updateStarBurst() {
     }
 }
 
+void PhysicsOverlay::updateImpactNoise(float dt) {
+    bool const flashActive = m_whiteFlashRemaining > 0.0f;
+    if (!flashActive && m_impactNoiseRemaining > 0.0f) {
+        m_impactNoiseRemaining -= dt;
+        if (m_impactNoiseRemaining < 0.0f) {
+            m_impactNoiseRemaining = 0.0f;
+        }
+    }
+
+    float alpha = m_impactNoiseRemaining / kImpactNoiseFadeSeconds;
+    if (alpha < 0.0f) alpha = 0.0f;
+    if (alpha > 1.0f) alpha = 1.0f;
+
+    bool const visible = !flashActive && m_impactNoiseRemaining > 0.0f;
+
+    overlay_rendering::refreshImpactNoise({
+        .sprite = m_impactNoiseSprite,
+        .dt = dt,
+        .time = &m_impactNoiseTime,
+        .alpha = alpha,
+        .visible = visible,
+    });
+}
+
 void PhysicsOverlay::updateSandevistanTrail(float dt) {
     if (!m_trailLayer || !m_sandevistanTrailActive || !m_playerRoot || !m_player) {
         return;
@@ -506,6 +537,7 @@ void PhysicsOverlay::update(float dt) {
     });
 
     decrementWhiteFlashRemaining(dt);
+    updateImpactNoise(dt);
     updateStarBurst();
 }
 
@@ -530,6 +562,7 @@ void PhysicsOverlay::onExit() {
     m_player = nullptr;
     m_blurSprite = nullptr;
     m_fireAuraSprite = nullptr;
+    m_impactNoiseSprite = nullptr;
     m_whiteFlashSprite = nullptr;
     for (auto*& s : m_starSprites) { s = nullptr; }
     m_starPhaseIndex = -1;
@@ -548,6 +581,10 @@ void PhysicsOverlay::onExit() {
     if (m_fireAuraProgram) {
         m_fireAuraProgram->release();
         m_fireAuraProgram = nullptr;
+    }
+    if (m_impactNoiseProgram) {
+        m_impactNoiseProgram->release();
+        m_impactNoiseProgram = nullptr;
     }
     if (m_renderTexture) {
         m_renderTexture->release();

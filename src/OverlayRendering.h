@@ -27,6 +27,22 @@ public:
     static MotionBlurSprite* create(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locBlurDir);
 };
 
+class ImpactNoiseSprite : public cocos2d::CCSprite {
+    cocos2d::CCGLProgram* m_noiseProg = nullptr;
+    GLint m_locTime = -1;
+    GLint m_locAlpha = -1;
+    float m_time = 0.0f;
+    float m_alpha = 0.0f;
+
+    void setNoiseUniforms(cocos2d::CCGLProgram* prog, GLint locTime, GLint locAlpha);
+
+public:
+    void setNoiseState(float time, float alpha);
+    void draw() override;
+
+    static ImpactNoiseSprite* create(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locTime, GLint locAlpha);
+};
+
 class FireAuraSprite : public cocos2d::CCSprite {
     cocos2d::CCGLProgram* m_fireProg = nullptr;
     GLint m_locVelocity = -1;
@@ -80,6 +96,7 @@ cocos2d::CCGLProgram* createFireAuraProgram(
 );
 cocos2d::CCGLProgram* createWhiteFlashProgram();
 cocos2d::CCGLProgram* createColorInvertProgram();
+cocos2d::CCGLProgram* createImpactNoiseProgram(GLint* outTime, GLint* outAlpha);
 
 enum class ImpactFlashMode {
     None,
@@ -110,6 +127,14 @@ struct FireAuraAttachResult {
 
 FireAuraAttachResult attachFireAura(cocos2d::CCNode* playerRoot, float auraDiameterPx);
 
+struct ImpactNoiseAttachResult {
+    bool ok = false;
+    ImpactNoiseSprite* sprite = nullptr;
+    cocos2d::CCGLProgram* program = nullptr;
+};
+
+ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
+
 void globalScreenShake(float duration, float strength);
 
 struct MotionBlurRefreshArgs {
@@ -136,5 +161,15 @@ struct FireAuraRefreshArgs {
 };
 
 void refreshFireAura(FireAuraRefreshArgs const& args);
+
+struct ImpactNoiseRefreshArgs {
+    ImpactNoiseSprite* sprite = nullptr;
+    float dt = 0.0f;
+    float* time = nullptr;
+    float alpha = 0.0f;
+    bool visible = false;
+};
+
+void refreshImpactNoise(ImpactNoiseRefreshArgs const& args);
 
 } // namespace overlay_rendering

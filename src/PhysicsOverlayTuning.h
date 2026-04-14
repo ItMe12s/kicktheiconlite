@@ -11,15 +11,15 @@ constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 constexpr float kImpactHitstopSeconds = 0.15f;
 constexpr float kImpactFlashTotalSeconds = 0.15f;
 constexpr float kImpactFlashPhaseSeconds = 0.05f;
-constexpr float kImpactFlashCooldownSeconds = 0.7f;
+constexpr float kImpactFlashCooldownSeconds = 0.4f;
 constexpr float kWallShakeDuration = 0.25f;
 
 constexpr int kStarBurstMaxPhaseIndex =
     static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
 
 constexpr float kImpactMinSpeed = 1500.0f;
-constexpr float kMinWallShakeSpeed = 200.0f;
-constexpr float kSandevistanEndSpeedPx = 120.0f;
+constexpr float kMinWallShakeSpeed = 300.0f;
+constexpr float kSandevistanEndSpeedPx = 200.0f;
 constexpr float kSandevistanSpawnIntervalSec = 0.04f;
 constexpr float kSandevistanGhostFadeSec = 0.4f;
 constexpr int kSandevistanGhostStartOpacity = 128;
@@ -35,8 +35,8 @@ constexpr int kSandevistanTrailHueCyanB = 255;
 constexpr int kSandevistanMaxConcurrentGhosts = 24;
 constexpr int kSandevistanTrailLayerZOrder = 0;
 constexpr int kPlayerRootZOrder = 1;
-constexpr float kWallShakeSpeedToStrength = 0.0025f;
-constexpr float kMaxWallShakeStrength = 5.0f;
+constexpr float kWallShakeSpeedToStrength = 0.005f;
+constexpr float kMaxWallShakeStrength = 6.7f;
 
 constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
 constexpr int kMaxPhysicsSubsteps = 16;
@@ -48,6 +48,9 @@ constexpr int kStarBurstCount = 5;
 
 constexpr int kImpactFlashBackdropZOrder = -1;
 constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
+
+constexpr float kImpactNoiseFadeSeconds = 1.5f;
+constexpr int kImpactNoiseZOrder = 0;
 
 constexpr int kStarBurstZOrder = 4;
 constexpr int kBigStarCount = 2;
