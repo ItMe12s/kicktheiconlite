@@ -1,5 +1,6 @@
 #include "OverlayRendering.h"
 #include "OverlayShaders.h"
+#include "PhysicsOverlayTuning.h"
 
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
@@ -19,20 +20,6 @@ namespace overlay_rendering {
 
 namespace {
 
-constexpr int kScreenShakeIntervals = 10;
-constexpr float kScreenShakeSampleMin = -1.0f;
-constexpr float kScreenShakeSampleMax = 1.0f;
-
-constexpr int kMotionBlurOverlayLocalZ = 1;
-constexpr int kWhiteFlashOverlayLocalZ = 2;
-
-constexpr int kMinCaptureTextureSize = 32;
-
-constexpr int kBlurStepDivisor = 4;
-constexpr float kMinSpeedForInverse = 1e-6f;
-
-constexpr float kBoundsCenterFrac = 0.5f;
-
 CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
     auto* p = new CCGLProgram();
     if (!p->initWithVertexShaderByteArray(vert, frag)) {
@@ -49,6 +36,23 @@ CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
     p->updateUniforms();
     p->retain();
     return p;
+}
+
+CCTexture2D* createOneByOneWhiteTexture() {
+    static unsigned char const pixels[4] = {255, 255, 255, 255};
+    auto* tex = new CCTexture2D();
+    if (!tex->initWithData(
+            pixels,
+            kCCTexture2DPixelFormat_RGBA8888,
+            1,
+            1,
+            CCSizeMake(1, 1)
+        )) {
+        delete tex;
+        return nullptr;
+    }
+    tex->autorelease();
+    return tex;
 }
 
 } // namespace
@@ -82,6 +86,53 @@ MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, 
     return nullptr;
 }
 
+void FireAuraSprite::setFireUniforms(
+    CCGLProgram* prog,
+    GLint locVelocity,
+    GLint locTime,
+    GLint locIntensity
+) {
+    m_fireProg = prog;
+    m_locVelocity = locVelocity;
+    m_locTime = locTime;
+    m_locIntensity = locIntensity;
+}
+
+void FireAuraSprite::setFireState(float velX, float velY, float time, float intensity) {
+    m_velX = velX;
+    m_velY = velY;
+    m_time = time;
+    m_intensity = intensity;
+}
+
+void FireAuraSprite::draw() {
+    if (m_fireProg && m_locVelocity >= 0 && m_locTime >= 0 && m_locIntensity >= 0) {
+        m_fireProg->use();
+        m_fireProg->setUniformLocationWith2f(m_locVelocity, m_velX, m_velY);
+        m_fireProg->setUniformLocationWith1f(m_locTime, m_time);
+        m_fireProg->setUniformLocationWith1f(m_locIntensity, m_intensity);
+    }
+    CCSprite::draw();
+}
+
+FireAuraSprite* FireAuraSprite::create(
+    CCTexture2D* tex,
+    CCGLProgram* prog,
+    GLint locVelocity,
+    GLint locTime,
+    GLint locIntensity
+) {
+    auto* s = new FireAuraSprite();
+    s->setFireUniforms(prog, locVelocity, locTime, locIntensity);
+    if (s->initWithTexture(tex)) {
+        s->setColor(ccc3(255, 255, 255));
+        s->autorelease();
+        return s;
+    }
+    delete s;
+    return nullptr;
+}
+
 CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
     auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kMotionBlurFrag);
     if (!p) {
@@ -97,6 +148,17 @@ CCGLProgram* createWhiteFlashProgram() {
 
 CCGLProgram* createColorInvertProgram() {
     return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
+}
+
+CCGLProgram* createFireAuraProgram(GLint* outVelocity, GLint* outTime, GLint* outIntensity) {
+    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kFireAuraFrag);
+    if (!p) {
+        return nullptr;
+    }
+    *outVelocity = p->getUniformLocationForName("u_velocity");
+    *outTime = p->getUniformLocationForName("u_time");
+    *outIntensity = p->getUniformLocationForName("u_intensity");
+    return p;
 }
 
 int captureSizeForTarget(float targetSize) {
@@ -194,6 +256,47 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     out.whiteFlashSprite = whiteFlashSprite;
     out.whiteFlashProgram = whiteFlashProgram;
     out.colorInvertProgram = colorInvertProgram;
+    return out;
+}
+
+FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
+    FireAuraAttachResult out{};
+    if (!playerRoot || auraDiameterPx <= 0.0f) {
+        return out;
+    }
+
+    CCTexture2D* tex = createOneByOneWhiteTexture();
+    if (!tex) {
+        return out;
+    }
+
+    GLint locVelocity = -1;
+    GLint locTime = -1;
+    GLint locIntensity = -1;
+    CCGLProgram* program = createFireAuraProgram(&locVelocity, &locTime, &locIntensity);
+    if (!program || locVelocity < 0 || locTime < 0 || locIntensity < 0) {
+        if (program) {
+            program->release();
+        }
+        return out;
+    }
+
+    FireAuraSprite* sprite = FireAuraSprite::create(tex, program, locVelocity, locTime, locIntensity);
+    if (!sprite) {
+        program->release();
+        return out;
+    }
+    sprite->setShaderProgram(program);
+    sprite->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
+    float const cw = sprite->getContentSize().width;
+    sprite->setScale(cw > 0.0f ? auraDiameterPx / cw : auraDiameterPx);
+    sprite->setPosition({0, 0});
+    sprite->setVisible(false);
+    playerRoot->addChild(sprite, kFireAuraZOrder);
+
+    out.ok = true;
+    out.sprite = sprite;
+    out.program = program;
     return out;
 }
 
@@ -329,6 +432,49 @@ void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
         }
     }
     player->release();
+}
+
+void refreshFireAura(FireAuraRefreshArgs const& args) {
+    FireAuraSprite* const fireAura = args.fireAura;
+    PhysicsWorld* const physics = args.physics;
+    float const dt = args.dt;
+    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
+    float* const fireTime = args.fireTime;
+
+    if (!fireAura || !physics || !fireTime) {
+        return;
+    }
+
+    bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
+    if (impactFlashActive) {
+        fireAura->setVisible(false);
+        return;
+    }
+
+    PhysicsVelocity const vel = physics->getPlayerVelocityPixels();
+    float const speed = std::hypot(vel.vx, vel.vy);
+    float const denom = kMaxFireAuraSpeedPx - kMinFireAuraSpeedPx;
+    float intensity = 0.0f;
+    if (denom > 1e-5f && speed > kMinFireAuraSpeedPx) {
+        intensity = (speed - kMinFireAuraSpeedPx) / denom;
+        if (intensity > 1.0f) {
+            intensity = 1.0f;
+        }
+    }
+
+    if (intensity <= 0.0f) {
+        fireAura->setVisible(false);
+        return;
+    }
+
+    *fireTime += dt;
+    float const tWrapped = std::fmod(*fireTime, 1000.0f);
+
+    float const vx = vel.vx * kFireAuraVelocityToShader;
+    float const vy = vel.vy * kFireAuraVelocityToShader;
+
+    fireAura->setFireState(vx, vy, tWrapped, intensity);
+    fireAura->setVisible(true);
 }
 
 } // namespace overlay_rendering

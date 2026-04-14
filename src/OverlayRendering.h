@@ -12,13 +12,6 @@ class CCSprite;
 
 namespace overlay_rendering {
 
-constexpr float kMinBlurSpeedPx = 8.0f;
-constexpr float kMaxBlurSpeedPx = 1200.0f;
-constexpr float kBlurUvSpread = 0.038f;
-constexpr float kBlurCaptureScale = 2.6f;
-
-constexpr float kScreenShakeCooldownExtraSeconds = 0.1f;
-
 class MotionBlurSprite : public cocos2d::CCSprite {
     cocos2d::CCGLProgram* m_blurProg = nullptr;
     GLint m_locBlurDir = -1;
@@ -34,7 +27,38 @@ public:
     static MotionBlurSprite* create(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locBlurDir);
 };
 
+class FireAuraSprite : public cocos2d::CCSprite {
+    cocos2d::CCGLProgram* m_fireProg = nullptr;
+    GLint m_locVelocity = -1;
+    GLint m_locTime = -1;
+    GLint m_locIntensity = -1;
+    float m_velX = 0.0f;
+    float m_velY = 0.0f;
+    float m_time = 0.0f;
+    float m_intensity = 0.0f;
+
+    void setFireUniforms(
+        cocos2d::CCGLProgram* prog,
+        GLint locVelocity,
+        GLint locTime,
+        GLint locIntensity
+    );
+
+public:
+    void setFireState(float velX, float velY, float time, float intensity);
+    void draw() override;
+
+    static FireAuraSprite* create(
+        cocos2d::CCTexture2D* tex,
+        cocos2d::CCGLProgram* prog,
+        GLint locVelocity,
+        GLint locTime,
+        GLint locIntensity
+    );
+};
+
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
+cocos2d::CCGLProgram* createFireAuraProgram(GLint* outVelocity, GLint* outTime, GLint* outIntensity);
 cocos2d::CCGLProgram* createWhiteFlashProgram();
 cocos2d::CCGLProgram* createColorInvertProgram();
 
@@ -59,6 +83,14 @@ struct MotionBlurAttachResult {
 
 MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
 
+struct FireAuraAttachResult {
+    bool ok = false;
+    FireAuraSprite* sprite = nullptr;
+    cocos2d::CCGLProgram* program = nullptr;
+};
+
+FireAuraAttachResult attachFireAura(cocos2d::CCNode* playerRoot, float auraDiameterPx);
+
 void globalScreenShake(float duration, float strength);
 
 struct MotionBlurRefreshArgs {
@@ -75,5 +107,15 @@ struct MotionBlurRefreshArgs {
 };
 
 void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args);
+
+struct FireAuraRefreshArgs {
+    FireAuraSprite* fireAura = nullptr;
+    PhysicsWorld* physics = nullptr;
+    float dt = 0.0f;
+    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
+    float* fireTime = nullptr;
+};
+
+void refreshFireAura(FireAuraRefreshArgs const& args);
 
 } // namespace overlay_rendering

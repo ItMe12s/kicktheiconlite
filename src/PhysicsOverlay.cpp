@@ -62,6 +62,12 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_blurSprite = mr.blurSprite;
     m_whiteFlashSprite = mr.whiteFlashSprite;
 
+    auto const fa = overlay_rendering::attachFireAura(pr.root, m_targetSize * kFireAuraDiameterScale);
+    if (fa.ok) {
+        m_fireAuraSprite = fa.sprite;
+        m_fireAuraProgram = fa.program;
+    }
+
     for (int i = 0; i < kStarBurstCount; ++i) {
         auto* star = CCSprite::create("star1_hd.png"_spr);
         if (star) {
@@ -438,6 +444,14 @@ void PhysicsOverlay::update(float dt) {
         .impactFlashMode = flashMode,
     });
 
+    overlay_rendering::refreshFireAura({
+        .fireAura = m_fireAuraSprite,
+        .physics = m_physics.get(),
+        .dt = dt,
+        .impactFlashMode = flashMode,
+        .fireTime = &m_fireAuraTime,
+    });
+
     decrementWhiteFlashRemaining(dt);
     updateStarBurst();
 }
@@ -457,6 +471,7 @@ void PhysicsOverlay::onExit() {
     }
     m_player = nullptr;
     m_blurSprite = nullptr;
+    m_fireAuraSprite = nullptr;
     m_whiteFlashSprite = nullptr;
     for (auto*& s : m_starSprites) { s = nullptr; }
     m_starPhaseIndex = -1;
@@ -471,6 +486,10 @@ void PhysicsOverlay::onExit() {
     if (m_colorInvertProgram) {
         m_colorInvertProgram->release();
         m_colorInvertProgram = nullptr;
+    }
+    if (m_fireAuraProgram) {
+        m_fireAuraProgram->release();
+        m_fireAuraProgram = nullptr;
     }
     if (m_renderTexture) {
         m_renderTexture->release();
