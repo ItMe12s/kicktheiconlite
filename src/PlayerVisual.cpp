@@ -1,11 +1,98 @@
 #include "PlayerVisual.h"
+#include "PhysicsOverlayTuning.h"
 
 #include <Geode/Enums.hpp>
+#include <Geode/cocos/actions/CCActionInterval.h>
+#include <Geode/cocos/actions/CCActionInstant.h>
 #include <Geode/cocos/cocoa/CCArray.h>
+#include <Geode/cocos/sprite_nodes/CCSprite.h>
 
 #include <algorithm>
+#include <cmath>
 
 using namespace geode::prelude;
+
+namespace {
+
+constexpr int kSandevistanBlendWalkMaxDepth = 64;
+
+void applyAdditiveBlendRecursive(CCNode* n, int depth) {
+    if (!n || depth > kSandevistanBlendWalkMaxDepth) {
+        return;
+    }
+    if (auto* const spr = dynamic_cast<CCSprite*>(n)) {
+        spr->setBlendFunc({GL_SRC_ALPHA, GL_ONE});
+    }
+    if (CCArray* const ch = n->getChildren()) {
+        for (unsigned i = 0; i < static_cast<unsigned>(ch->count()); ++i) {
+            applyAdditiveBlendRecursive(dynamic_cast<CCNode*>(ch->objectAtIndex(i)), depth + 1);
+        }
+    }
+}
+
+inline GLubyte lerpByte(GLubyte a, GLubyte b, float u) {
+    return static_cast<GLubyte>(std::round(
+        static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * u
+    ));
+}
+
+inline ccColor3B lerpRgb(ccColor3B const& x, ccColor3B const& y, float u) {
+    u = std::clamp(u, 0.0f, 1.0f);
+    return ccc3(lerpByte(x.r, y.r, u), lerpByte(x.g, y.g, u), lerpByte(x.b, y.b, u));
+}
+
+ccColor3B sandevistanTrailColorAtUnit(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    ccColor3B const orange = ccc3(
+        static_cast<GLubyte>(kSandevistanTrailHueOrangeR),
+        static_cast<GLubyte>(kSandevistanTrailHueOrangeG),
+        static_cast<GLubyte>(kSandevistanTrailHueOrangeB)
+    );
+    ccColor3B const purple = ccc3(
+        static_cast<GLubyte>(kSandevistanTrailHuePurpleR),
+        static_cast<GLubyte>(kSandevistanTrailHuePurpleG),
+        static_cast<GLubyte>(kSandevistanTrailHuePurpleB)
+    );
+    ccColor3B const cyan = ccc3(
+        static_cast<GLubyte>(kSandevistanTrailHueCyanR),
+        static_cast<GLubyte>(kSandevistanTrailHueCyanG),
+        static_cast<GLubyte>(kSandevistanTrailHueCyanB)
+    );
+    float const third = 1.0f / 3.0f;
+    if (t < third) {
+        return lerpRgb(orange, purple, t / third);
+    }
+    if (t < 2.0f * third) {
+        return lerpRgb(purple, cyan, (t - third) / third);
+    }
+    return cyan;
+}
+
+class SandevistanPlayerHueAction : public CCActionInterval {
+public:
+    static SandevistanPlayerHueAction* create(float duration) {
+        auto* const a = new SandevistanPlayerHueAction();
+        if (a->initWithDuration(duration)) {
+            a->autorelease();
+            return a;
+        }
+        delete a;
+        return nullptr;
+    }
+
+    void update(float time) override {
+        auto* const p = dynamic_cast<SimplePlayer*>(getTarget());
+        if (!p) {
+            return;
+        }
+        ccColor3B const col = sandevistanTrailColorAtUnit(time);
+        p->setColors(col, col);
+        p->setGlowOutline(col);
+        p->updateColors();
+    }
+};
+
+} // namespace
 
 namespace player_visual {
 
@@ -135,6 +222,56 @@ PlayerRootResult tryBuildPlayerRoot(
     out.root = root;
     out.player = player;
     return out;
+}
+
+bool spawnFadingGhost(
+    CCNode* parent,
+    CCPoint const& position,
+    float rotationDeg,
+    float targetSize,
+    int frameId,
+    int iconTypeInt,
+    float fadeSec,
+    unsigned char startOpacity
+) {
+    auto* gm = GameManager::get();
+    if (!gm || !parent) {
+        return false;
+    }
+    if (!gm->isIconLoaded(frameId, iconTypeInt)) {
+        return false;
+    }
+
+    auto* player = SimplePlayer::create(frameId);
+    if (!player) {
+        return false;
+    }
+
+    player->updatePlayerFrame(frameId, IconType::Cube);
+    ccColor3B const c0 = sandevistanTrailColorAtUnit(0.0f);
+    player->setColors(c0, c0);
+    player->setGlowOutline(c0);
+    player->updateColors();
+    applyAdditiveBlendRecursive(player, 0);
+
+    float const w = visualWidthForPlayer(player);
+    float const scale = targetSize / w;
+    player->setScale(scale);
+    player->setPosition(position);
+    player->setRotation(rotationDeg);
+    player->setOpacity(startOpacity);
+
+    parent->addChild(player, kPlayerVisualLocalZOrder);
+    player->runAction(CCSequence::create(
+        CCSpawn::create(
+            CCFadeOut::create(fadeSec),
+            SandevistanPlayerHueAction::create(fadeSec),
+            nullptr
+        ),
+        CCRemoveSelf::create(),
+        nullptr
+    ));
+    return true;
 }
 
 } // namespace player_visual

@@ -39,4 +39,15 @@ PlayerRootResult tryBuildPlayerRoot(
     int iconTypeInt
 );
 
+bool spawnFadingGhost(
+    cocos2d::CCNode* parent,
+    cocos2d::CCPoint const& position,
+    float rotationDeg,
+    float targetSize,
+    int frameId,
+    int iconTypeInt,
+    float fadeSec,
+    unsigned char startOpacity
+);
+
 } // namespace player_visual

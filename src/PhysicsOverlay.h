@@ -54,6 +54,10 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
     int m_starPhaseIndex = -1;
 
+    cocos2d::CCNode* m_trailLayer = nullptr;
+    bool m_sandevistanTrailActive = false;
+    float m_sandevistanSpawnAccumulator = 0.0f;
+
 public:
     CREATE_FUNC(PhysicsOverlay);
     bool init() override;
@@ -84,4 +88,5 @@ private:
     void applyStarBurstTint();
     void hideAllStars();
     void updateStarBurst();
+    void updateSandevistanTrail(float dt);
 };

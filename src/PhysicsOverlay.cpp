@@ -1,6 +1,7 @@
 #include "PhysicsOverlay.h"
 
 #include <Geode/Enums.hpp>
+#include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/draw_nodes/CCDrawNode.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
@@ -54,6 +55,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     m_playerRoot = pr.root;
+    m_playerRoot->setZOrder(kPlayerRootZOrder);
     m_player = pr.player;
     m_renderTexture = mr.renderTexture;
     m_blurProgram = mr.blurProgram;
@@ -205,6 +207,12 @@ bool PhysicsOverlay::init() {
         this->addChild(m_flashBackdropWhite, kImpactFlashBackdropZOrder);
     }
 
+    m_trailLayer = CCNode::create();
+    if (m_trailLayer) {
+        m_trailLayer->setPosition({0, 0});
+        this->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
+    }
+
     this->setTouchEnabled(true);
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
@@ -254,6 +262,11 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
                     postSpeed * kWallShakeSpeedToStrength
                 );
                 overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+            }
+
+            if (postSpeed >= kMinWallShakeSpeed && !m_grabActive) {
+                m_sandevistanTrailActive = true;
+                m_sandevistanSpawnAccumulator = kSandevistanSpawnIntervalSec;
             }
 
             float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
@@ -412,6 +425,34 @@ void PhysicsOverlay::updateStarBurst() {
     }
 }
 
+void PhysicsOverlay::updateSandevistanTrail(float dt) {
+    if (!m_trailLayer || !m_sandevistanTrailActive || !m_playerRoot || !m_player) {
+        return;
+    }
+
+    m_sandevistanSpawnAccumulator += dt;
+    while (m_sandevistanSpawnAccumulator >= kSandevistanSpawnIntervalSec) {
+        int childCount = 0;
+        if (CCArray* const ch = m_trailLayer->getChildren()) {
+            childCount = ch->count();
+        }
+        if (childCount >= kSandevistanMaxConcurrentGhosts) {
+            break;
+        }
+        m_sandevistanSpawnAccumulator -= kSandevistanSpawnIntervalSec;
+        player_visual::spawnFadingGhost(
+            m_trailLayer,
+            m_playerRoot->getPosition(),
+            m_player->getRotation(),
+            m_targetSize,
+            m_frameId,
+            m_iconTypeInt,
+            kSandevistanGhostFadeSec,
+            static_cast<unsigned char>(kSandevistanGhostStartOpacity)
+        );
+    }
+}
+
 void PhysicsOverlay::update(float dt) {
     if (!m_physics) {
         return;
@@ -421,12 +462,17 @@ void PhysicsOverlay::update(float dt) {
     tryBuildVisualIfNeeded();
     stepPhysicsUnlessHitstop(dt);
 
+    if (m_physics && (m_grabActive || m_physics->getPlayerSpeed() < kSandevistanEndSpeedPx)) {
+        m_sandevistanTrailActive = false;
+    }
+
     if (!m_playerRoot || !m_player) {
         decrementWhiteFlashRemaining(dt);
         return;
     }
 
     syncPlayerNodeFromPhysics();
+    updateSandevistanTrail(dt);
 
     overlay_rendering::ImpactFlashMode const flashMode = currentImpactFlashMode();
     updateFlashBackdrops(flashMode);
@@ -465,6 +511,11 @@ void PhysicsOverlay::onExit() {
     endGrab();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
+    if (m_trailLayer) {
+        m_trailLayer->removeAllChildrenWithCleanup(true);
+        m_trailLayer->removeFromParentAndCleanup(true);
+        m_trailLayer = nullptr;
+    }
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;

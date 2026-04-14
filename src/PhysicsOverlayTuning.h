@@ -17,8 +17,24 @@ constexpr float kWallShakeDuration = 0.25f;
 constexpr int kStarBurstMaxPhaseIndex =
     static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
 
-constexpr float kImpactMinSpeed = 1400.0f;
-constexpr float kMinWallShakeSpeed = 150.0f;
+constexpr float kImpactMinSpeed = 1500.0f;
+constexpr float kMinWallShakeSpeed = 200.0f;
+constexpr float kSandevistanEndSpeedPx = 120.0f;
+constexpr float kSandevistanSpawnIntervalSec = 0.04f;
+constexpr float kSandevistanGhostFadeSec = 0.4f;
+constexpr int kSandevistanGhostStartOpacity = 128;
+constexpr int kSandevistanTrailHueOrangeR = 255;
+constexpr int kSandevistanTrailHueOrangeG = 175;
+constexpr int kSandevistanTrailHueOrangeB = 55;
+constexpr int kSandevistanTrailHuePurpleR = 185;
+constexpr int kSandevistanTrailHuePurpleG = 95;
+constexpr int kSandevistanTrailHuePurpleB = 255;
+constexpr int kSandevistanTrailHueCyanR = 80;
+constexpr int kSandevistanTrailHueCyanG = 230;
+constexpr int kSandevistanTrailHueCyanB = 255;
+constexpr int kSandevistanMaxConcurrentGhosts = 24;
+constexpr int kSandevistanTrailLayerZOrder = 0;
+constexpr int kPlayerRootZOrder = 1;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMaxWallShakeStrength = 5.0f;
 
@@ -50,7 +66,7 @@ constexpr float kStarScaleVariance = 0.15f;
 
 constexpr float kMinFireAuraSpeedPx = 600.0f;
 constexpr float kMaxFireAuraSpeedPx = 2400.0f;
-constexpr float kFireAuraDiameterScale = 1.6f;
+constexpr float kFireAuraDiameterScale = 2.0f;
 constexpr float kFireAuraVelocityToShader = 0.002f;
 
 constexpr float kMinBlurSpeedPx = 8.0f;
