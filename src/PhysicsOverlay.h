@@ -1,46 +1,26 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-#include <Geode/Enums.hpp>
-#include <Geode/binding/SimplePlayer.hpp>
 
 #include <memory>
-#include <numbers>
 
-#include "OverlayRendering.h"
+#include "PhysicsOverlayTuning.h"
 #include "PhysicsWorld.h"
-#include "PlayerVisual.h"
 
-namespace cocos2d {
-class CCDrawNode;
-class CCSprite;
+class SimplePlayer;
+
+namespace overlay_rendering {
+class MotionBlurSprite;
+enum class ImpactFlashMode : int;
 }
 
-constexpr int kPhysicsOverlayZOrder = 1000;
-constexpr int kPhysicsOverlayTouchPriority = -6767; // CCMenu uses -128.
-constexpr int kPhysicsOverlaySchedulerPriority = 0;
-
-constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
-
-constexpr float kImpactHitstopSeconds = 0.15f;
-constexpr float kImpactFlashTotalSeconds = 0.15f;
-constexpr float kImpactFlashPhaseSeconds = 0.05f;
-constexpr float kImpactFlashCooldownSeconds = 0.7f;
-constexpr float kWallShakeDuration = 0.25f;
-
-constexpr int kStarBurstMaxPhaseIndex =
-    static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
-
-constexpr float kImpactMinSpeed = 1400.0f;
-constexpr float kMinWallShakeSpeed = 150.0f;
-constexpr float kWallShakeSpeedToStrength = 0.0025f;
-constexpr float kMaxWallShakeStrength = 5.0f;
-
-constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
-constexpr int kMaxPhysicsSubsteps = 16;
-constexpr float kPhysicsAccumulatorCap = kFixedPhysicsDt * static_cast<float>(kMaxPhysicsSubsteps);
-
-constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
+namespace cocos2d {
+class CCNode;
+class CCDrawNode;
+class CCSprite;
+class CCRenderTexture;
+class CCGLProgram;
+}
 
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
@@ -53,8 +33,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
     int m_captureSize = 0;
 
-    int m_frameId = player_visual::kMinPlayerFrameId;
-    int m_iconTypeInt = static_cast<int>(IconType::Cube);
+    int m_frameId = 0;
+    int m_iconTypeInt = 0;
     bool m_visualBuilt = false;
     bool m_grabActive = false;
     float m_targetSize = 0.0f;
@@ -67,7 +47,6 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
     float m_physicsAccumulator = 0.0f;
 
-    static constexpr int kStarBurstCount = 5;
     cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
     int m_starPhaseIndex = -1;
 

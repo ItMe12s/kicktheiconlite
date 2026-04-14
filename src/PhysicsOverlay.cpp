@@ -1,5 +1,6 @@
 #include "PhysicsOverlay.h"
 
+#include <Geode/Enums.hpp>
 #include <Geode/cocos/draw_nodes/CCDrawNode.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
@@ -8,28 +9,13 @@
 #include <cmath>
 #include <random>
 
+#include "OverlayRendering.h"
+#include "PhysicsWorld.h"
+#include "PlayerVisual.h"
+
 using namespace geode::prelude;
 
 namespace {
-
-constexpr int kImpactFlashBackdropZOrder = -1;
-
-constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
-
-constexpr int kStarBurstZOrder = 3;
-constexpr int kBigStarCount = 2;
-constexpr int kSmallStarCount = 3;
-
-constexpr float kBigStarRadiusMin = 0.05f;
-constexpr float kBigStarRadiusMax = 0.3f;
-
-constexpr float kSmallStarRadiusMin = 0.2f;
-constexpr float kSmallStarRadiusMax = 0.6f;
-
-constexpr float kBigStarScreenFrac = 0.9f;
-constexpr float kSmallStarScreenFrac = 0.2f;
-
-constexpr float kStarScaleVariance = 0.15f;
 
 inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
@@ -160,6 +146,9 @@ bool PhysicsOverlay::init() {
     if (!CCLayer::init()) {
         return false;
     }
+
+    m_frameId = player_visual::kMinPlayerFrameId;
+    m_iconTypeInt = static_cast<int>(IconType::Cube);
 
     m_winSize = CCDirector::get()->getWinSize();
     float smaller = m_winSize.width < m_winSize.height ? m_winSize.width : m_winSize.height;
