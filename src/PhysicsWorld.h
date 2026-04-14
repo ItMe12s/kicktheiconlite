@@ -17,6 +17,7 @@ public:
     ~PhysicsWorld();
     void step(float dt);
     PhysicsState getPlayerState() const;
+    PhysicsState getPlayerRenderState(float alpha) const;
 
     float getPlayerSpeed() const;
     PhysicsVelocity getPlayerVelocityPixels() const;
@@ -43,4 +44,5 @@ private:
     float m_grabLocalY = 0.0f;
     bool m_wasPlayerAgainstWall = false;
     float m_preStepSpeedPx = 0.0f;
+    PhysicsState m_playerPrevRender{};
 };

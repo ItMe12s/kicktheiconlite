@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <numbers>
 
 static constexpr float kPixelsPerMeter = 50.0f;
 
@@ -21,11 +22,11 @@ static constexpr float kArenaCenterFrac = 0.5f;
 
 static constexpr float kPlayerDensity = 1.0f;
 static constexpr float kPlayerInitialXFrac = 0.25f;
-static constexpr float kPlayerInitialYFrac = 0.75f;
+static constexpr float kPlayerInitialYFrac = 0.25f;
 static constexpr float kPlayerInitialVelX = 10.0f;
 static constexpr float kPlayerInitialVelY = 5.0f;
 static constexpr float kPlayerInitialAngularVel = 30.0f;
-static constexpr float kPlayerFriction = 0.3f;
+static constexpr float kPlayerFriction = 0.4f;
 
 static constexpr float kDragSpring = 250.0f;
 static constexpr float kDragDamping = 10.0f;
@@ -33,9 +34,19 @@ static constexpr float kDragAngularDamping = 0.25f;
 static constexpr float kDefaultDragTargetXFrac = 0.5f;
 static constexpr float kDefaultDragTargetYFrac = 0.5f;
 
-static constexpr float kMaxDeltaTime = 1.0f / 30.0f;
-
 static constexpr float kOutsideBarrierSlack = 1.2f;
+
+static float lerpAngleRad(float aRad, float bRad, float t) {
+    float const pi = std::numbers::pi_v<float>;
+    float d = bRad - aRad;
+    while (d > pi) {
+        d -= 2.0f * pi;
+    }
+    while (d < -pi) {
+        d += 2.0f * pi;
+    }
+    return aRad + d * t;
+}
 
 struct PhysicsWorld::Impl {
     World world;
@@ -86,7 +97,9 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
     , m_dragging(false)
     , m_dragTargetX(worldW * kDefaultDragTargetXFrac)
     , m_dragTargetY(worldH * kDefaultDragTargetYFrac)
-{}
+{
+    m_playerPrevRender = getPlayerState();
+}
 
 PhysicsWorld::~PhysicsWorld() = default;
 
@@ -170,9 +183,7 @@ void PhysicsWorld::setDragTargetPixels(float x, float y) {
 }
 
 void PhysicsWorld::step(float dt) {
-    // Those who lag:
-    if (dt > kMaxDeltaTime)
-        dt = kMaxDeltaTime;
+    m_playerPrevRender = getPlayerState();
 
     if (m_dragging) {
         Body& p = m_impl->player;
@@ -209,6 +220,17 @@ PhysicsState PhysicsWorld::getPlayerState() const {
         m_impl->player.position.x * kPixelsPerMeter,
         m_impl->player.position.y * kPixelsPerMeter,
         m_impl->player.rotation
+    };
+}
+
+PhysicsState PhysicsWorld::getPlayerRenderState(float alpha) const {
+    PhysicsState const curr = getPlayerState();
+    float const a = std::clamp(alpha, 0.0f, 1.0f);
+    float const om = 1.0f - a;
+    return {
+        m_playerPrevRender.x * om + curr.x * a,
+        m_playerPrevRender.y * om + curr.y * a,
+        lerpAngleRad(m_playerPrevRender.angle, curr.angle, a),
     };
 }
 

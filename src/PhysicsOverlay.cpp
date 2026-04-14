@@ -213,26 +213,41 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
         return;
     }
 
-    m_physics->step(dt);
+    m_physicsAccumulator += dt;
+    if (m_physicsAccumulator > kPhysicsAccumulatorCap) {
+        m_physicsAccumulator = kPhysicsAccumulatorCap;
+    }
 
-    if (m_physics->consumeWallImpact()) {
-        float const postSpeed = m_physics->getPlayerSpeed();
-        if (postSpeed >= kMinWallShakeSpeed) {
-            float const strength = std::min(
-                kMaxWallShakeStrength,
-                postSpeed * kWallShakeSpeedToStrength
-            );
-            overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+    int substepCount = 0;
+    while (m_physicsAccumulator >= kFixedPhysicsDt && substepCount < kMaxPhysicsSubsteps) {
+        m_physics->step(kFixedPhysicsDt);
+
+        if (m_physics->consumeWallImpact()) {
+            float const postSpeed = m_physics->getPlayerSpeed();
+            if (postSpeed >= kMinWallShakeSpeed) {
+                float const strength = std::min(
+                    kMaxWallShakeStrength,
+                    postSpeed * kWallShakeSpeedToStrength
+                );
+                overlay_rendering::globalScreenShake(kWallShakeDuration, strength);
+            }
+
+            float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
+            if (!m_grabActive && preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
+                m_hitstopRemaining = kImpactHitstopSeconds;
+                m_whiteFlashRemaining = kImpactFlashTotalSeconds;
+                m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
+                if (m_whiteFlashSprite) {
+                    m_whiteFlashSprite->stopAllActions();
+                }
+            }
         }
 
-        float const preSpeed = m_physics->getPreStepPlayerSpeedPx();
-        if (!m_grabActive && preSpeed >= kImpactMinSpeed && m_impactFlashCooldownRemaining <= 0.0f) {
-            m_hitstopRemaining = kImpactHitstopSeconds;
-            m_whiteFlashRemaining = kImpactFlashTotalSeconds;
-            m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
-            if (m_whiteFlashSprite) {
-                m_whiteFlashSprite->stopAllActions();
-            }
+        m_physicsAccumulator -= kFixedPhysicsDt;
+        ++substepCount;
+
+        if (m_hitstopRemaining > 0.0f) {
+            break;
         }
     }
 }
@@ -247,7 +262,8 @@ void PhysicsOverlay::tickWhiteFlashWhenNoPlayer(float dt) {
 }
 
 void PhysicsOverlay::syncPlayerNodeFromPhysics() {
-    auto state = m_physics->getPlayerState();
+    float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
+    auto state = m_physics->getPlayerRenderState(alpha);
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
 }

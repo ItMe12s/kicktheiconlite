@@ -33,6 +33,10 @@ constexpr float kMinWallShakeSpeed = 150.0f;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMaxWallShakeStrength = 5.0f;
 
+constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
+constexpr int kMaxPhysicsSubsteps = 16;
+constexpr float kPhysicsAccumulatorCap = kFixedPhysicsDt * static_cast<float>(kMaxPhysicsSubsteps);
+
 constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
 
 class PhysicsOverlay : public cocos2d::CCLayer {
@@ -58,6 +62,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
+    float m_physicsAccumulator = 0.0f;
 
 public:
     CREATE_FUNC(PhysicsOverlay);
