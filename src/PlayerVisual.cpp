@@ -252,9 +252,9 @@ bool spawnFadingGhost(
     if (!player) {
         return false;
     }
-    if (auto* const mod = Mod::get()) {
+    {
         std::string const ghostId =
-            std::string(mod->getId()) + "/trail-ghost-" + std::to_string(++s_trailGhostSerial);
+            std::string(GEODE_MOD_ID) + "/trail-ghost-" + std::to_string(++s_trailGhostSerial);
         player->setID(ghostId);
     }
 

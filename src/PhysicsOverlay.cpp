@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <string>
 
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
@@ -73,13 +74,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     for (int i = 0; i < kStarBurstCount; ++i) {
         auto* star = CCSprite::create("star1_hd.png"_spr);
         if (star) {
-            switch (i) {
-                case 0: star->setID("star-burst-0"_spr); break;
-                case 1: star->setID("star-burst-1"_spr); break;
-                case 2: star->setID("star-burst-2"_spr); break;
-                case 3: star->setID("star-burst-3"_spr); break;
-                default: star->setID("star-burst-4"_spr); break;
-            }
+            star->setID(std::string(GEODE_MOD_ID) + "/star-burst-" + std::to_string(i));
             star->setVisible(false);
             star->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
             m_playerRoot->addChild(star, kStarBurstZOrder);
