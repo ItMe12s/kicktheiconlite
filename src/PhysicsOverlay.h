@@ -28,7 +28,7 @@ constexpr float kImpactFlashPhaseSeconds = 0.05f;
 constexpr float kImpactFlashCooldownSeconds = 0.7f;
 constexpr float kWallShakeDuration = 0.25f;
 
-constexpr float kImpactMinSpeed = 1600.0f;
+constexpr float kImpactMinSpeed = 1800.0f;
 constexpr float kMinWallShakeSpeed = 150.0f;
 constexpr float kWallShakeSpeedToStrength = 0.0025f;
 constexpr float kMaxWallShakeStrength = 5.0f;

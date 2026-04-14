@@ -99,13 +99,7 @@ CCGLProgram* createColorInvertProgram() {
     return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
 }
 
-CCGLProgram* createStarburstFrameProgram(
-    GLint* outPhase,
-    GLint* outOrigin,
-    GLint* outAspect,
-    GLint* outFocusInner,
-    GLint* outFocusOuter
-) {
+CCGLProgram* createStarburstFrameProgram(GLint* outPhase, GLint* outOrigin, GLint* outAspect) {
     auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kStarburstFrameFrag);
     if (!p) {
         return nullptr;
@@ -113,8 +107,6 @@ CCGLProgram* createStarburstFrameProgram(
     *outPhase = p->getUniformLocationForName("u_phase");
     *outOrigin = p->getUniformLocationForName("u_origin");
     *outAspect = p->getUniformLocationForName("u_aspect");
-    *outFocusInner = p->getUniformLocationForName("u_focus_inner");
-    *outFocusOuter = p->getUniformLocationForName("u_focus_outer");
     return p;
 }
 
@@ -136,43 +128,24 @@ CCTexture2D* sharedWhite1x1Texture() {
 
 } // namespace
 
-void StarburstFrameSprite::setStarburstParams(
-    float phase,
-    float originX,
-    float originY,
-    float aspect,
-    float focusInner,
-    float focusOuter
-) {
+void StarburstFrameSprite::setStarburstParams(float phase, float originX, float originY, float aspect) {
     m_phase = phase;
     m_originX = originX;
     m_originY = originY;
     m_aspect = aspect;
-    m_focusInner = focusInner;
-    m_focusOuter = focusOuter;
 }
 
 void StarburstFrameSprite::draw() {
-    if (m_prog && m_locPhase >= 0 && m_locOrigin >= 0 && m_locAspect >= 0 && m_locFocusInner >= 0 &&
-        m_locFocusOuter >= 0) {
+    if (m_prog && m_locPhase >= 0 && m_locOrigin >= 0 && m_locAspect >= 0) {
         m_prog->use();
         m_prog->setUniformLocationWith1f(m_locPhase, m_phase);
         m_prog->setUniformLocationWith2f(m_locOrigin, m_originX, m_originY);
         m_prog->setUniformLocationWith1f(m_locAspect, m_aspect);
-        m_prog->setUniformLocationWith1f(m_locFocusInner, m_focusInner);
-        m_prog->setUniformLocationWith1f(m_locFocusOuter, m_focusOuter);
     }
     CCSprite::draw();
 }
 
-StarburstFrameSprite* StarburstFrameSprite::create(
-    CCGLProgram* prog,
-    GLint locPhase,
-    GLint locOrigin,
-    GLint locAspect,
-    GLint locFocusInner,
-    GLint locFocusOuter
-) {
+StarburstFrameSprite* StarburstFrameSprite::create(CCGLProgram* prog, GLint locPhase, GLint locOrigin, GLint locAspect) {
     CCTexture2D* tex = sharedWhite1x1Texture();
     if (!tex || !prog) {
         return nullptr;
@@ -182,8 +155,6 @@ StarburstFrameSprite* StarburstFrameSprite::create(
     s->m_locPhase = locPhase;
     s->m_locOrigin = locOrigin;
     s->m_locAspect = locAspect;
-    s->m_locFocusInner = locFocusInner;
-    s->m_locFocusOuter = locFocusOuter;
     if (s->initWithTexture(tex)) {
         s->setShaderProgram(prog);
         s->autorelease();
