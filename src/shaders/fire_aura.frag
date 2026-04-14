@@ -7,6 +7,8 @@ uniform sampler2D CC_Texture0;
 uniform vec2 u_velocity;
 uniform float u_time;
 uniform float u_intensity;
+uniform vec3 u_colorPrimary;
+uniform vec3 u_colorSecondary;
 
 float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -58,17 +60,18 @@ void main() {
     vec2 q = flowUv * 5.5;
     float n = fbm(q + 0.5 * fbm(q * 0.73 + vec2(0.0, u_time * 0.4)));
 
-    vec3 darkFire = vec3(0.32, 0.02, 0.0);
-    vec3 midFire = vec3(1.0, 0.32, 0.04);
-    vec3 hotFire = vec3(1.0, 0.9, 0.5);
-    vec3 col = mix(darkFire, midFire, smoothstep(0.15, 0.5, n));
-    col = mix(col, hotFire, smoothstep(0.5, 0.92, n));
+    vec3 darkC = u_colorSecondary * 0.52;
+    vec3 midC = mix(u_colorSecondary, u_colorPrimary, 0.58);
+    vec3 hotC = u_colorPrimary;
+    vec3 col = mix(darkC, midC, smoothstep(0.15, 0.5, n));
+    col = mix(col, hotC, smoothstep(0.5, 0.92, n));
 
     float glow = exp(-dist * 3.8) * u_intensity * 0.4;
-    col += glow * vec3(1.0, 0.55, 0.15);
+    col += glow * mix(u_colorSecondary, u_colorPrimary, 0.72);
 
     vec4 tex = texture2D(CC_Texture0, v_texCoord);
     float alpha = mask * u_intensity * tex.a;
     vec3 rgb = col * v_fragmentColor.rgb * tex.rgb;
-    gl_FragColor = vec4(rgb, alpha);
+    // Premultiplied alpha: required for blend GL_ONE, GL_ONE_MINUS_SRC_ALPHA
+    gl_FragColor = vec4(rgb * alpha, alpha);
 }

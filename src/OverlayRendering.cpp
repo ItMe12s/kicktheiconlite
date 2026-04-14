@@ -2,6 +2,7 @@
 #include "OverlayShaders.h"
 #include "PhysicsOverlayTuning.h"
 
+#include <Geode/binding/GameManager.hpp>
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
@@ -90,12 +91,16 @@ void FireAuraSprite::setFireUniforms(
     CCGLProgram* prog,
     GLint locVelocity,
     GLint locTime,
-    GLint locIntensity
+    GLint locIntensity,
+    GLint locColorPrimary,
+    GLint locColorSecondary
 ) {
     m_fireProg = prog;
     m_locVelocity = locVelocity;
     m_locTime = locTime;
     m_locIntensity = locIntensity;
+    m_locColorPrimary = locColorPrimary;
+    m_locColorSecondary = locColorSecondary;
 }
 
 void FireAuraSprite::setFireState(float velX, float velY, float time, float intensity) {
@@ -105,12 +110,35 @@ void FireAuraSprite::setFireState(float velX, float velY, float time, float inte
     m_intensity = intensity;
 }
 
+void FireAuraSprite::setFireColors(ccColor3B primaryRgb, ccColor3B secondaryRgb) {
+    constexpr float kInv = 1.0f / 255.0f;
+    m_colorPrimaryR = static_cast<float>(primaryRgb.r) * kInv;
+    m_colorPrimaryG = static_cast<float>(primaryRgb.g) * kInv;
+    m_colorPrimaryB = static_cast<float>(primaryRgb.b) * kInv;
+    m_colorSecondaryR = static_cast<float>(secondaryRgb.r) * kInv;
+    m_colorSecondaryG = static_cast<float>(secondaryRgb.g) * kInv;
+    m_colorSecondaryB = static_cast<float>(secondaryRgb.b) * kInv;
+}
+
 void FireAuraSprite::draw() {
-    if (m_fireProg && m_locVelocity >= 0 && m_locTime >= 0 && m_locIntensity >= 0) {
+    if (m_fireProg && m_locVelocity >= 0 && m_locTime >= 0 && m_locIntensity >= 0 && m_locColorPrimary >= 0
+        && m_locColorSecondary >= 0) {
         m_fireProg->use();
         m_fireProg->setUniformLocationWith2f(m_locVelocity, m_velX, m_velY);
         m_fireProg->setUniformLocationWith1f(m_locTime, m_time);
         m_fireProg->setUniformLocationWith1f(m_locIntensity, m_intensity);
+        m_fireProg->setUniformLocationWith3f(
+            m_locColorPrimary,
+            m_colorPrimaryR,
+            m_colorPrimaryG,
+            m_colorPrimaryB
+        );
+        m_fireProg->setUniformLocationWith3f(
+            m_locColorSecondary,
+            m_colorSecondaryR,
+            m_colorSecondaryG,
+            m_colorSecondaryB
+        );
     }
     CCSprite::draw();
 }
@@ -120,10 +148,12 @@ FireAuraSprite* FireAuraSprite::create(
     CCGLProgram* prog,
     GLint locVelocity,
     GLint locTime,
-    GLint locIntensity
+    GLint locIntensity,
+    GLint locColorPrimary,
+    GLint locColorSecondary
 ) {
     auto* s = new FireAuraSprite();
-    s->setFireUniforms(prog, locVelocity, locTime, locIntensity);
+    s->setFireUniforms(prog, locVelocity, locTime, locIntensity, locColorPrimary, locColorSecondary);
     if (s->initWithTexture(tex)) {
         s->setColor(ccc3(255, 255, 255));
         s->autorelease();
@@ -150,7 +180,13 @@ CCGLProgram* createColorInvertProgram() {
     return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
 }
 
-CCGLProgram* createFireAuraProgram(GLint* outVelocity, GLint* outTime, GLint* outIntensity) {
+CCGLProgram* createFireAuraProgram(
+    GLint* outVelocity,
+    GLint* outTime,
+    GLint* outIntensity,
+    GLint* outColorPrimary,
+    GLint* outColorSecondary
+) {
     auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kFireAuraFrag);
     if (!p) {
         return nullptr;
@@ -158,6 +194,8 @@ CCGLProgram* createFireAuraProgram(GLint* outVelocity, GLint* outTime, GLint* ou
     *outVelocity = p->getUniformLocationForName("u_velocity");
     *outTime = p->getUniformLocationForName("u_time");
     *outIntensity = p->getUniformLocationForName("u_intensity");
+    *outColorPrimary = p->getUniformLocationForName("u_colorPrimary");
+    *outColorSecondary = p->getUniformLocationForName("u_colorSecondary");
     return p;
 }
 
@@ -273,21 +311,38 @@ FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
     GLint locVelocity = -1;
     GLint locTime = -1;
     GLint locIntensity = -1;
-    CCGLProgram* program = createFireAuraProgram(&locVelocity, &locTime, &locIntensity);
-    if (!program || locVelocity < 0 || locTime < 0 || locIntensity < 0) {
+    GLint locColorPrimary = -1;
+    GLint locColorSecondary = -1;
+    CCGLProgram* program = createFireAuraProgram(
+        &locVelocity,
+        &locTime,
+        &locIntensity,
+        &locColorPrimary,
+        &locColorSecondary
+    );
+    if (!program || locVelocity < 0 || locTime < 0 || locIntensity < 0 || locColorPrimary < 0
+        || locColorSecondary < 0) {
         if (program) {
             program->release();
         }
         return out;
     }
 
-    FireAuraSprite* sprite = FireAuraSprite::create(tex, program, locVelocity, locTime, locIntensity);
+    FireAuraSprite* sprite = FireAuraSprite::create(
+        tex,
+        program,
+        locVelocity,
+        locTime,
+        locIntensity,
+        locColorPrimary,
+        locColorSecondary
+    );
     if (!sprite) {
         program->release();
         return out;
     }
     sprite->setShaderProgram(program);
-    sprite->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
+    sprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     float const cw = sprite->getContentSize().width;
     sprite->setScale(cw > 0.0f ? auraDiameterPx / cw : auraDiameterPx);
     sprite->setPosition({0, 0});
@@ -473,6 +528,13 @@ void refreshFireAura(FireAuraRefreshArgs const& args) {
     float const vx = vel.vx * kFireAuraVelocityToShader;
     float const vy = vel.vy * kFireAuraVelocityToShader;
 
+    ccColor3B primaryRgb = {255, 255, 255};
+    ccColor3B secondaryRgb = {200, 200, 200};
+    if (GameManager* gm = GameManager::get()) {
+        primaryRgb = gm->colorForIdx(gm->getPlayerColor());
+        secondaryRgb = gm->colorForIdx(gm->getPlayerColor2());
+    }
+    fireAura->setFireColors(primaryRgb, secondaryRgb);
     fireAura->setFireState(vx, vy, tWrapped, intensity);
     fireAura->setVisible(true);
 }

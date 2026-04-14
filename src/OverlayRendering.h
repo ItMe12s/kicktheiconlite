@@ -32,20 +32,31 @@ class FireAuraSprite : public cocos2d::CCSprite {
     GLint m_locVelocity = -1;
     GLint m_locTime = -1;
     GLint m_locIntensity = -1;
+    GLint m_locColorPrimary = -1;
+    GLint m_locColorSecondary = -1;
     float m_velX = 0.0f;
     float m_velY = 0.0f;
     float m_time = 0.0f;
     float m_intensity = 0.0f;
+    float m_colorPrimaryR = 1.0f;
+    float m_colorPrimaryG = 0.9f;
+    float m_colorPrimaryB = 0.5f;
+    float m_colorSecondaryR = 0.32f;
+    float m_colorSecondaryG = 0.02f;
+    float m_colorSecondaryB = 0.0f;
 
     void setFireUniforms(
         cocos2d::CCGLProgram* prog,
         GLint locVelocity,
         GLint locTime,
-        GLint locIntensity
+        GLint locIntensity,
+        GLint locColorPrimary,
+        GLint locColorSecondary
     );
 
 public:
     void setFireState(float velX, float velY, float time, float intensity);
+    void setFireColors(cocos2d::ccColor3B primaryRgb, cocos2d::ccColor3B secondaryRgb);
     void draw() override;
 
     static FireAuraSprite* create(
@@ -53,12 +64,20 @@ public:
         cocos2d::CCGLProgram* prog,
         GLint locVelocity,
         GLint locTime,
-        GLint locIntensity
+        GLint locIntensity,
+        GLint locColorPrimary,
+        GLint locColorSecondary
     );
 };
 
 cocos2d::CCGLProgram* createMotionBlurProgram(GLint* outBlurDir);
-cocos2d::CCGLProgram* createFireAuraProgram(GLint* outVelocity, GLint* outTime, GLint* outIntensity);
+cocos2d::CCGLProgram* createFireAuraProgram(
+    GLint* outVelocity,
+    GLint* outTime,
+    GLint* outIntensity,
+    GLint* outColorPrimary,
+    GLint* outColorSecondary
+);
 cocos2d::CCGLProgram* createWhiteFlashProgram();
 cocos2d::CCGLProgram* createColorInvertProgram();
 

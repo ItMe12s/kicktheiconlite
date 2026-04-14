@@ -49,8 +49,8 @@ constexpr float kSmallStarScreenFrac = 0.2f;
 constexpr float kStarScaleVariance = 0.15f;
 
 constexpr float kMinFireAuraSpeedPx = 600.0f;
-constexpr float kMaxFireAuraSpeedPx = 1200.0f;
-constexpr float kFireAuraDiameterScale = 4.0f;
+constexpr float kMaxFireAuraSpeedPx = 2400.0f;
+constexpr float kFireAuraDiameterScale = 1.6f;
 constexpr float kFireAuraVelocityToShader = 0.002f;
 
 constexpr float kMinBlurSpeedPx = 8.0f;
