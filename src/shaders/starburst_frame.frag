@@ -8,10 +8,9 @@ varying vec2 v_texCoord;
 uniform float u_phase;
 uniform vec2 u_origin;
 uniform float u_aspect;
+uniform float u_focus_inner;
+uniform float u_focus_outer;
 
-// Radii in aspect-normalized space (same units as length of corrected delta).
-#define R_FOCUS_INNER 0.06
-#define R_FOCUS_OUTER 0.14
 #define RAY_COUNT 18.0
 #define SPIKE_POWER 2.5
 
@@ -27,10 +26,9 @@ void main() {
     float ambient = 0.16;
     float spikes = ambient + (1.0 - ambient) * rayBand;
 
-    float focus = smoothstep(R_FOCUS_INNER, R_FOCUS_OUTER, dist);
+    float focus = smoothstep(u_focus_inner, u_focus_outer, dist);
     float pattern = spikes * focus * u_phase;
 
-    vec3 tint = vec3(1.0, 0.92, 0.65);
-    // Standard blending: out = src.rgb * src.a on black — use vec4(tint, a), NOT vec4(tint*a, a).
-    gl_FragColor = vec4(tint, pattern) * v_fragmentColor;
+    float a = pattern * v_fragmentColor.a;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, a);
 }

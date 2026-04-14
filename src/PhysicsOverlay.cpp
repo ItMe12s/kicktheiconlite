@@ -15,6 +15,9 @@ constexpr int kImpactFlashBackdropZOrder = -1;
 
 constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
 
+constexpr float kStarburstFocusPaddingPx = 8.0f;
+constexpr float kStarburstFocusFeatherPx = 12.0f;
+
 inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
 }
@@ -185,13 +188,24 @@ bool PhysicsOverlay::init() {
         GLint locPhase = -1;
         GLint locOrigin = -1;
         GLint locAspect = -1;
-        m_starburstProgram = overlay_rendering::createStarburstFrameProgram(&locPhase, &locOrigin, &locAspect);
-        if (m_starburstProgram && locPhase >= 0 && locOrigin >= 0 && locAspect >= 0) {
+        GLint locFocusInner = -1;
+        GLint locFocusOuter = -1;
+        m_starburstProgram = overlay_rendering::createStarburstFrameProgram(
+            &locPhase,
+            &locOrigin,
+            &locAspect,
+            &locFocusInner,
+            &locFocusOuter
+        );
+        if (m_starburstProgram && locPhase >= 0 && locOrigin >= 0 && locAspect >= 0 && locFocusInner >= 0 &&
+            locFocusOuter >= 0) {
             m_starburstFrame = overlay_rendering::StarburstFrameSprite::create(
                 m_starburstProgram,
                 locPhase,
                 locOrigin,
-                locAspect
+                locAspect,
+                locFocusInner,
+                locFocusOuter
             );
             if (m_starburstFrame) {
                 m_starburstFrame->setAnchorPoint({0.0f, 0.0f});
@@ -361,7 +375,15 @@ void PhysicsOverlay::update(float dt) {
             float const oy = 1.0f - p.y / m_winSize.height;
             float const aspect = m_winSize.width / m_winSize.height;
             float const phase = 1.0f;
-            m_starburstFrame->setStarburstParams(phase, ox, oy, aspect);
+            float focusInner = 0.06f;
+            float focusOuter = 0.14f;
+            float const h = m_winSize.height;
+            if (h > 0.0f) {
+                float const clearancePx = 0.5f * m_targetSize * std::sqrt(2.0f) + kStarburstFocusPaddingPx;
+                focusInner = clearancePx / h;
+                focusOuter = focusInner + kStarburstFocusFeatherPx / h;
+            }
+            m_starburstFrame->setStarburstParams(phase, ox, oy, aspect, focusInner, focusOuter);
         } else {
             m_starburstFrame->setVisible(false);
         }
