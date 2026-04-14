@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 using namespace geode::prelude;
 
@@ -14,6 +15,21 @@ namespace {
 constexpr int kImpactFlashBackdropZOrder = -1;
 
 constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
+
+constexpr int kStarBurstZOrder = 3;
+constexpr int kBigStarCount = 3;
+constexpr int kSmallStarCount = 2;
+
+constexpr float kBigStarRadiusMin = 0.15f;
+constexpr float kBigStarRadiusMax = 0.50f;
+
+constexpr float kSmallStarRadiusMin = 0.25f;
+constexpr float kSmallStarRadiusMax = 0.60f;
+
+constexpr float kBigStarScreenFrac = 0.88f;
+constexpr float kSmallStarScreenFrac = 0.24f;
+
+constexpr float kStarScaleVariance = 0.15f;
 
 inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
@@ -59,6 +75,17 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_colorInvertProgram = mr.colorInvertProgram;
     m_blurSprite = mr.blurSprite;
     m_whiteFlashSprite = mr.whiteFlashSprite;
+
+    for (int i = 0; i < kStarBurstCount; ++i) {
+        auto* star = CCSprite::create("star1_hd.png"_spr);
+        if (star) {
+            star->setVisible(false);
+            star->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
+            m_playerRoot->addChild(star, kStarBurstZOrder);
+            m_starSprites[i] = star;
+        }
+    }
+
     m_visualBuilt = true;
 }
 
@@ -83,6 +110,8 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
 
     m_hitstopRemaining = 0.0f;
     m_whiteFlashRemaining = 0.0f;
+    hideAllStars();
+    m_starPhaseIndex = -1;
     if (m_whiteFlashSprite) {
         m_whiteFlashSprite->stopAllActions();
     }
@@ -301,6 +330,88 @@ void PhysicsOverlay::tickWhiteFlashRemaining(float dt) {
     }
 }
 
+int PhysicsOverlay::computeCurrentStarPhase() const {
+    if (m_whiteFlashRemaining <= 0.0f) {
+        return -1;
+    }
+    float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
+    int const phase = static_cast<int>(elapsed / kImpactFlashPhaseSeconds);
+    return std::min(phase, 2);
+}
+
+void PhysicsOverlay::hideAllStars() {
+    for (auto* s : m_starSprites) {
+        if (s) {
+            s->setVisible(false);
+        }
+    }
+}
+
+void PhysicsOverlay::repositionStarBurst() {
+    thread_local std::mt19937 rng{std::random_device{}()};
+    float const screenSmaller = m_winSize.width < m_winSize.height ? m_winSize.width : m_winSize.height;
+    std::uniform_real_distribution<float> sectorJitter(0.0f, 1.0f);
+    std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * std::numbers::pi_v<float>);
+    std::uniform_real_distribution<float> varianceDist(-kStarScaleVariance, kStarScaleVariance);
+    std::uniform_real_distribution<float> bigRadDist(
+        screenSmaller * kBigStarRadiusMin,
+        screenSmaller * kBigStarRadiusMax
+    );
+    std::uniform_real_distribution<float> smallRadDist(
+        screenSmaller * kSmallStarRadiusMin,
+        screenSmaller * kSmallStarRadiusMax
+    );
+
+    for (int i = 0; i < kBigStarCount; ++i) {
+        auto* s = m_starSprites[i];
+        if (!s) continue;
+
+        float const sector = (static_cast<float>(i) + sectorJitter(rng))
+                            / static_cast<float>(kBigStarCount);
+        float const angle = sector * 2.0f * std::numbers::pi_v<float>;
+        float const radius = bigRadDist(rng);
+        float const cw = s->getContentSize().width;
+        float const baseScale = cw > 0.0f ? (screenSmaller * kBigStarScreenFrac) / cw : 1.0f;
+
+        s->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
+        s->setRotation(0.0f);
+        s->setScale(baseScale * (1.0f + varianceDist(rng)));
+        s->setVisible(true);
+    }
+
+    for (int i = 0; i < kSmallStarCount; ++i) {
+        auto* s = m_starSprites[kBigStarCount + i];
+        if (!s) continue;
+
+        float const angle = angleDist(rng);
+        float const radius = smallRadDist(rng);
+        float const cw = s->getContentSize().width;
+        float const baseScale = cw > 0.0f ? (screenSmaller * kSmallStarScreenFrac) / cw : 1.0f;
+
+        s->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
+        s->setRotation(0.0f);
+        s->setScale(baseScale * (1.0f + varianceDist(rng)));
+        s->setVisible(true);
+    }
+}
+
+void PhysicsOverlay::updateStarBurst() {
+    int const newPhase = computeCurrentStarPhase();
+
+    if (newPhase < 0) {
+        if (m_starPhaseIndex >= 0) {
+            hideAllStars();
+            m_starPhaseIndex = -1;
+        }
+        return;
+    }
+
+    if (newPhase != m_starPhaseIndex) {
+        m_starPhaseIndex = newPhase;
+        repositionStarBurst();
+    }
+}
+
 void PhysicsOverlay::update(float dt) {
     if (!m_physics) {
         return;
@@ -336,6 +447,7 @@ void PhysicsOverlay::update(float dt) {
     });
 
     tickWhiteFlashRemaining(dt);
+    updateStarBurst();
 }
 
 void PhysicsOverlay::onEnter() {
@@ -354,6 +466,8 @@ void PhysicsOverlay::onExit() {
     m_player = nullptr;
     m_blurSprite = nullptr;
     m_whiteFlashSprite = nullptr;
+    for (auto*& s : m_starSprites) { s = nullptr; }
+    m_starPhaseIndex = -1;
     if (m_blurProgram) {
         m_blurProgram->release();
         m_blurProgram = nullptr;

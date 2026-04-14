@@ -11,6 +11,11 @@
 	"version": "v1.0.0",
 	"developer": "imes",
 	"description": "Throw your custom icon around lol",
+	"resources": {
+		"sprites": [
+			"resources/imes.kicktheicon/*.png"
+		]
+	},
 	"dependencies": {
 		"geode.node-ids": ">=v1.20.0"
 	}

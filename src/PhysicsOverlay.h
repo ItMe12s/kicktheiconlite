@@ -64,6 +64,10 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
     float m_physicsAccumulator = 0.0f;
 
+    static constexpr int kStarBurstCount = 5;
+    cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
+    int m_starPhaseIndex = -1;
+
 public:
     CREATE_FUNC(PhysicsOverlay);
     bool init() override;
@@ -89,4 +93,9 @@ private:
     overlay_rendering::ImpactFlashMode currentImpactFlashMode() const;
     void updateFlashBackdrops(overlay_rendering::ImpactFlashMode mode);
     void tickWhiteFlashRemaining(float dt);
+
+    int computeCurrentStarPhase() const;
+    void repositionStarBurst();
+    void hideAllStars();
+    void updateStarBurst();
 };
