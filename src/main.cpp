@@ -1,7 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/OverlayManager.hpp>
 
-#include "PhysicsOverlayTuning.h"
 #include "PhysicsOverlay.h"
 
 $on_mod(Loaded) {

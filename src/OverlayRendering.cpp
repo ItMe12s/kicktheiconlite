@@ -1,6 +1,7 @@
 #include "OverlayRendering.h"
 #include "OverlayShaders.h"
 #include "PhysicsOverlayTuning.h"
+#include "PhysicsWorld.h"
 
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/cocos/cocoa/CCArray.h>

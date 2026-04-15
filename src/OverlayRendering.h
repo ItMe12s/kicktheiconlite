@@ -4,7 +4,7 @@
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
-#include "PhysicsWorld.h"
+class PhysicsWorld;
 
 namespace cocos2d {
 class CCSprite;
@@ -99,7 +99,7 @@ cocos2d::CCGLProgram* createWhiteFlashProgram();
 cocos2d::CCGLProgram* createColorInvertProgram();
 cocos2d::CCGLProgram* createImpactNoiseProgram(GLint* outTime, GLint* outAlpha);
 
-enum class ImpactFlashMode {
+enum class ImpactFlashMode : int {
     None,
     WhiteSilhouette,
     InvertSilhouette,
