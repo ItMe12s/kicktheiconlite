@@ -29,13 +29,10 @@ public:
     float getPlayerSpeed() const;
     PhysicsVelocity getPlayerVelocityPixels() const;
 
-    float getPreStepPlayerSpeedPx() const;
-
     void setDragging(bool on);
     void setDragTargetPixels(float x, float y);
     void setDragGrabOffsetPixels(float offsetX, float offsetY);
 
-    bool consumeWallImpact();
     PhysicsImpactEvent consumePlayerImpactAny();
     PhysicsImpactEvent consumePanelImpactAny();
 
@@ -53,7 +50,6 @@ public:
 private:
     void clampPlayerToScreenBorder();
     void clampPanelToScreenBorder();
-    bool hasPlayerWallContact() const;
     struct Impl;
     std::unique_ptr<Impl> m_impl;
     float m_worldW = 0.0f;
@@ -63,7 +59,6 @@ private:
     float m_dragTargetY = 0.0f;
     float m_grabLocalX = 0.0f;
     float m_grabLocalY = 0.0f;
-    bool m_wasPlayerAgainstWall = false;
     bool m_wasPlayerAgainstAnyBody = false;
     float m_preStepSpeedPx = 0.0f;
     PhysicsState m_playerPrevRender{};

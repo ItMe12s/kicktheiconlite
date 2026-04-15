@@ -33,7 +33,6 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     vfx::FireAuraState m_fireAura{};
     vfx::ImpactNoiseState m_impactNoise{};
     vfx::ImpactFlashState m_impactFlash{};
-    cocos2d::CCSize m_blurCaptureSize{};
 
     int m_frameId = 0;
     int m_iconTypeInt = 0;
@@ -74,6 +73,7 @@ private:
     void toggleTestPanel();
     bool tryBeginPanelGrab(cocos2d::CCPoint const& locationInNode);
     void syncPanelNodeFromPhysics(float alpha);
+    void endTouchInteraction();
 
     void decrementCooldowns(float dt);
     void tryBuildVisualIfNeeded();

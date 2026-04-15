@@ -107,17 +107,6 @@ enum class ImpactFlashMode : int {
     InvertSilhouette,
 };
 
-struct MotionBlurAttachResult {
-    bool ok = false;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
-    cocos2d::CCGLProgram* blurProgram = nullptr;
-    GLint locBlurDir = -1;
-    MotionBlurSprite* blurSprite = nullptr;
-    cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
-};
-
 enum class OverlayLayerId : int {
     World = 0,
     Trail = 1,
@@ -132,20 +121,6 @@ enum class MotionBlurObjectId : int {
 };
 
 constexpr int kMotionBlurObjectCount = 2;
-
-struct OverlayLayerCapture {
-    OverlayLayerId id = OverlayLayerId::World;
-    cocos2d::CCNode* sourceRoot = nullptr;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
-    cocos2d::CCSprite* compositeSprite = nullptr;
-    bool enabled = false;
-};
-
-struct LayeredMotionBlurAttachResult : MotionBlurAttachResult {
-    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
-    cocos2d::CCNode* mergeRoot = nullptr;
-    std::array<OverlayLayerCapture, kOverlayLayerCount> layers = {};
-};
 
 struct MotionBlurObjectTuning {
     float minBlurSpeedPx = 0.0f;
@@ -185,21 +160,6 @@ struct ObjectMotionBlurAttachResult {
     std::array<MotionBlurObjectCapture, kMotionBlurObjectCount> objects = {};
 };
 
-MotionBlurAttachResult attachMotionBlur(
-    cocos2d::CCNode* overlayLayer,
-    cocos2d::CCSize captureSize,
-    cocos2d::CCSize outputSize,
-    int outputZOrder
-);
-
-LayeredMotionBlurAttachResult attachLayeredMotionBlur(
-    cocos2d::CCNode* overlayLayer,
-    cocos2d::CCSize captureSize,
-    cocos2d::CCSize outputSize,
-    int outputZOrder,
-    std::array<cocos2d::CCNode*, kOverlayLayerCount> const& layerRoots
-);
-
 ObjectMotionBlurAttachResult attachObjectMotionBlur(
     cocos2d::CCNode* overlayLayer,
     cocos2d::CCSize captureSize,
@@ -227,33 +187,6 @@ struct ImpactNoiseAttachResult {
 ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
 
 void globalScreenShake(float duration, float strength);
-
-struct MotionBlurRefreshArgs {
-    cocos2d::CCNode* captureRoot = nullptr;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
-    MotionBlurSprite* blurSprite = nullptr;
-    cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
-    PhysicsVelocity velocity = {};
-    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
-};
-
-void refreshMotionBlurComposite(MotionBlurRefreshArgs const& args);
-
-struct LayeredMotionBlurRefreshArgs {
-    std::array<OverlayLayerCapture, kOverlayLayerCount> const* layers = nullptr;
-    cocos2d::CCNode* mergeRoot = nullptr;
-    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
-    MotionBlurSprite* blurSprite = nullptr;
-    cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
-    PhysicsVelocity velocity = {};
-    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
-};
-
-void refreshLayeredMotionBlurComposite(LayeredMotionBlurRefreshArgs const& args);
 
 struct ObjectMotionBlurRefreshArgs {
     std::array<MotionBlurObjectCapture, kMotionBlurObjectCount>* objects = nullptr;

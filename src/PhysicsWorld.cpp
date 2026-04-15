@@ -66,6 +66,83 @@ static float relativeSpeedPx(Body const& a, Body const& b) {
     return std::hypot(rvx, rvy) * kPixelsPerMeter;
 }
 
+struct DragTuning {
+    float spring = 0.0f;
+    float damping = 0.0f;
+    float angularDamping = 0.0f;
+};
+
+static void applyDragForces(
+    Body& body,
+    float grabLocalX,
+    float grabLocalY,
+    float dragTargetX,
+    float dragTargetY,
+    DragTuning const& tuning
+) {
+    float const th = body.rotation;
+    float const c = std::cos(th);
+    float const s = std::sin(th);
+    float const rx = c * grabLocalX - s * grabLocalY;
+    float const ry = s * grabLocalX + c * grabLocalY;
+    float const gpx = body.position.x + rx;
+    float const gpy = body.position.y + ry;
+    float const tx = dragTargetX / kPixelsPerMeter;
+    float const ty = dragTargetY / kPixelsPerMeter;
+    float const ex = tx - gpx;
+    float const ey = ty - gpy;
+    // Velocity at grab point v + omega x r -> (vx - w*ry, vy + w*rx)
+    float const vpx = body.velocity.x - body.angularVelocity * ry;
+    float const vpy = body.velocity.y + body.angularVelocity * rx;
+    float const forceX = tuning.spring * ex - tuning.damping * vpx;
+    float const forceY = tuning.spring * ey - tuning.damping * vpy;
+    body.AddForce(Vec2(forceX, forceY));
+    body.torque += rx * forceY - ry * forceX;
+    body.torque -= tuning.angularDamping * body.angularVelocity;
+}
+
+static void clampBodyToScreenBorder(Body& body, float worldWidthMeters, float worldHeightMeters) {
+    float const a = body.width.x * 0.5f;
+    float const b = body.width.y * 0.5f;
+    float const c = std::cos(body.rotation);
+    float const s = std::sin(body.rotation);
+    float const ex = std::fabs(c) * a + std::fabs(s) * b;
+    float const ey = std::fabs(s) * a + std::fabs(c) * b;
+
+    float const left = body.position.x - ex;
+    float const right = body.position.x + ex;
+    float const bottom = body.position.y - ey;
+    float const top = body.position.y + ey;
+
+    float const padX = worldWidthMeters * (kOutsideBarrierSlack - 1.0f);
+    float const padY = worldHeightMeters * (kOutsideBarrierSlack - 1.0f);
+
+    float const snapMinX = ex;
+    float const snapMaxX = worldWidthMeters - ex;
+    float const snapMinY = ey;
+    float const snapMaxY = worldHeightMeters - ey;
+
+    if (snapMinX <= snapMaxX) {
+        if (left < -padX) {
+            body.position.x = snapMinX;
+        } else if (right > worldWidthMeters + padX) {
+            body.position.x = snapMaxX;
+        }
+    } else {
+        body.position.x = worldWidthMeters * 0.5f;
+    }
+
+    if (snapMinY <= snapMaxY) {
+        if (bottom < -padY) {
+            body.position.y = snapMinY;
+        } else if (top > worldHeightMeters + padY) {
+            body.position.y = snapMaxY;
+        }
+    } else {
+        body.position.y = worldHeightMeters * 0.5f;
+    }
+}
+
 struct PhysicsWorld::Impl {
     World world;
     Body wallBottom;
@@ -125,46 +202,7 @@ PhysicsWorld::~PhysicsWorld() = default;
 void PhysicsWorld::clampPlayerToScreenBorder() {
     float const ww = m_worldW / kPixelsPerMeter;
     float const wh = m_worldH / kPixelsPerMeter;
-    Body& p = m_impl->player;
-    float const a = p.width.x * 0.5f;
-    float const b = p.width.y * 0.5f;
-    float const c = std::cos(p.rotation);
-    float const s = std::sin(p.rotation);
-    float const ex = std::fabs(c) * a + std::fabs(s) * b;
-    float const ey = std::fabs(s) * a + std::fabs(c) * b;
-
-    float const left = p.position.x - ex;
-    float const right = p.position.x + ex;
-    float const bottom = p.position.y - ey;
-    float const top = p.position.y + ey;
-
-    float const padX = ww * (kOutsideBarrierSlack - 1.0f);
-    float const padY = wh * (kOutsideBarrierSlack - 1.0f);
-
-    float const snapMinX = ex;
-    float const snapMaxX = ww - ex;
-    float const snapMinY = ey;
-    float const snapMaxY = wh - ey;
-
-    if (snapMinX <= snapMaxX) {
-        if (left < -padX) {
-            p.position.x = snapMinX;
-        } else if (right > ww + padX) {
-            p.position.x = snapMaxX;
-        }
-    } else {
-        p.position.x = ww * 0.5f;
-    }
-
-    if (snapMinY <= snapMaxY) {
-        if (bottom < -padY) {
-            p.position.y = snapMinY;
-        } else if (top > wh + padY) {
-            p.position.y = snapMaxY;
-        }
-    } else {
-        p.position.y = wh * 0.5f;
-    }
+    clampBodyToScreenBorder(m_impl->player, ww, wh);
 }
 
 void PhysicsWorld::setDragging(bool on) {
@@ -208,49 +246,25 @@ void PhysicsWorld::step(float dt) {
     }
 
     if (m_dragging) {
-        Body& p = m_impl->player;
-        float const th = p.rotation;
-        float const c = std::cos(th);
-        float const s = std::sin(th);
-        // Grab point in world (meters): center + R(theta) * local
-        float const rx = c * m_grabLocalX - s * m_grabLocalY;
-        float const ry = s * m_grabLocalX + c * m_grabLocalY;
-        float const gpx = p.position.x + rx;
-        float const gpy = p.position.y + ry;
-        float const tx = m_dragTargetX / kPixelsPerMeter;
-        float const ty = m_dragTargetY / kPixelsPerMeter;
-        float const ex = tx - gpx;
-        float const ey = ty - gpy;
-        // Velocity at grab point v + omega x r  -> (vx - w*ry, vy + w*rx)
-        float const vpx = p.velocity.x - p.angularVelocity * ry;
-        float const vpy = p.velocity.y + p.angularVelocity * rx;
-        float const Fx = kDragSpring * ex - kDragDamping * vpx;
-        float const Fy = kDragSpring * ey - kDragDamping * vpy;
-        p.AddForce(Vec2(Fx, Fy));
-        p.torque += rx * Fy - ry * Fx;
-        p.torque -= kDragAngularDamping * p.angularVelocity;
+        applyDragForces(
+            m_impl->player,
+            m_grabLocalX,
+            m_grabLocalY,
+            m_dragTargetX,
+            m_dragTargetY,
+            DragTuning{kDragSpring, kDragDamping, kDragAngularDamping}
+        );
     }
 
     if (m_panelDragging && m_impl->panel) {
-        Body& p = *m_impl->panel;
-        float const th = p.rotation;
-        float const c = std::cos(th);
-        float const s = std::sin(th);
-        float const rx = c * m_panelGrabLocalX - s * m_panelGrabLocalY;
-        float const ry = s * m_panelGrabLocalX + c * m_panelGrabLocalY;
-        float const gpx = p.position.x + rx;
-        float const gpy = p.position.y + ry;
-        float const tx = m_panelDragTargetX / kPixelsPerMeter;
-        float const ty = m_panelDragTargetY / kPixelsPerMeter;
-        float const ex = tx - gpx;
-        float const ey = ty - gpy;
-        float const vpx = p.velocity.x - p.angularVelocity * ry;
-        float const vpy = p.velocity.y + p.angularVelocity * rx;
-        float const Fx = kPanelDragSpring * ex - kPanelDragDamping * vpx;
-        float const Fy = kPanelDragSpring * ey - kPanelDragDamping * vpy;
-        p.AddForce(Vec2(Fx, Fy));
-        p.torque += rx * Fy - ry * Fx;
-        p.torque -= kPanelDragAngularDamping * p.angularVelocity;
+        applyDragForces(
+            *m_impl->panel,
+            m_panelGrabLocalX,
+            m_panelGrabLocalY,
+            m_panelDragTargetX,
+            m_panelDragTargetY,
+            DragTuning{kPanelDragSpring, kPanelDragDamping, kPanelDragAngularDamping}
+        );
     }
 
     m_preStepSpeedPx = bodySpeedPx(m_impl->player);
@@ -284,40 +298,9 @@ float PhysicsWorld::getPlayerSpeed() const {
     return bodySpeedPx(m_impl->player);
 }
 
-float PhysicsWorld::getPreStepPlayerSpeedPx() const {
-    return m_preStepSpeedPx;
-}
-
 PhysicsVelocity PhysicsWorld::getPlayerVelocityPixels() const {
     Vec2 const& v = m_impl->player.velocity;
     return { v.x * kPixelsPerMeter, v.y * kPixelsPerMeter };
-}
-
-bool PhysicsWorld::hasPlayerWallContact() const {
-    Body* const player = &m_impl->player;
-    auto const isWall = [&](Body* body) {
-        return body == &m_impl->wallBottom || body == &m_impl->wallTop || body == &m_impl->wallLeft
-            || body == &m_impl->wallRight;
-    };
-    for (auto const& kv : m_impl->world.arbiters) {
-        Arbiter const& arb = kv.second;
-        if (arb.numContacts <= 0) {
-            continue;
-        }
-        Body* const a = arb.body1;
-        Body* const b = arb.body2;
-        if ((a == player && isWall(b)) || (b == player && isWall(a))) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool PhysicsWorld::consumeWallImpact() {
-    bool const now = hasPlayerWallContact();
-    bool const impact = now && !m_wasPlayerAgainstWall;
-    m_wasPlayerAgainstWall = now;
-    return impact;
 }
 
 PhysicsImpactEvent PhysicsWorld::consumePlayerImpactAny() {
@@ -485,44 +468,5 @@ void PhysicsWorld::clampPanelToScreenBorder() {
     }
     float const ww = m_worldW / kPixelsPerMeter;
     float const wh = m_worldH / kPixelsPerMeter;
-    Body& p = *m_impl->panel;
-    float const a = p.width.x * 0.5f;
-    float const b = p.width.y * 0.5f;
-    float const c = std::cos(p.rotation);
-    float const s = std::sin(p.rotation);
-    float const ex = std::fabs(c) * a + std::fabs(s) * b;
-    float const ey = std::fabs(s) * a + std::fabs(c) * b;
-
-    float const left = p.position.x - ex;
-    float const right = p.position.x + ex;
-    float const bottom = p.position.y - ey;
-    float const top = p.position.y + ey;
-
-    float const padX = ww * (kOutsideBarrierSlack - 1.0f);
-    float const padY = wh * (kOutsideBarrierSlack - 1.0f);
-
-    float const snapMinX = ex;
-    float const snapMaxX = ww - ex;
-    float const snapMinY = ey;
-    float const snapMaxY = wh - ey;
-
-    if (snapMinX <= snapMaxX) {
-        if (left < -padX) {
-            p.position.x = snapMinX;
-        } else if (right > ww + padX) {
-            p.position.x = snapMaxX;
-        }
-    } else {
-        p.position.x = ww * 0.5f;
-    }
-
-    if (snapMinY <= snapMaxY) {
-        if (bottom < -padY) {
-            p.position.y = snapMinY;
-        } else if (top > wh + padY) {
-            p.position.y = snapMaxY;
-        }
-    } else {
-        p.position.y = wh * 0.5f;
-    }
+    clampBodyToScreenBorder(*m_impl->panel, ww, wh);
 }

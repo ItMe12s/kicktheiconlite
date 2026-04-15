@@ -17,7 +17,6 @@ set(SOURCES
   src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
-  src/vfx/FireAura.cpp
   src/vfx/ImpactFlash.cpp
   src/vfx/ImpactNoise.cpp
   src/vfx/ObjectMotionBlurPipeline.cpp

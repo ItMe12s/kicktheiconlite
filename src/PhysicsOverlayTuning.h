@@ -114,12 +114,6 @@ constexpr float kMenuBlurUvSpread = 0.01f;
 constexpr int kMenuBlurStepDivisor = 4;
 constexpr bool kMenuKeepBaseVisible = false;
 
-// Legacy
-constexpr float kMinBlurSpeedPx = kPlayerMinBlurSpeedPx;
-constexpr float kMaxBlurSpeedPx = kPlayerMaxBlurSpeedPx;
-constexpr float kBlurUvSpread = kPlayerBlurUvSpread;
-constexpr int kBlurStepDivisor = kPlayerBlurStepDivisor;
-
 // Physics menu panel defaults
 constexpr float kPanelDefaultWFrac = 0.35f;
 constexpr float kPanelDefaultHFrac = 0.25f;

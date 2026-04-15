@@ -15,7 +15,6 @@
 #include "PhysicsMenu.h"
 #include "PlayerVisual.h"
 #include "events/ClickEvents.h"
-#include "vfx/FireAura.h"
 #include "vfx/ImpactFlash.h"
 #include "vfx/ImpactNoise.h"
 #include "vfx/ObjectMotionBlurPipeline.h"
@@ -68,11 +67,11 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         return;
     }
 
-    m_blurCaptureSize = m_winSize;
+    cocos2d::CCSize const blurCaptureSize = m_winSize;
     if (!vfx::object_motion_blur::attach(
         m_objectBlur,
         this,
-        m_blurCaptureSize,
+        blurCaptureSize,
         m_winSize,
         kUnifiedBlurCompositeZOrder,
         {
@@ -271,6 +270,14 @@ void PhysicsOverlay::syncPanelNodeFromPhysics(float alpha) {
     root->setRotation(-st.angle * kRadToDeg);
 }
 
+void PhysicsOverlay::endTouchInteraction() {
+    if (m_panelDragActive && m_physics) {
+        m_physics->setPanelDragging(false);
+        m_panelDragActive = false;
+    }
+    endGrab();
+}
+
 bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     if (!m_physics) {
         return false;
@@ -303,21 +310,13 @@ void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
 void PhysicsOverlay::ccTouchEnded(CCTouch* touch, CCEvent* event) {
     (void)event;
     events::ClickTracker::get()->onTouchEnded(touch);
-    if (m_panelDragActive && m_physics) {
-        m_physics->setPanelDragging(false);
-        m_panelDragActive = false;
-    }
-    endGrab();
+    endTouchInteraction();
 }
 
 void PhysicsOverlay::ccTouchCancelled(CCTouch* touch, CCEvent* event) {
     (void)event;
     events::ClickTracker::get()->onTouchCancelled(touch);
-    if (m_panelDragActive && m_physics) {
-        m_physics->setPanelDragging(false);
-        m_panelDragActive = false;
-    }
-    endGrab();
+    endTouchInteraction();
 }
 
 bool PhysicsOverlay::init() {
@@ -559,7 +558,13 @@ void PhysicsOverlay::update(float dt) {
     overlay_rendering::ImpactFlashMode const flashMode = vfx::impact_flash::currentMode(m_impactFlash);
     vfx::impact_flash::updateBackdrops(flashMode, m_flashBackdrop, m_flashBackdropWhite);
 
-    vfx::fire_aura::update(m_fireAura, m_physics.get(), dt, flashMode);
+    overlay_rendering::refreshFireAura({
+        .fireAura = m_fireAura.sprite,
+        .physics = m_physics.get(),
+        .dt = dt,
+        .impactFlashMode = flashMode,
+        .fireTime = &m_fireAura.time,
+    });
 
     auto& playerCapture =
         m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::Player)];
