@@ -93,6 +93,12 @@ constexpr int kFireAuraZOrder = 1;
 constexpr int kMinCaptureTextureSize = 32;
 constexpr float kBoundsCenterFrac = 0.5f;
 
+constexpr float kPanelDefaultWFrac = 0.35f;
+constexpr float kPanelDefaultHFrac = 0.25f;
+constexpr float kPanelDefaultXFrac = 0.5f;
+constexpr float kPanelDefaultYFrac = 0.7f;
+constexpr int kTestPanelZOrder = 5;
+
 constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;

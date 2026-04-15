@@ -13,6 +13,7 @@
 
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
+#include "PhysicsTestPanel.h"
 #include "PlayerVisual.h"
 #include "events/ClickEvents.h"
 
@@ -33,6 +34,9 @@ inline ccColor4F flashBackdropBorderTransparent() {
 }
 
 } // namespace
+
+PhysicsOverlay::PhysicsOverlay() = default;
+PhysicsOverlay::~PhysicsOverlay() = default;
 
 void PhysicsOverlay::tryBuildPlayerVisual() {
     if (m_visualBuilt) {
@@ -105,7 +109,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         if (sprite != m_hitProxy) {
             return false;
         }
-        log::info("triple clicked the icon");
+        toggleTestPanel();
         return false;
     });
 
@@ -151,33 +155,115 @@ void PhysicsOverlay::endGrab() {
     }
 }
 
+void PhysicsOverlay::toggleTestPanel() {
+    if (!m_physics) {
+        return;
+    }
+    if (m_testPanelVisual) {
+        m_physics->destroyPanel();
+        m_testPanelVisual.reset();
+        m_panelDragActive = false;
+        log::info("physics test panel destroyed");
+        return;
+    }
+
+    float const w = m_winSize.width * kPanelDefaultWFrac;
+    float const h = m_winSize.height * kPanelDefaultHFrac;
+    float const x = m_winSize.width * kPanelDefaultXFrac;
+    float const y = m_winSize.height * kPanelDefaultYFrac;
+
+    auto panel = std::make_unique<PhysicsTestPanel>();
+    if (!panel->build(w, h)) {
+        return;
+    }
+    if (auto* root = panel->getRoot()) {
+        this->addChild(root, kTestPanelZOrder);
+    }
+    m_physics->spawnPanel(w, h, x, y);
+    m_testPanelVisual = std::move(panel);
+    log::info("physics test panel spawned");
+}
+
+bool PhysicsOverlay::tryBeginPanelGrab(CCPoint const& locationInNode) {
+    if (!m_testPanelVisual || !m_physics || !m_physics->hasPanel()) {
+        return false;
+    }
+    PhysicsState const st = m_physics->getPanelState();
+    float const dx = locationInNode.x - st.x;
+    float const dy = locationInNode.y - st.y;
+    float const c = std::cos(st.angle);
+    float const s = std::sin(st.angle);
+    float const localX = c * dx + s * dy;
+    float const localY = -s * dx + c * dy;
+    if (!m_testPanelVisual->isInsideTitleBar(localX, localY)) {
+        return false;
+    }
+    m_physics->setPanelDragGrabOffsetPixels(dx, dy);
+    m_physics->setPanelDragTargetPixels(locationInNode.x, locationInNode.y);
+    m_physics->setPanelDragging(true);
+    m_panelDragActive = true;
+    return true;
+}
+
+void PhysicsOverlay::syncPanelNodeFromPhysics(float alpha) {
+    if (!m_testPanelVisual || !m_physics || !m_physics->hasPanel()) {
+        return;
+    }
+    auto* root = m_testPanelVisual->getRoot();
+    if (!root) {
+        return;
+    }
+    PhysicsState const st = m_physics->getPanelRenderState(alpha);
+    root->setPosition({st.x, st.y});
+    root->setRotation(-st.angle * kRadToDeg);
+}
+
 bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     if (!m_physics) {
         return false;
     }
-    bool const clickHit = events::ClickTracker::get()->onTouchBegan(touch);
     CCPoint const p = this->convertTouchToNodeSpace(touch);
+    if (m_testPanelVisual && m_physics->hasPanel() && tryBeginPanelGrab(p)) {
+        events::ClickTracker::get()->onTouchBegan(touch);
+        return true;
+    }
+    bool const clickHit = events::ClickTracker::get()->onTouchBegan(touch);
     bool const grabbed = tryBeginGrab(p);
     return clickHit || grabbed;
 }
 
 void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
-    if (!m_grabActive || !m_physics) {
+    if (!m_physics) {
         return;
     }
     CCPoint const p = this->convertTouchToNodeSpace(touch);
+    if (m_panelDragActive) {
+        m_physics->setPanelDragTargetPixels(p.x, p.y);
+        return;
+    }
+    if (!m_grabActive) {
+        return;
+    }
     m_physics->setDragTargetPixels(p.x, p.y);
 }
 
 void PhysicsOverlay::ccTouchEnded(CCTouch* touch, CCEvent* event) {
     (void)event;
     events::ClickTracker::get()->onTouchEnded(touch);
+    if (m_panelDragActive && m_physics) {
+        m_physics->setPanelDragging(false);
+        m_panelDragActive = false;
+    }
     endGrab();
 }
 
 void PhysicsOverlay::ccTouchCancelled(CCTouch* touch, CCEvent* event) {
     (void)event;
     events::ClickTracker::get()->onTouchCancelled(touch);
+    if (m_panelDragActive && m_physics) {
+        m_physics->setPanelDragging(false);
+        m_panelDragActive = false;
+    }
     endGrab();
 }
 
@@ -550,6 +636,10 @@ void PhysicsOverlay::update(float dt) {
     }
 
     syncPlayerNodeFromPhysics();
+    if (m_testPanelVisual && m_physics->hasPanel()) {
+        float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
+        syncPanelNodeFromPhysics(alpha);
+    }
     updateSandevistanTrail(dt);
 
     overlay_rendering::ImpactFlashMode const flashMode = currentImpactFlashMode();
@@ -588,6 +678,13 @@ void PhysicsOverlay::onEnter() {
 
 void PhysicsOverlay::onExit() {
     endGrab();
+    if (m_testPanelVisual) {
+        if (m_physics) {
+            m_physics->destroyPanel();
+        }
+        m_testPanelVisual.reset();
+        m_panelDragActive = false;
+    }
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
     if (m_trailLayer) {

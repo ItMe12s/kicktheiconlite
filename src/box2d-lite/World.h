@@ -26,6 +26,7 @@ struct World
 
 	void Add(Body* body);
 	void Add(Joint* joint);
+	void Remove(Body* body);
 	void Clear();
 
 	void Step(float dt);

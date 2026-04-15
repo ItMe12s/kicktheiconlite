@@ -36,6 +36,9 @@ static constexpr float kDefaultDragTargetYFrac = 0.5f;
 
 static constexpr float kOutsideBarrierSlack = 1.2f;
 
+static constexpr float kPanelDensity = 0.6f;
+static constexpr float kPanelFriction = 0.4f;
+
 static float lerpAngleRad(float aRad, float bRad, float t) {
     float const pi = std::numbers::pi_v<float>;
     float d = bRad - aRad;
@@ -55,6 +58,7 @@ struct PhysicsWorld::Impl {
     Body wallLeft;
     Body wallRight;
     Body player;
+    std::unique_ptr<Body> panel;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
         : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
@@ -184,6 +188,9 @@ void PhysicsWorld::setDragTargetPixels(float x, float y) {
 
 void PhysicsWorld::step(float dt) {
     m_playerPrevRender = getPlayerState();
+    if (m_impl->panel) {
+        m_panelPrevRender = getPanelState();
+    }
 
     if (m_dragging) {
         Body& p = m_impl->player;
@@ -209,10 +216,33 @@ void PhysicsWorld::step(float dt) {
         p.torque -= kDragAngularDamping * p.angularVelocity;
     }
 
+    if (m_panelDragging && m_impl->panel) {
+        Body& p = *m_impl->panel;
+        float const th = p.rotation;
+        float const c = std::cos(th);
+        float const s = std::sin(th);
+        float const rx = c * m_panelGrabLocalX - s * m_panelGrabLocalY;
+        float const ry = s * m_panelGrabLocalX + c * m_panelGrabLocalY;
+        float const gpx = p.position.x + rx;
+        float const gpy = p.position.y + ry;
+        float const tx = m_panelDragTargetX / kPixelsPerMeter;
+        float const ty = m_panelDragTargetY / kPixelsPerMeter;
+        float const ex = tx - gpx;
+        float const ey = ty - gpy;
+        float const vpx = p.velocity.x - p.angularVelocity * ry;
+        float const vpy = p.velocity.y + p.angularVelocity * rx;
+        float const Fx = kDragSpring * ex - kDragDamping * vpx;
+        float const Fy = kDragSpring * ey - kDragDamping * vpy;
+        p.AddForce(Vec2(Fx, Fy));
+        p.torque += rx * Fy - ry * Fx;
+        p.torque -= kDragAngularDamping * p.angularVelocity;
+    }
+
     m_preStepSpeedPx = getPlayerSpeed();
 
     m_impl->world.Step(dt);
     clampPlayerToScreenBorder();
+    clampPanelToScreenBorder();
 }
 
 PhysicsState PhysicsWorld::getPlayerState() const {
@@ -276,4 +306,140 @@ bool PhysicsWorld::consumeWallImpact() {
     bool const impact = now && !m_wasPlayerAgainstWall;
     m_wasPlayerAgainstWall = now;
     return impact;
+}
+
+void PhysicsWorld::spawnPanel(float bodyW, float bodyH, float xPx, float yPx) {
+    if (m_impl->panel) {
+        return;
+    }
+    auto panel = std::make_unique<Body>();
+    float const bw = bodyW / kPixelsPerMeter;
+    float const bh = bodyH / kPixelsPerMeter;
+    panel->Set(Vec2(bw, bh), kPanelDensity);
+    panel->position.Set(xPx / kPixelsPerMeter, yPx / kPixelsPerMeter);
+    panel->velocity.Set(0.0f, 0.0f);
+    panel->angularVelocity = 0.0f;
+    panel->friction = kPanelFriction;
+    m_impl->world.Add(panel.get());
+    m_impl->panel = std::move(panel);
+    m_panelDragging = false;
+    m_panelDragTargetX = xPx;
+    m_panelDragTargetY = yPx;
+    m_panelGrabLocalX = 0.0f;
+    m_panelGrabLocalY = 0.0f;
+    m_panelPrevRender = getPanelState();
+}
+
+void PhysicsWorld::destroyPanel() {
+    if (!m_impl->panel) {
+        return;
+    }
+    m_impl->world.Remove(m_impl->panel.get());
+    m_impl->panel.reset();
+    m_panelDragging = false;
+}
+
+bool PhysicsWorld::hasPanel() const {
+    return m_impl->panel != nullptr;
+}
+
+PhysicsState PhysicsWorld::getPanelState() const {
+    if (!m_impl->panel) {
+        return {0.0f, 0.0f, 0.0f};
+    }
+    Body const& p = *m_impl->panel;
+    return {
+        p.position.x * kPixelsPerMeter,
+        p.position.y * kPixelsPerMeter,
+        p.rotation
+    };
+}
+
+PhysicsState PhysicsWorld::getPanelRenderState(float alpha) const {
+    PhysicsState const curr = getPanelState();
+    float const a = std::clamp(alpha, 0.0f, 1.0f);
+    float const om = 1.0f - a;
+    return {
+        m_panelPrevRender.x * om + curr.x * a,
+        m_panelPrevRender.y * om + curr.y * a,
+        lerpAngleRad(m_panelPrevRender.angle, curr.angle, a),
+    };
+}
+
+void PhysicsWorld::setPanelDragging(bool on) {
+    m_panelDragging = on;
+}
+
+void PhysicsWorld::setPanelDragTargetPixels(float x, float y) {
+    float const maxX = m_worldW;
+    float const maxY = m_worldH;
+    if (x < 0.0f) x = 0.0f;
+    else if (x > maxX) x = maxX;
+    if (y < 0.0f) y = 0.0f;
+    else if (y > maxY) y = maxY;
+    m_panelDragTargetX = x;
+    m_panelDragTargetY = y;
+}
+
+void PhysicsWorld::setPanelDragGrabOffsetPixels(float offsetX, float offsetY) {
+    if (!m_impl->panel) {
+        m_panelGrabLocalX = 0.0f;
+        m_panelGrabLocalY = 0.0f;
+        return;
+    }
+    Body const& p = *m_impl->panel;
+    float const wx = offsetX / kPixelsPerMeter;
+    float const wy = offsetY / kPixelsPerMeter;
+    float const c = std::cos(p.rotation);
+    float const s = std::sin(p.rotation);
+    m_panelGrabLocalX = c * wx + s * wy;
+    m_panelGrabLocalY = -s * wx + c * wy;
+}
+
+void PhysicsWorld::clampPanelToScreenBorder() {
+    if (!m_impl->panel) {
+        return;
+    }
+    float const ww = m_worldW / kPixelsPerMeter;
+    float const wh = m_worldH / kPixelsPerMeter;
+    Body& p = *m_impl->panel;
+    float const a = p.width.x * 0.5f;
+    float const b = p.width.y * 0.5f;
+    float const c = std::cos(p.rotation);
+    float const s = std::sin(p.rotation);
+    float const ex = std::fabs(c) * a + std::fabs(s) * b;
+    float const ey = std::fabs(s) * a + std::fabs(c) * b;
+
+    float const left = p.position.x - ex;
+    float const right = p.position.x + ex;
+    float const bottom = p.position.y - ey;
+    float const top = p.position.y + ey;
+
+    float const padX = ww * (kOutsideBarrierSlack - 1.0f);
+    float const padY = wh * (kOutsideBarrierSlack - 1.0f);
+
+    float const snapMinX = ex;
+    float const snapMaxX = ww - ex;
+    float const snapMinY = ey;
+    float const snapMaxY = wh - ey;
+
+    if (snapMinX <= snapMaxX) {
+        if (left < -padX) {
+            p.position.x = snapMinX;
+        } else if (right > ww + padX) {
+            p.position.x = snapMaxX;
+        }
+    } else {
+        p.position.x = ww * 0.5f;
+    }
+
+    if (snapMinY <= snapMaxY) {
+        if (bottom < -padY) {
+            p.position.y = snapMinY;
+        } else if (top > wh + padY) {
+            p.position.y = snapMaxY;
+        }
+    } else {
+        p.position.y = wh * 0.5f;
+    }
 }

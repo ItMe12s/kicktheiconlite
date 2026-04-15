@@ -9,6 +9,7 @@
 #include "PhysicsWorld.h"
 
 class SimplePlayer;
+class PhysicsTestPanel;
 
 namespace overlay_rendering {
 class MotionBlurSprite;
@@ -71,8 +72,13 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
 
+    std::unique_ptr<PhysicsTestPanel> m_testPanelVisual;
+    bool m_panelDragActive = false;
+
 public:
     CREATE_FUNC(PhysicsOverlay);
+    PhysicsOverlay();
+    ~PhysicsOverlay() override;
     bool init() override;
     void update(float dt) override;
     void onEnter() override;
@@ -87,6 +93,10 @@ private:
     void tryBuildPlayerVisual();
     bool tryBeginGrab(cocos2d::CCPoint const& locationInNode);
     void endGrab();
+
+    void toggleTestPanel();
+    bool tryBeginPanelGrab(cocos2d::CCPoint const& locationInNode);
+    void syncPanelNodeFromPhysics(float alpha);
 
     void decrementCooldowns(float dt);
     void tryBuildVisualIfNeeded();

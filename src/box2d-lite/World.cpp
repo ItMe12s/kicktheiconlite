@@ -13,6 +13,8 @@
 #include "box2d-lite/Body.h"
 #include "box2d-lite/Joint.h"
 
+#include <algorithm>
+
 using std::vector;
 using std::map;
 using std::pair;
@@ -32,6 +34,22 @@ void World::Add(Body* body)
 void World::Add(Joint* joint)
 {
 	joints.push_back(joint);
+}
+
+void World::Remove(Body* body)
+{
+	bodies.erase(std::remove(bodies.begin(), bodies.end(), body), bodies.end());
+	for (ArbIter it = arbiters.begin(); it != arbiters.end(); )
+	{
+		if (it->first.body1 == body || it->first.body2 == body)
+		{
+			it = arbiters.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 void World::Clear()

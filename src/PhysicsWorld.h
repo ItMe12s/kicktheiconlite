@@ -30,8 +30,19 @@ public:
 
     bool consumeWallImpact();
 
+    void spawnPanel(float bodyW, float bodyH, float xPx, float yPx);
+    void destroyPanel();
+    bool hasPanel() const;
+    PhysicsState getPanelState() const;
+    PhysicsState getPanelRenderState(float alpha) const;
+
+    void setPanelDragging(bool on);
+    void setPanelDragTargetPixels(float x, float y);
+    void setPanelDragGrabOffsetPixels(float offsetX, float offsetY);
+
 private:
     void clampPlayerToScreenBorder();
+    void clampPanelToScreenBorder();
     bool hasPlayerWallContact() const;
     struct Impl;
     std::unique_ptr<Impl> m_impl;
@@ -45,4 +56,11 @@ private:
     bool m_wasPlayerAgainstWall = false;
     float m_preStepSpeedPx = 0.0f;
     PhysicsState m_playerPrevRender{};
+
+    bool m_panelDragging = false;
+    float m_panelDragTargetX = 0.0f;
+    float m_panelDragTargetY = 0.0f;
+    float m_panelGrabLocalX = 0.0f;
+    float m_panelGrabLocalY = 0.0f;
+    PhysicsState m_panelPrevRender{};
 };
