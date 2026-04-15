@@ -14,7 +14,7 @@ set(SOURCES
   src/main.cpp
   src/OverlayRendering.cpp
   src/PhysicsOverlay.cpp
-  src/PhysicsTestPanel.cpp
+  src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
   src/events/ClickEvents.cpp

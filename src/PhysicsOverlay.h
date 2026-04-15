@@ -9,7 +9,7 @@
 #include "PhysicsWorld.h"
 
 class SimplePlayer;
-class PhysicsTestPanel;
+class PhysicsMenu;
 
 namespace overlay_rendering {
 class MotionBlurSprite;
@@ -72,7 +72,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
 
-    std::unique_ptr<PhysicsTestPanel> m_testPanelVisual;
+    std::unique_ptr<PhysicsMenu> m_physicsMenuVisual;
     bool m_panelDragActive = false;
 
 public:

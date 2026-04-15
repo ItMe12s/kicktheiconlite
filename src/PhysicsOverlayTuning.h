@@ -97,7 +97,7 @@ constexpr float kPanelDefaultWFrac = 0.35f;
 constexpr float kPanelDefaultHFrac = 0.25f;
 constexpr float kPanelDefaultXFrac = 0.5f;
 constexpr float kPanelDefaultYFrac = 0.7f;
-constexpr int kTestPanelZOrder = 5;
+constexpr int kPhysicsMenuZOrder = 5;
 
 constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
