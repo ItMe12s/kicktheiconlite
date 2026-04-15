@@ -1,7 +1,5 @@
 #include "ClickEvents.h"
 
-#include <Geode/modify/CCTouchDispatcher.hpp>
-
 #include <chrono>
 #include <unordered_map>
 #include <unordered_set>
@@ -25,6 +23,7 @@ struct SpriteState {
 std::unordered_set<cocos2d::CCSprite*>              g_tracked;
 std::unordered_map<cocos2d::CCSprite*, SpriteState> g_state;
 std::unordered_map<int, cocos2d::CCSprite*>         g_pending;
+std::unordered_map<cocos2d::CCSprite*, float>       g_hitRadius;
 
 bool isSpriteOnStageVisible(cocos2d::CCSprite* sprite) {
     if (!sprite || !sprite->getParent()) return false;
@@ -37,6 +36,15 @@ bool isSpriteOnStageVisible(cocos2d::CCSprite* sprite) {
 bool hitTest(cocos2d::CCSprite* sprite, cocos2d::CCTouch* touch) {
     if (!isSpriteOnStageVisible(sprite)) return false;
     auto const world = touch->getLocation();
+    if (auto it = g_hitRadius.find(sprite); it != g_hitRadius.end()) {
+        auto* parent = sprite->getParent();
+        if (!parent) return false;
+        auto const center = parent->convertToWorldSpace(sprite->getPosition());
+        float const dx = world.x - center.x;
+        float const dy = world.y - center.y;
+        float const r  = it->second;
+        return dx * dx + dy * dy <= r * r;
+    }
     auto const local = sprite->convertToNodeSpace(world);
     auto const size  = sprite->getContentSize();
     return cocos2d::CCRect(0.f, 0.f, size.width, size.height).containsPoint(local);
@@ -60,25 +68,35 @@ ClickTracker* ClickTracker::get() {
     return &inst;
 }
 
-void ClickTracker::track(cocos2d::CCSprite* sprite) {
+void ClickTracker::track(cocos2d::CCSprite* sprite, float hitRadiusPx) {
     if (!sprite) return;
     g_tracked.insert(sprite);
+    if (hitRadiusPx > 0.0f) {
+        g_hitRadius[sprite] = hitRadiusPx;
+    } else {
+        g_hitRadius.erase(sprite);
+    }
 }
 
 void ClickTracker::untrack(cocos2d::CCSprite* sprite) {
     if (!sprite) return;
     g_tracked.erase(sprite);
     g_state.erase(sprite);
+    g_hitRadius.erase(sprite);
     for (auto it = g_pending.begin(); it != g_pending.end();) {
         if (it->second == sprite) it = g_pending.erase(it);
         else ++it;
     }
 }
 
-void ClickTracker::onTouchBegan(cocos2d::CCTouch* touch) {
-    if (!touch) return;
+bool ClickTracker::onTouchBegan(cocos2d::CCTouch* touch) {
+    if (!touch) return false;
     auto* hit = findHitSprite(touch);
-    if (hit) g_pending[touch->getID()] = hit;
+    if (hit) {
+        g_pending[touch->getID()] = hit;
+        return true;
+    }
+    return false;
 }
 
 void ClickTracker::onTouchEnded(cocos2d::CCTouch* touch) {
@@ -115,21 +133,3 @@ void ClickTracker::onTouchCancelled(cocos2d::CCTouch* touch) {
 
 }
 
-class $modify(ClickTouchDispatcherHook, cocos2d::CCTouchDispatcher) {
-    void touches(cocos2d::CCSet* pTouches, cocos2d::CCEvent* pEvent, unsigned int uIndex) {
-        cocos2d::CCTouchDispatcher::touches(pTouches, pEvent, uIndex);
-        if (!pTouches) return;
-
-        auto* tracker = events::ClickTracker::get();
-        for (auto it = pTouches->begin(); it != pTouches->end(); ++it) {
-            auto* touch = static_cast<cocos2d::CCTouch*>(*it);
-            if (!touch) continue;
-            switch (uIndex) {
-                case 0: tracker->onTouchBegan(touch); break;
-                case 2: tracker->onTouchEnded(touch); break;
-                case 3: tracker->onTouchCancelled(touch); break;
-                default: break;
-            }
-        }
-    }
-};

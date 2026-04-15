@@ -84,7 +84,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     auto* const iconSprite = static_cast<cocos2d::CCSprite*>(m_player);
-    events::ClickTracker::get()->track(iconSprite);
+    events::ClickTracker::get()->track(iconSprite, m_targetSize * kGrabRadiusFraction);
 
     m_doubleClickListener = events::DoubleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
         if (sprite != static_cast<cocos2d::CCSprite*>(m_player)) {
@@ -147,8 +147,10 @@ bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     if (!m_physics) {
         return false;
     }
+    bool const clickHit = events::ClickTracker::get()->onTouchBegan(touch);
     CCPoint const p = this->convertTouchToNodeSpace(touch);
-    return tryBeginGrab(p);
+    bool const grabbed = tryBeginGrab(p);
+    return clickHit || grabbed;
 }
 
 void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
@@ -160,14 +162,14 @@ void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
 }
 
 void PhysicsOverlay::ccTouchEnded(CCTouch* touch, CCEvent* event) {
-    (void)touch;
     (void)event;
+    events::ClickTracker::get()->onTouchEnded(touch);
     endGrab();
 }
 
 void PhysicsOverlay::ccTouchCancelled(CCTouch* touch, CCEvent* event) {
-    (void)touch;
     (void)event;
+    events::ClickTracker::get()->onTouchCancelled(touch);
     endGrab();
 }
 

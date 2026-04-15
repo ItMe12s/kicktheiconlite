@@ -16,10 +16,10 @@ class ClickTracker {
 public:
     static ClickTracker *get();
 
-    void track(cocos2d::CCSprite *sprite);
+    void track(cocos2d::CCSprite *sprite, float hitRadiusPx = 0.0f);
     void untrack(cocos2d::CCSprite *sprite);
 
-    void onTouchBegan(cocos2d::CCTouch *touch);
+    bool onTouchBegan(cocos2d::CCTouch *touch);
     void onTouchEnded(cocos2d::CCTouch *touch);
     void onTouchCancelled(cocos2d::CCTouch *touch);
 
