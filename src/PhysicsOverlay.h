@@ -29,6 +29,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
+    cocos2d::CCSprite* m_hitProxy = nullptr;
     overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
     overlay_rendering::FireAuraSprite* m_fireAuraSprite = nullptr;
     overlay_rendering::ImpactNoiseSprite* m_impactNoiseSprite = nullptr;

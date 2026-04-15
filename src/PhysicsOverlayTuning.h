@@ -3,7 +3,7 @@
 #include <numbers>
 
 constexpr int kPhysicsOverlayZOrder = 1000;
-constexpr int kPhysicsOverlayTouchPriority = -6767; // CCMenu uses -128.
+constexpr int kPhysicsOverlayTouchPriority = -6767;
 constexpr int kPhysicsOverlaySchedulerPriority = 0;
 
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
@@ -86,6 +86,8 @@ constexpr float kMinSpeedForInverse = 1e-6f;
 
 constexpr int kMotionBlurOverlayLocalZ = 2;
 constexpr int kWhiteFlashOverlayLocalZ = 3;
+// Invisible touch target for ClickTracker
+constexpr int kHitProxyLocalZOrder = 6767;
 constexpr int kFireAuraZOrder = 1;
 
 constexpr int kMinCaptureTextureSize = 32;

@@ -83,18 +83,26 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         }
     }
 
-    auto* const iconSprite = static_cast<cocos2d::CCSprite*>(m_player);
-    events::ClickTracker::get()->track(iconSprite, m_targetSize * kGrabRadiusFraction);
+    // Always-visible invisible sprite so hit tests work when SimplePlayer is hidden (like motion blur)
+    if (auto* hitProxy = CCSprite::create("star1_hd.png"_spr)) {
+        hitProxy->setID(std::string(GEODE_MOD_ID) + "/player-hit-proxy"_spr);
+        hitProxy->setPosition({0.f, 0.f});
+        hitProxy->setOpacity(0);
+        hitProxy->setVisible(true);
+        m_playerRoot->addChild(hitProxy, kHitProxyLocalZOrder);
+        m_hitProxy = hitProxy;
+        events::ClickTracker::get()->track(m_hitProxy, m_targetSize * kGrabRadiusFraction);
+    }
 
     m_doubleClickListener = events::DoubleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
-        if (sprite != static_cast<cocos2d::CCSprite*>(m_player)) {
+        if (sprite != m_hitProxy) {
             return false;
         }
         log::info("double clicked the icon");
         return false;
     });
     m_tripleClickListener = events::TripleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
-        if (sprite != static_cast<cocos2d::CCSprite*>(m_player)) {
+        if (sprite != m_hitProxy) {
             return false;
         }
         log::info("triple clicked the icon");
@@ -589,8 +597,9 @@ void PhysicsOverlay::onExit() {
     }
     m_doubleClickListener.destroy();
     m_tripleClickListener.destroy();
-    if (m_player) {
-        events::ClickTracker::get()->untrack(static_cast<cocos2d::CCSprite*>(m_player));
+    if (m_hitProxy) {
+        events::ClickTracker::get()->untrack(m_hitProxy);
+        m_hitProxy = nullptr;
     }
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
