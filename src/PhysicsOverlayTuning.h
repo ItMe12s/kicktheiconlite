@@ -17,7 +17,7 @@ constexpr float kWallShakeDuration = 0.25f;
 constexpr int kStarBurstMaxPhaseIndex =
     static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
 
-constexpr float kImpactMinSpeed = 1500.0f;
+constexpr float kImpactMinSpeed = 1600.0f;
 constexpr float kMinWallShakeSpeed = 300.0f;
 constexpr float kSandevistanEndSpeedPx = 200.0f;
 constexpr float kSandevistanSpawnIntervalSec = 0.04f;

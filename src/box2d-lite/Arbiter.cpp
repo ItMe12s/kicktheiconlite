@@ -13,6 +13,11 @@
 #include "box2d-lite/Body.h"
 #include "box2d-lite/World.h"
 
+// Restitution only above this incoming normal speed (world units / s)
+// so resting/stacking contacts are not repeatedly re-energized by bias, low-speed jitter stays inelastic
+static constexpr float kRestitutionInSpeedThreshold = 3.0f;
+static constexpr float kRestitutionCoefficient = 0.67f;
+
 Arbiter::Arbiter(Body* b1, Body* b2)
 {
 	if (b1 < b2)
@@ -108,11 +113,14 @@ void Arbiter::PreStep(float inv_dt)
 
 		c->bias = -k_biasFactor * inv_dt * Min(0.0f, c->separation + k_allowedPenetration);
 
-		// Restitution: boost bias by incoming relative velocity so body bounces
+		// Bounce boost only for real impacts
 		Vec2 dv = body2->velocity + Cross(body2->angularVelocity, r2) - body1->velocity - Cross(body1->angularVelocity, r1);
 		float vRel = Dot(dv, c->normal);
-		if (vRel < -1.0f)
-			c->bias += -0.6f * vRel;
+		if (vRel < -kRestitutionInSpeedThreshold)
+		{
+			float const excess = vRel + kRestitutionInSpeedThreshold; // negative
+			c->bias += -kRestitutionCoefficient * excess;
+		}
 
 		if (World::accumulateImpulses)
 		{

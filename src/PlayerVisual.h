@@ -8,7 +8,7 @@ namespace player_visual {
 
 constexpr int kMaxWorldBoundsTreeDepth = 64;
 constexpr float kMinVisualWidthPx = 1.0f;
-constexpr float kPlayerTargetSizeFraction = 0.15f;
+constexpr float kPlayerTargetSizeFraction = 0.125;
 constexpr int kMinPlayerFrameId = 1;
 
 constexpr float kPlayerRootAnchorXFrac = 0.5f;

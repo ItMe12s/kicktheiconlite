@@ -23,21 +23,26 @@ static constexpr float kArenaCenterFrac = 0.5f;
 static constexpr float kPlayerDensity = 1.0f;
 static constexpr float kPlayerInitialXFrac = 0.25f;
 static constexpr float kPlayerInitialYFrac = 0.25f;
-static constexpr float kPlayerInitialVelX = 10.0f;
-static constexpr float kPlayerInitialVelY = 5.0f;
+
+static constexpr float kPlayerInitialVelX = 5.0f;
+static constexpr float kPlayerInitialVelY = 10.0f;
 static constexpr float kPlayerInitialAngularVel = 30.0f;
 static constexpr float kPlayerFriction = 0.4f;
 
-static constexpr float kDragSpring = 250.0f;
+static constexpr float kDragSpring = 200.0f;
 static constexpr float kDragDamping = 10.0f;
-static constexpr float kDragAngularDamping = 0.25f;
+static constexpr float kDragAngularDamping = 0.2f;
 static constexpr float kDefaultDragTargetXFrac = 0.5f;
 static constexpr float kDefaultDragTargetYFrac = 0.5f;
 
+static constexpr float kPanelDragSpring = 170.0f;
+static constexpr float kPanelDragDamping = 15.0f;
+static constexpr float kPanelDragAngularDamping = 0.3f;
+
 static constexpr float kOutsideBarrierSlack = 1.2f;
 
-static constexpr float kPanelDensity = 0.6f;
-static constexpr float kPanelFriction = 0.4f;
+static constexpr float kPanelDensity = 1.25;
+static constexpr float kPanelFriction = 0.6f;
 
 static float lerpAngleRad(float aRad, float bRad, float t) {
     float const pi = std::numbers::pi_v<float>;
@@ -231,11 +236,11 @@ void PhysicsWorld::step(float dt) {
         float const ey = ty - gpy;
         float const vpx = p.velocity.x - p.angularVelocity * ry;
         float const vpy = p.velocity.y + p.angularVelocity * rx;
-        float const Fx = kDragSpring * ex - kDragDamping * vpx;
-        float const Fy = kDragSpring * ey - kDragDamping * vpy;
+        float const Fx = kPanelDragSpring * ex - kPanelDragDamping * vpx;
+        float const Fy = kPanelDragSpring * ey - kPanelDragDamping * vpy;
         p.AddForce(Vec2(Fx, Fy));
         p.torque += rx * Fy - ry * Fx;
-        p.torque -= kDragAngularDamping * p.angularVelocity;
+        p.torque -= kPanelDragAngularDamping * p.angularVelocity;
     }
 
     m_preStepSpeedPx = getPlayerSpeed();
