@@ -251,16 +251,24 @@ int captureSizeForTarget(float targetSize) {
     return captureSize;
 }
 
-MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
+MotionBlurAttachResult attachMotionBlur(
+    CCNode* overlayLayer,
+    CCSize captureSize,
+    CCSize outputSize,
+    int outputZOrder
+) {
     MotionBlurAttachResult out{};
+    if (!overlayLayer || captureSize.width <= 0.0f || captureSize.height <= 0.0f || outputSize.width <= 0.0f
+        || outputSize.height <= 0.0f) {
+        return out;
+    }
 
     auto* renderTexture = CCRenderTexture::create(
-        captureSize,
-        captureSize,
+        static_cast<int>(std::ceil(captureSize.width)),
+        static_cast<int>(std::ceil(captureSize.height)),
         kCCTexture2DPixelFormat_RGBA8888
     );
     if (!renderTexture) {
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
     renderTexture->retain();
@@ -272,7 +280,6 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
             blurProgram->release();
         }
         renderTexture->release();
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
 
@@ -281,7 +288,6 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     if (!blurSprite) {
         blurProgram->release();
         renderTexture->release();
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
     blurSprite->setID("motion-blur-sprite"_spr);
@@ -289,36 +295,40 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
     blurSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     {
         float const cw = blurSprite->getContentSize().width;
-        blurSprite->setScale(cw > 0.0f ? static_cast<float>(captureSize) / cw : 1.0f);
+        float const ch = blurSprite->getContentSize().height;
+        blurSprite->setScaleX(cw > 0.0f ? outputSize.width / cw : outputSize.width);
+        blurSprite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
     }
-    blurSprite->setPosition({0, 0});
+    blurSprite->setAnchorPoint({0.0f, 0.0f});
+    blurSprite->setPosition({0.0f, 0.0f});
     blurSprite->setVisible(false);
     blurSprite->setFlipY(true);
-    playerRoot->addChild(blurSprite, kMotionBlurOverlayLocalZ);
+    overlayLayer->addChild(blurSprite, outputZOrder);
 
     auto* whiteFlashSprite = CCSprite::createWithTexture(rtTex);
     if (!whiteFlashSprite) {
         blurProgram->release();
         renderTexture->release();
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
     whiteFlashSprite->setID("white-flash-sprite"_spr);
     whiteFlashSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
     {
         float const cw = whiteFlashSprite->getContentSize().width;
-        whiteFlashSprite->setScale(cw > 0.0f ? static_cast<float>(captureSize) / cw : 1.0f);
+        float const ch = whiteFlashSprite->getContentSize().height;
+        whiteFlashSprite->setScaleX(cw > 0.0f ? outputSize.width / cw : outputSize.width);
+        whiteFlashSprite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
     }
-    whiteFlashSprite->setPosition({0, 0});
+    whiteFlashSprite->setAnchorPoint({0.0f, 0.0f});
+    whiteFlashSprite->setPosition({0.0f, 0.0f});
     whiteFlashSprite->setVisible(false);
     whiteFlashSprite->setFlipY(true);
-    playerRoot->addChild(whiteFlashSprite, kWhiteFlashOverlayLocalZ);
+    overlayLayer->addChild(whiteFlashSprite, outputZOrder);
 
     auto* whiteFlashProgram = createWhiteFlashProgram();
     if (!whiteFlashProgram) {
         blurProgram->release();
         renderTexture->release();
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
     whiteFlashSprite->setShaderProgram(whiteFlashProgram);
@@ -328,7 +338,6 @@ MotionBlurAttachResult attachMotionBlur(CCNode* playerRoot, int captureSize) {
         whiteFlashProgram->release();
         blurProgram->release();
         renderTexture->release();
-        playerRoot->removeFromParentAndCleanup(true);
         return out;
     }
 
@@ -442,30 +451,27 @@ void globalScreenShake(float duration, float strength) {
     scene->runAction(CCSequence::create(actions));
 }
 
-void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
-    SimplePlayer* const player = args.player;
-    CCLayer* const hostLayer = args.hostLayer;
+void refreshMotionBlurComposite(MotionBlurRefreshArgs const& args) {
+    CCNode* const captureRoot = args.captureRoot;
     CCRenderTexture* const renderTexture = args.renderTexture;
     MotionBlurSprite* const blurSprite = args.blurSprite;
     CCSprite* const whiteFlashSprite = args.whiteFlashSprite;
     CCGLProgram* const whiteFlashProgram = args.whiteFlashProgram;
     CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
-    PhysicsWorld* const physics = args.physics;
-    int const captureSize = args.captureSize;
+    PhysicsVelocity const vel = args.velocity;
     ImpactFlashMode const impactFlashMode = args.impactFlashMode;
 
-    if (!player || !renderTexture || !blurSprite || !physics) {
+    if (!captureRoot || !renderTexture || !blurSprite) {
         return;
     }
 
-    PhysicsVelocity const vel = physics->getPlayerVelocityPixels();
     float const speed = std::hypot(vel.vx, vel.vy);
 
     bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
     bool const needCapture = (speed >= kMinBlurSpeedPx) || impactFlashActive;
 
     if (!needCapture) {
-        player->setVisible(true);
+        captureRoot->setVisible(true);
         blurSprite->setVisible(false);
         if (whiteFlashSprite) {
             whiteFlashSprite->setVisible(false);
@@ -485,55 +491,33 @@ void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args) {
         blurSprite->setVisible(true);
     }
 
-    player->retain();
-    CCNode* const parent = player->getParent();
-    if (parent) {
-        parent->removeChild(player, false);
-    }
-    hostLayer->addChild(player);
-    player->setVisible(true);
-
-    player->setPosition({0, 0});
-    CCRect const bb = player->boundingBox();
-    float const cx = bb.origin.x + bb.size.width * kBoundsCenterFrac;
-    float const cy = bb.origin.y + bb.size.height * kBoundsCenterFrac;
-    float const h = static_cast<float>(captureSize) * kBoundsCenterFrac;
-    player->setPosition({h - cx, h - cy});
-
+    // Capture source must be visible every frame before visiting the subtree
+    captureRoot->setVisible(true);
     renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
-    player->visit();
+    captureRoot->visit();
     renderTexture->end();
-
-    hostLayer->removeChild(player, false);
-    if (parent) {
-        parent->addChild(player);
-    }
-    player->setPosition({0, 0});
+    captureRoot->setVisible(false);
 
     if (impactFlashMode == ImpactFlashMode::WhiteSilhouette && whiteFlashSprite && whiteFlashProgram) {
         whiteFlashSprite->setShaderProgram(whiteFlashProgram);
-        player->setVisible(false);
         blurSprite->setVisible(false);
         whiteFlashSprite->setVisible(true);
     } else if (impactFlashMode == ImpactFlashMode::InvertSilhouette && whiteFlashSprite && colorInvertProgram) {
         whiteFlashSprite->setShaderProgram(colorInvertProgram);
-        player->setVisible(false);
         blurSprite->setVisible(false);
         whiteFlashSprite->setVisible(true);
     } else if (speed >= kMinBlurSpeedPx) {
         blurSprite->setVisible(true);
-        player->setVisible(false);
         if (whiteFlashSprite) {
             whiteFlashSprite->setVisible(false);
         }
     } else {
-        player->setVisible(true);
+        captureRoot->setVisible(true);
         blurSprite->setVisible(false);
         if (whiteFlashSprite) {
             whiteFlashSprite->setVisible(false);
         }
     }
-    player->release();
 }
 
 void refreshFireAura(FireAuraRefreshArgs const& args) {

@@ -4,7 +4,7 @@
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
-class PhysicsWorld;
+#include "PhysicsWorld.h"
 
 namespace cocos2d {
 class CCSprite;
@@ -118,7 +118,12 @@ struct MotionBlurAttachResult {
     cocos2d::CCGLProgram* colorInvertProgram = nullptr;
 };
 
-MotionBlurAttachResult attachMotionBlur(cocos2d::CCNode* playerRoot, int captureSize);
+MotionBlurAttachResult attachMotionBlur(
+    cocos2d::CCNode* overlayLayer,
+    cocos2d::CCSize captureSize,
+    cocos2d::CCSize outputSize,
+    int outputZOrder
+);
 
 struct FireAuraAttachResult {
     bool ok = false;
@@ -141,19 +146,17 @@ ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d
 void globalScreenShake(float duration, float strength);
 
 struct MotionBlurRefreshArgs {
-    SimplePlayer* player = nullptr;
-    cocos2d::CCLayer* hostLayer = nullptr;
+    cocos2d::CCNode* captureRoot = nullptr;
     cocos2d::CCRenderTexture* renderTexture = nullptr;
     MotionBlurSprite* blurSprite = nullptr;
     cocos2d::CCSprite* whiteFlashSprite = nullptr;
     cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
     cocos2d::CCGLProgram* colorInvertProgram = nullptr;
-    PhysicsWorld* physics = nullptr;
-    int captureSize = 0;
+    PhysicsVelocity velocity = {};
     ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
 };
 
-void refreshPlayerMotionBlur(MotionBlurRefreshArgs const& args);
+void refreshMotionBlurComposite(MotionBlurRefreshArgs const& args);
 
 struct FireAuraRefreshArgs {
     FireAuraSprite* fireAura = nullptr;

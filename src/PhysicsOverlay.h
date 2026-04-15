@@ -28,6 +28,8 @@ class CCGLProgram;
 
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
+    cocos2d::CCNode* m_worldCaptureRoot = nullptr;
+    cocos2d::CCNode* m_starBurstLayer = nullptr;
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
     cocos2d::CCSprite* m_hitProxy = nullptr;
@@ -42,7 +44,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
     cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
     cocos2d::CCGLProgram* m_impactNoiseProgram = nullptr;
-    int m_captureSize = 0;
+    cocos2d::CCSize m_blurCaptureSize{};
 
     int m_frameId = 0;
     int m_iconTypeInt = 0;

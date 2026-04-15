@@ -11,6 +11,13 @@ struct PhysicsVelocity {
     float vy;
 };
 
+struct PhysicsImpactEvent {
+    bool triggered = false;
+    float preSpeedPx = 0.0f;
+    float postSpeedPx = 0.0f;
+    float impactSpeedPx = 0.0f;
+};
+
 class PhysicsWorld {
 public:
     PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH);
@@ -29,6 +36,8 @@ public:
     void setDragGrabOffsetPixels(float offsetX, float offsetY);
 
     bool consumeWallImpact();
+    PhysicsImpactEvent consumePlayerImpactAny();
+    PhysicsImpactEvent consumePanelImpactAny();
 
     void spawnPanel(float bodyW, float bodyH, float xPx, float yPx);
     void destroyPanel();
@@ -54,6 +63,7 @@ private:
     float m_grabLocalX = 0.0f;
     float m_grabLocalY = 0.0f;
     bool m_wasPlayerAgainstWall = false;
+    bool m_wasPlayerAgainstAnyBody = false;
     float m_preStepSpeedPx = 0.0f;
     PhysicsState m_playerPrevRender{};
 
@@ -62,5 +72,7 @@ private:
     float m_panelDragTargetY = 0.0f;
     float m_panelGrabLocalX = 0.0f;
     float m_panelGrabLocalY = 0.0f;
+    bool m_wasPanelAgainstAnyBody = false;
+    float m_preStepPanelSpeedPx = 0.0f;
     PhysicsState m_panelPrevRender{};
 };

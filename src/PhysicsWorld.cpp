@@ -56,6 +56,16 @@ static float lerpAngleRad(float aRad, float bRad, float t) {
     return aRad + d * t;
 }
 
+static float bodySpeedPx(Body const& body) {
+    return std::hypot(body.velocity.x, body.velocity.y) * kPixelsPerMeter;
+}
+
+static float relativeSpeedPx(Body const& a, Body const& b) {
+    float const rvx = a.velocity.x - b.velocity.x;
+    float const rvy = a.velocity.y - b.velocity.y;
+    return std::hypot(rvx, rvy) * kPixelsPerMeter;
+}
+
 struct PhysicsWorld::Impl {
     World world;
     Body wallBottom;
@@ -243,7 +253,8 @@ void PhysicsWorld::step(float dt) {
         p.torque -= kPanelDragAngularDamping * p.angularVelocity;
     }
 
-    m_preStepSpeedPx = getPlayerSpeed();
+    m_preStepSpeedPx = bodySpeedPx(m_impl->player);
+    m_preStepPanelSpeedPx = m_impl->panel ? bodySpeedPx(*m_impl->panel) : 0.0f;
 
     m_impl->world.Step(dt);
     clampPlayerToScreenBorder();
@@ -270,8 +281,7 @@ PhysicsState PhysicsWorld::getPlayerRenderState(float alpha) const {
 }
 
 float PhysicsWorld::getPlayerSpeed() const {
-    Vec2 const& v = m_impl->player.velocity;
-    return std::hypot(v.x, v.y) * kPixelsPerMeter;
+    return bodySpeedPx(m_impl->player);
 }
 
 float PhysicsWorld::getPreStepPlayerSpeedPx() const {
@@ -285,6 +295,10 @@ PhysicsVelocity PhysicsWorld::getPlayerVelocityPixels() const {
 
 bool PhysicsWorld::hasPlayerWallContact() const {
     Body* const player = &m_impl->player;
+    auto const isWall = [&](Body* body) {
+        return body == &m_impl->wallBottom || body == &m_impl->wallTop || body == &m_impl->wallLeft
+            || body == &m_impl->wallRight;
+    };
     for (auto const& kv : m_impl->world.arbiters) {
         Arbiter const& arb = kv.second;
         if (arb.numContacts <= 0) {
@@ -292,14 +306,7 @@ bool PhysicsWorld::hasPlayerWallContact() const {
         }
         Body* const a = arb.body1;
         Body* const b = arb.body2;
-        auto const isWall = [&](Body* w) {
-            return w == &m_impl->wallBottom || w == &m_impl->wallTop || w == &m_impl->wallLeft
-                || w == &m_impl->wallRight;
-        };
-        if (a == player && isWall(b)) {
-            return true;
-        }
-        if (b == player && isWall(a)) {
+        if ((a == player && isWall(b)) || (b == player && isWall(a))) {
             return true;
         }
     }
@@ -311,6 +318,65 @@ bool PhysicsWorld::consumeWallImpact() {
     bool const impact = now && !m_wasPlayerAgainstWall;
     m_wasPlayerAgainstWall = now;
     return impact;
+}
+
+PhysicsImpactEvent PhysicsWorld::consumePlayerImpactAny() {
+    Body* const player = &m_impl->player;
+    bool now = false;
+    float maxRelativeSpeedPx = 0.0f;
+    for (auto const& kv : m_impl->world.arbiters) {
+        Arbiter const& arb = kv.second;
+        if (arb.numContacts <= 0) {
+            continue;
+        }
+        if (arb.body1 == player || arb.body2 == player) {
+            now = true;
+            Body* const other = arb.body1 == player ? arb.body2 : arb.body1;
+            if (other) {
+                maxRelativeSpeedPx = std::max(maxRelativeSpeedPx, relativeSpeedPx(*player, *other));
+            }
+        }
+    }
+
+    PhysicsImpactEvent event{};
+    event.triggered = now && !m_wasPlayerAgainstAnyBody;
+    event.preSpeedPx = m_preStepSpeedPx;
+    event.postSpeedPx = getPlayerSpeed();
+    event.impactSpeedPx = std::max({m_preStepSpeedPx, event.postSpeedPx, maxRelativeSpeedPx});
+    m_wasPlayerAgainstAnyBody = now;
+    return event;
+}
+
+PhysicsImpactEvent PhysicsWorld::consumePanelImpactAny() {
+    if (!m_impl->panel) {
+        m_wasPanelAgainstAnyBody = false;
+        return {};
+    }
+
+    Body* const panel = m_impl->panel.get();
+    bool now = false;
+    float maxRelativeSpeedPx = 0.0f;
+    for (auto const& kv : m_impl->world.arbiters) {
+        Arbiter const& arb = kv.second;
+        if (arb.numContacts <= 0) {
+            continue;
+        }
+        if (arb.body1 == panel || arb.body2 == panel) {
+            now = true;
+            Body* const other = arb.body1 == panel ? arb.body2 : arb.body1;
+            if (other) {
+                maxRelativeSpeedPx = std::max(maxRelativeSpeedPx, relativeSpeedPx(*panel, *other));
+            }
+        }
+    }
+
+    PhysicsImpactEvent event{};
+    event.triggered = now && !m_wasPanelAgainstAnyBody;
+    event.preSpeedPx = m_preStepPanelSpeedPx;
+    event.postSpeedPx = bodySpeedPx(*panel);
+    event.impactSpeedPx = std::max({m_preStepPanelSpeedPx, event.postSpeedPx, maxRelativeSpeedPx});
+    m_wasPanelAgainstAnyBody = now;
+    return event;
 }
 
 void PhysicsWorld::spawnPanel(float bodyW, float bodyH, float xPx, float yPx) {
@@ -332,6 +398,8 @@ void PhysicsWorld::spawnPanel(float bodyW, float bodyH, float xPx, float yPx) {
     m_panelDragTargetY = yPx;
     m_panelGrabLocalX = 0.0f;
     m_panelGrabLocalY = 0.0f;
+    m_preStepPanelSpeedPx = 0.0f;
+    m_wasPanelAgainstAnyBody = false;
     m_panelPrevRender = getPanelState();
 }
 
@@ -342,6 +410,8 @@ void PhysicsWorld::destroyPanel() {
     m_impl->world.Remove(m_impl->panel.get());
     m_impl->panel.reset();
     m_panelDragging = false;
+    m_preStepPanelSpeedPx = 0.0f;
+    m_wasPanelAgainstAnyBody = false;
 }
 
 bool PhysicsWorld::hasPanel() const {
