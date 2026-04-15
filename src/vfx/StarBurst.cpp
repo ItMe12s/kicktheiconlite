@@ -89,7 +89,7 @@ void createSprites(StarBurstState& state) {
         return;
     }
     for (int i = 0; i < kStarBurstCount; ++i) {
-        auto* star = cocos2d::CCSprite::create("star1_hd.png"_spr);
+        auto* star = cocos2d::CCSprite::create("img_star1.png"_spr);
         if (!star) {
             continue;
         }

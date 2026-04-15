@@ -13,7 +13,7 @@
 	"description": "Throw your custom icon around lol",
 	"resources": {
 		"sprites": [
-			"resources/imes.kicktheicon/*.png"
+			"src/assets/img_star1.png"
 		]
 	},
 	"dependencies": {

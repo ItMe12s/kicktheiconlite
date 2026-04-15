@@ -126,7 +126,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     vfx::star_burst::createSprites(m_starBurst);
 
     // Always-visible invisible sprite so hit tests work when SimplePlayer is hidden (like motion blur)
-    if (auto* hitProxy = CCSprite::create("star1_hd.png"_spr)) {
+    if (auto* hitProxy = CCSprite::create("img_star1.png"_spr)) {
         hitProxy->setID(std::string(GEODE_MOD_ID) + "/player-hit-proxy");
         hitProxy->setPosition({0.f, 0.f});
         hitProxy->setOpacity(0);
