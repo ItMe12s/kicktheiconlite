@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/loader/Event.hpp>
 
 #include <memory>
 
@@ -65,6 +66,9 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCNode* m_trailLayer = nullptr;
     bool m_sandevistanTrailActive = false;
     float m_sandevistanSpawnAccumulator = 0.0f;
+
+    geode::ListenerHandle m_doubleClickListener{};
+    geode::ListenerHandle m_tripleClickListener{};
 
 public:
     CREATE_FUNC(PhysicsOverlay);

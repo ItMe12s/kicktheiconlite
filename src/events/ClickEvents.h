@@ -8,8 +8,8 @@ namespace events {
 struct DoubleClickMarker {};
 struct TripleClickMarker {};
 
-using DoubleClickEvent = geode::Event<DoubleClickMarker, void(cocos2d::CCSprite*, cocos2d::CCTouch*)>;
-using TripleClickEvent = geode::Event<TripleClickMarker, void(cocos2d::CCSprite*, cocos2d::CCTouch*)>;
+using DoubleClickEvent = geode::Event<DoubleClickMarker, bool(cocos2d::CCSprite*, cocos2d::CCTouch*)>;
+using TripleClickEvent = geode::Event<TripleClickMarker, bool(cocos2d::CCSprite*, cocos2d::CCTouch*)>;
 
 // Caller must untrack before sprite is destroyed (e.g. onExit) if you don't then we all die
 class ClickTracker {

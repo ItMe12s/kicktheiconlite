@@ -14,6 +14,7 @@
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
 #include "PlayerVisual.h"
+#include "events/ClickEvents.h"
 
 using namespace geode::prelude;
 
@@ -81,6 +82,24 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
             m_starSprites[i] = star;
         }
     }
+
+    auto* const iconSprite = static_cast<cocos2d::CCSprite*>(m_player);
+    events::ClickTracker::get()->track(iconSprite);
+
+    m_doubleClickListener = events::DoubleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
+        if (sprite != static_cast<cocos2d::CCSprite*>(m_player)) {
+            return false;
+        }
+        log::info("double clicked the icon");
+        return false;
+    });
+    m_tripleClickListener = events::TripleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
+        if (sprite != static_cast<cocos2d::CCSprite*>(m_player)) {
+            return false;
+        }
+        log::info("triple clicked the icon");
+        return false;
+    });
 
     m_visualBuilt = true;
 }
@@ -565,6 +584,11 @@ void PhysicsOverlay::onExit() {
         m_trailLayer->removeAllChildrenWithCleanup(true);
         m_trailLayer->removeFromParentAndCleanup(true);
         m_trailLayer = nullptr;
+    }
+    m_doubleClickListener.destroy();
+    m_tripleClickListener.destroy();
+    if (m_player) {
+        events::ClickTracker::get()->untrack(static_cast<cocos2d::CCSprite*>(m_player));
     }
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
