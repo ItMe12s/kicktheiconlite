@@ -38,6 +38,15 @@ inline ccColor4F flashBackdropBorderTransparent() {
 PhysicsOverlay::PhysicsOverlay() = default;
 PhysicsOverlay::~PhysicsOverlay() = default;
 
+namespace {
+cocos2d::CCNode* overlayLayerRoot(
+    std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> const& roots,
+    overlay_rendering::OverlayLayerId id
+) {
+    return roots.at(static_cast<size_t>(id));
+}
+}
+
 void PhysicsOverlay::tryBuildPlayerVisual() {
     if (m_visualBuilt) {
         return;
@@ -55,11 +64,37 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     m_blurCaptureSize = m_winSize;
-    auto mr = overlay_rendering::attachMotionBlur(
+    auto mr = overlay_rendering::attachObjectMotionBlur(
         this,
         m_blurCaptureSize,
         m_winSize,
-        kUnifiedBlurCompositeZOrder
+        kUnifiedBlurCompositeZOrder,
+        {
+            overlay_rendering::MotionBlurObjectSeed {
+                .id = overlay_rendering::MotionBlurObjectId::Player,
+                .sourceRoot = pr.root,
+                .enabled = true,
+                .tuning = {
+                    .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
+                    .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
+                    .blurUvSpread = kPlayerBlurUvSpread,
+                    .blurStepDivisor = kPlayerBlurStepDivisor,
+                    .keepBaseVisible = kPlayerKeepBaseVisible,
+                },
+            },
+            overlay_rendering::MotionBlurObjectSeed {
+                .id = overlay_rendering::MotionBlurObjectId::PhysicsMenu,
+                .sourceRoot = nullptr,
+                .enabled = false,
+                .tuning = {
+                    .minBlurSpeedPx = kMenuMinBlurSpeedPx,
+                    .maxBlurSpeedPx = kMenuMaxBlurSpeedPx,
+                    .blurUvSpread = kMenuBlurUvSpread,
+                    .blurStepDivisor = kMenuBlurStepDivisor,
+                    .keepBaseVisible = kMenuKeepBaseVisible,
+                },
+            },
+        }
     );
     if (!mr.ok) {
         pr.root->removeFromParentAndCleanup(true);
@@ -67,20 +102,23 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     m_playerRoot = pr.root;
-    if (m_worldCaptureRoot) {
+    auto* worldRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
+    if (worldRoot) {
         m_playerRoot->retain();
         this->removeChild(m_playerRoot, false);
-        m_worldCaptureRoot->addChild(m_playerRoot, kPlayerRootZOrder);
+        worldRoot->addChild(m_playerRoot, kPlayerRootZOrder);
         m_playerRoot->release();
     } else {
         m_playerRoot->setZOrder(kPlayerRootZOrder);
     }
     m_player = pr.player;
-    m_renderTexture = mr.renderTexture;
+    m_unifiedMergeTexture = mr.unifiedMergeTexture;
+    m_layerMergeRoot = mr.mergeRoot;
+    m_objectCaptures = mr.objects;
     m_blurProgram = mr.blurProgram;
     m_whiteFlashProgram = mr.whiteFlashProgram;
     m_colorInvertProgram = mr.colorInvertProgram;
-    m_blurSprite = mr.blurSprite;
+    m_finalCompositeSprite = mr.finalCompositeSprite;
     m_whiteFlashSprite = mr.whiteFlashSprite;
 
     auto const fa = overlay_rendering::attachFireAura(pr.root, m_targetSize * kFireAuraDiameterScale);
@@ -176,6 +214,11 @@ void PhysicsOverlay::toggleTestPanel() {
     }
     if (m_physicsMenuVisual) {
         m_physics->destroyPanel();
+        auto& menuCapture =
+            m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+        menuCapture.enabled = false;
+        menuCapture.sourceRoot = nullptr;
+        menuCapture.velocity = {};
         m_physicsMenuVisual.reset();
         m_panelDragActive = false;
         log::info("physics menu destroyed");
@@ -192,12 +235,17 @@ void PhysicsOverlay::toggleTestPanel() {
         return;
     }
     if (auto* root = panel->getRoot()) {
-        if (m_worldCaptureRoot) {
-            m_worldCaptureRoot->addChild(root, kPhysicsMenuZOrder);
+        auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+        if (uiLayerRoot) {
+            uiLayerRoot->addChild(root, kPhysicsMenuZOrder);
         } else {
             log::warn("world capture root missing; physics menu will bypass blur capture");
             this->addChild(root, kPhysicsMenuZOrder);
         }
+        auto& menuCapture =
+            m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+        menuCapture.sourceRoot = root;
+        menuCapture.enabled = true;
     }
     m_physics->spawnPanel(w, h, x, y);
     m_physicsMenuVisual = std::move(panel);
@@ -318,12 +366,22 @@ bool PhysicsOverlay::init() {
 
     this->setContentSize(m_winSize);
 
-    m_worldCaptureRoot = CCNode::create();
-    if (m_worldCaptureRoot) {
-        m_worldCaptureRoot->setID("world-capture-root"_spr);
-        m_worldCaptureRoot->setPosition({0.0f, 0.0f});
-        this->addChild(m_worldCaptureRoot, kUnifiedWorldCaptureZOrder);
-    }
+    auto createLayerRoot = [this](char const* id, int z) -> CCNode* {
+        auto* root = CCNode::create();
+        if (!root) {
+            return nullptr;
+        }
+        root->setID(id);
+        root->setPosition({0.0f, 0.0f});
+        this->addChild(root, z);
+        return root;
+    };
+    m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::World)] =
+        createLayerRoot("layer-world-root"_spr, kUnifiedWorldCaptureZOrder + kLayerWorldZOrderOffset);
+    m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Trail)] =
+        createLayerRoot("layer-trail-root"_spr, kUnifiedWorldCaptureZOrder + kLayerTrailZOrderOffset);
+    m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
+        createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
     m_starBurstLayer = CCNode::create();
     if (m_starBurstLayer) {
@@ -372,8 +430,9 @@ bool PhysicsOverlay::init() {
     if (m_trailLayer) {
         m_trailLayer->setID("sandevistan-trail-layer"_spr);
         m_trailLayer->setPosition({0, 0});
-        if (m_worldCaptureRoot) {
-            m_worldCaptureRoot->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
+        auto* trailRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Trail);
+        if (trailRoot) {
+            trailRoot->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
         } else {
             log::warn("world capture root missing; sandevistan trail will bypass blur capture");
             this->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
@@ -717,14 +776,26 @@ void PhysicsOverlay::update(float dt) {
         .fireTime = &m_fireAuraTime,
     });
 
-    overlay_rendering::refreshMotionBlurComposite({
-        .captureRoot = m_worldCaptureRoot,
-        .renderTexture = m_renderTexture,
-        .blurSprite = m_blurSprite,
+    auto& playerCapture =
+        m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::Player)];
+    playerCapture.sourceRoot = m_playerRoot;
+    playerCapture.enabled = true;
+    playerCapture.velocity = m_physics->getPlayerVelocityPixels();
+
+    auto& menuCapture =
+        m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+    bool const menuAvailable = m_physicsMenuVisual && m_physics->hasPanel();
+    menuCapture.enabled = menuAvailable;
+    menuCapture.velocity = menuAvailable ? m_physics->getPanelVelocityPixels() : PhysicsVelocity{};
+
+    overlay_rendering::refreshObjectMotionBlurComposite({
+        .objects = &m_objectCaptures,
+        .mergeRoot = m_layerMergeRoot,
+        .unifiedMergeTexture = m_unifiedMergeTexture,
+        .finalCompositeSprite = m_finalCompositeSprite,
         .whiteFlashSprite = m_whiteFlashSprite,
         .whiteFlashProgram = m_whiteFlashProgram,
         .colorInvertProgram = m_colorInvertProgram,
-        .velocity = m_physics->getPlayerVelocityPixels(),
         .impactFlashMode = flashMode,
     });
 
@@ -762,9 +833,12 @@ void PhysicsOverlay::onExit() {
         m_starBurstLayer->removeFromParentAndCleanup(true);
         m_starBurstLayer = nullptr;
     }
-    if (m_worldCaptureRoot) {
-        m_worldCaptureRoot->removeFromParentAndCleanup(true);
-        m_worldCaptureRoot = nullptr;
+    for (auto*& layerRoot : m_layerRoots) {
+        if (!layerRoot) {
+            continue;
+        }
+        layerRoot->removeFromParentAndCleanup(true);
+        layerRoot = nullptr;
     }
     m_doubleClickListener.destroy();
     m_tripleClickListener.destroy();
@@ -773,7 +847,7 @@ void PhysicsOverlay::onExit() {
         m_hitProxy = nullptr;
     }
     m_player = nullptr;
-    m_blurSprite = nullptr;
+    m_finalCompositeSprite = nullptr;
     m_fireAuraSprite = nullptr;
     if (m_impactNoiseComposite) {
         m_impactNoiseComposite->removeFromParentAndCleanup(true);
@@ -810,9 +884,20 @@ void PhysicsOverlay::onExit() {
         m_impactNoiseProgram->release();
         m_impactNoiseProgram = nullptr;
     }
-    if (m_renderTexture) {
-        m_renderTexture->release();
-        m_renderTexture = nullptr;
+    for (auto& object : m_objectCaptures) {
+        if (object.renderTexture) {
+            object.renderTexture->release();
+            object.renderTexture = nullptr;
+        }
+        object.blurSprite = nullptr;
+        object.sourceRoot = nullptr;
+        object.enabled = false;
+        object.velocity = {};
+    }
+    m_layerMergeRoot = nullptr;
+    if (m_unifiedMergeTexture) {
+        m_unifiedMergeTexture->release();
+        m_unifiedMergeTexture = nullptr;
     }
     CCLayer::onExit();
 }

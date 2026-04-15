@@ -4,6 +4,8 @@
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
+#include <array>
+
 #include "PhysicsWorld.h"
 
 namespace cocos2d {
@@ -118,11 +120,94 @@ struct MotionBlurAttachResult {
     cocos2d::CCGLProgram* colorInvertProgram = nullptr;
 };
 
+enum class OverlayLayerId : int {
+    World = 0,
+    Trail = 1,
+    Ui = 2,
+};
+
+constexpr int kOverlayLayerCount = 3;
+
+enum class MotionBlurObjectId : int {
+    Player = 0,
+    PhysicsMenu = 1,
+};
+
+constexpr int kMotionBlurObjectCount = 2;
+
+struct OverlayLayerCapture {
+    OverlayLayerId id = OverlayLayerId::World;
+    cocos2d::CCNode* sourceRoot = nullptr;
+    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    cocos2d::CCSprite* compositeSprite = nullptr;
+    bool enabled = false;
+};
+
+struct LayeredMotionBlurAttachResult : MotionBlurAttachResult {
+    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
+    cocos2d::CCNode* mergeRoot = nullptr;
+    std::array<OverlayLayerCapture, kOverlayLayerCount> layers = {};
+};
+
+struct MotionBlurObjectTuning {
+    float minBlurSpeedPx = 0.0f;
+    float maxBlurSpeedPx = 1.0f;
+    float blurUvSpread = 0.0f;
+    int blurStepDivisor = 1;
+    bool keepBaseVisible = false;
+};
+
+struct MotionBlurObjectSeed {
+    MotionBlurObjectId id = MotionBlurObjectId::Player;
+    cocos2d::CCNode* sourceRoot = nullptr;
+    bool enabled = false;
+    MotionBlurObjectTuning tuning = {};
+};
+
+struct MotionBlurObjectCapture {
+    MotionBlurObjectId id = MotionBlurObjectId::Player;
+    cocos2d::CCNode* sourceRoot = nullptr;
+    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    MotionBlurSprite* blurSprite = nullptr;
+    bool enabled = false;
+    MotionBlurObjectTuning tuning = {};
+    PhysicsVelocity velocity = {};
+};
+
+struct ObjectMotionBlurAttachResult {
+    bool ok = false;
+    cocos2d::CCGLProgram* blurProgram = nullptr;
+    GLint locBlurDir = -1;
+    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
+    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
+    cocos2d::CCNode* mergeRoot = nullptr;
+    cocos2d::CCSprite* finalCompositeSprite = nullptr;
+    cocos2d::CCSprite* whiteFlashSprite = nullptr;
+    std::array<MotionBlurObjectCapture, kMotionBlurObjectCount> objects = {};
+};
+
 MotionBlurAttachResult attachMotionBlur(
     cocos2d::CCNode* overlayLayer,
     cocos2d::CCSize captureSize,
     cocos2d::CCSize outputSize,
     int outputZOrder
+);
+
+LayeredMotionBlurAttachResult attachLayeredMotionBlur(
+    cocos2d::CCNode* overlayLayer,
+    cocos2d::CCSize captureSize,
+    cocos2d::CCSize outputSize,
+    int outputZOrder,
+    std::array<cocos2d::CCNode*, kOverlayLayerCount> const& layerRoots
+);
+
+ObjectMotionBlurAttachResult attachObjectMotionBlur(
+    cocos2d::CCNode* overlayLayer,
+    cocos2d::CCSize captureSize,
+    cocos2d::CCSize outputSize,
+    int outputZOrder,
+    std::array<MotionBlurObjectSeed, kMotionBlurObjectCount> const& objectSeeds
 );
 
 struct FireAuraAttachResult {
@@ -157,6 +242,33 @@ struct MotionBlurRefreshArgs {
 };
 
 void refreshMotionBlurComposite(MotionBlurRefreshArgs const& args);
+
+struct LayeredMotionBlurRefreshArgs {
+    std::array<OverlayLayerCapture, kOverlayLayerCount> const* layers = nullptr;
+    cocos2d::CCNode* mergeRoot = nullptr;
+    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
+    MotionBlurSprite* blurSprite = nullptr;
+    cocos2d::CCSprite* whiteFlashSprite = nullptr;
+    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
+    PhysicsVelocity velocity = {};
+    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
+};
+
+void refreshLayeredMotionBlurComposite(LayeredMotionBlurRefreshArgs const& args);
+
+struct ObjectMotionBlurRefreshArgs {
+    std::array<MotionBlurObjectCapture, kMotionBlurObjectCount>* objects = nullptr;
+    cocos2d::CCNode* mergeRoot = nullptr;
+    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
+    cocos2d::CCSprite* finalCompositeSprite = nullptr;
+    cocos2d::CCSprite* whiteFlashSprite = nullptr;
+    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
+    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
+    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
+};
+
+void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args);
 
 struct FireAuraRefreshArgs {
     FireAuraSprite* fireAura = nullptr;

@@ -53,6 +53,9 @@ constexpr int kImpactNoiseZOrder = 3;
 constexpr int kUnifiedWorldCaptureZOrder = 1;
 constexpr int kUnifiedBlurCompositeZOrder = 2;
 constexpr int kGlobalStartBurstZOrder = 4;
+constexpr int kLayerTrailZOrderOffset = -1;
+constexpr int kLayerWorldZOrderOffset = 0;
+constexpr int kLayerUiZOrderOffset = 1;
 
 constexpr int kPlayerRootZOrder = 1;
 constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
@@ -88,22 +91,36 @@ constexpr float kSmallStarScreenFrac = 0.2f;
 constexpr float kStarScaleVariance = 0.15f;
 
 constexpr float kMinFireAuraSpeedPx = 600.0f;
-constexpr float kMaxFireAuraSpeedPx = 2400.0f;
-constexpr float kFireAuraDiameterScale = 2.0f;
+constexpr float kMaxFireAuraSpeedPx = 2800.0f;
+constexpr float kFireAuraDiameterScale = 2.25f;
 constexpr float kFireAuraVelocityToShader = 0.002f;
 
-constexpr float kMinBlurSpeedPx = 8.0f;
-constexpr float kMaxBlurSpeedPx = 1200.0f;
-constexpr float kBlurUvSpread = 0.038f;
+constexpr float kPlayerMinBlurSpeedPx = 120.0f;
+constexpr float kPlayerMaxBlurSpeedPx = 3200.0f;
+constexpr float kPlayerBlurUvSpread = 0.02f;
+constexpr int kPlayerBlurStepDivisor = 6;
+constexpr bool kPlayerKeepBaseVisible = true;
+
+constexpr float kMenuMinBlurSpeedPx = 180.0f;
+constexpr float kMenuMaxBlurSpeedPx = 1800.0f;
+constexpr float kMenuBlurUvSpread = 0.01f;
+constexpr int kMenuBlurStepDivisor = 4;
+constexpr bool kMenuKeepBaseVisible = false;
+
+// Legacy defaults used by older blur helpers.
+constexpr float kMinBlurSpeedPx = kPlayerMinBlurSpeedPx;
+constexpr float kMaxBlurSpeedPx = kPlayerMaxBlurSpeedPx;
+constexpr float kBlurUvSpread = kPlayerBlurUvSpread;
+constexpr int kBlurStepDivisor = kPlayerBlurStepDivisor;
+
 constexpr float kBlurCaptureScale = 2.6f;
-constexpr int kBlurStepDivisor = 4;
 constexpr float kMinSpeedForInverse = 1e-6f;
 
 constexpr int kMotionBlurOverlayLocalZ = 2;
 constexpr int kWhiteFlashOverlayLocalZ = 3;
 // Invisible touch target for ClickTracker
 constexpr int kHitProxyLocalZOrder = 6767;
-constexpr int kFireAuraZOrder = 1;
+constexpr int kFireAuraZOrder = -1;
 
 constexpr int kMinCaptureTextureSize = 32;
 constexpr float kBoundsCenterFrac = 0.5f;

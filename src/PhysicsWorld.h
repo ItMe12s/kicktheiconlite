@@ -44,6 +44,7 @@ public:
     bool hasPanel() const;
     PhysicsState getPanelState() const;
     PhysicsState getPanelRenderState(float alpha) const;
+    PhysicsVelocity getPanelVelocityPixels() const;
 
     void setPanelDragging(bool on);
     void setPanelDragTargetPixels(float x, float y);

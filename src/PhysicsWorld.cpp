@@ -441,6 +441,14 @@ PhysicsState PhysicsWorld::getPanelRenderState(float alpha) const {
     };
 }
 
+PhysicsVelocity PhysicsWorld::getPanelVelocityPixels() const {
+    if (!m_impl->panel) {
+        return {0.0f, 0.0f};
+    }
+    Vec2 const& v = m_impl->panel->velocity;
+    return {v.x * kPixelsPerMeter, v.y * kPixelsPerMeter};
+}
+
 void PhysicsWorld::setPanelDragging(bool on) {
     m_panelDragging = on;
 }

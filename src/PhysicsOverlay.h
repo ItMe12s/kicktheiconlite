@@ -3,20 +3,15 @@
 #include <Geode/Geode.hpp>
 #include <Geode/loader/Event.hpp>
 
+#include <array>
 #include <memory>
 
+#include "OverlayRendering.h"
 #include "PhysicsOverlayTuning.h"
 #include "PhysicsWorld.h"
 
 class SimplePlayer;
 class PhysicsMenu;
-
-namespace overlay_rendering {
-class MotionBlurSprite;
-class FireAuraSprite;
-class ImpactNoiseSprite;
-enum class ImpactFlashMode : int;
-}
 
 namespace cocos2d {
 class CCNode;
@@ -28,17 +23,19 @@ class CCGLProgram;
 
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
-    cocos2d::CCNode* m_worldCaptureRoot = nullptr;
+    std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
+    std::array<overlay_rendering::MotionBlurObjectCapture, overlay_rendering::kMotionBlurObjectCount> m_objectCaptures{};
+    cocos2d::CCNode* m_layerMergeRoot = nullptr;
+    cocos2d::CCRenderTexture* m_unifiedMergeTexture = nullptr;
     cocos2d::CCNode* m_starBurstLayer = nullptr;
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
     cocos2d::CCSprite* m_hitProxy = nullptr;
-    overlay_rendering::MotionBlurSprite* m_blurSprite = nullptr;
+    cocos2d::CCSprite* m_finalCompositeSprite = nullptr;
     overlay_rendering::FireAuraSprite* m_fireAuraSprite = nullptr;
     overlay_rendering::ImpactNoiseSprite* m_impactNoiseSprite = nullptr;
     cocos2d::CCRenderTexture* m_impactNoiseRenderTexture = nullptr;
     cocos2d::CCSprite* m_impactNoiseComposite = nullptr;
-    cocos2d::CCRenderTexture* m_renderTexture = nullptr;
     cocos2d::CCGLProgram* m_blurProgram = nullptr;
     cocos2d::CCGLProgram* m_fireAuraProgram = nullptr;
     cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;

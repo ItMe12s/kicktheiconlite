@@ -58,6 +58,23 @@ CCTexture2D* createOneByOneWhiteTexture() {
     return tex;
 }
 
+int layerCompositeOrder(OverlayLayerId id) {
+    switch (id) {
+        case OverlayLayerId::Trail: return 0;
+        case OverlayLayerId::World: return 1;
+        case OverlayLayerId::Ui: return 2;
+        default: return 1;
+    }
+}
+
+int objectCompositeOrder(MotionBlurObjectId id) {
+    switch (id) {
+        case MotionBlurObjectId::Player: return 0;
+        case MotionBlurObjectId::PhysicsMenu: return 1;
+        default: return 0;
+    }
+}
+
 } // namespace
 
 void MotionBlurSprite::setBlurUniforms(CCGLProgram* prog, GLint locBlurDir) {
@@ -352,6 +369,246 @@ MotionBlurAttachResult attachMotionBlur(
     return out;
 }
 
+LayeredMotionBlurAttachResult attachLayeredMotionBlur(
+    CCNode* overlayLayer,
+    CCSize captureSize,
+    CCSize outputSize,
+    int outputZOrder,
+    std::array<CCNode*, kOverlayLayerCount> const& layerRoots
+) {
+    LayeredMotionBlurAttachResult out{};
+    auto const base = attachMotionBlur(overlayLayer, captureSize, outputSize, outputZOrder);
+    if (!base.ok || !base.renderTexture) {
+        return out;
+    }
+
+    out.renderTexture = base.renderTexture;
+    out.blurProgram = base.blurProgram;
+    out.locBlurDir = base.locBlurDir;
+    out.blurSprite = base.blurSprite;
+    out.whiteFlashSprite = base.whiteFlashSprite;
+    out.whiteFlashProgram = base.whiteFlashProgram;
+    out.colorInvertProgram = base.colorInvertProgram;
+    out.unifiedMergeTexture = base.renderTexture;
+
+    auto* mergeRoot = CCNode::create();
+    if (!mergeRoot) {
+        out.ok = true;
+        return out;
+    }
+    mergeRoot->setID("layered-merge-root"_spr);
+    mergeRoot->setPosition({0.0f, 0.0f});
+    mergeRoot->setVisible(false);
+    overlayLayer->addChild(mergeRoot, outputZOrder - 1);
+    out.mergeRoot = mergeRoot;
+
+    for (int i = 0; i < kOverlayLayerCount; ++i) {
+        OverlayLayerCapture capture{};
+        capture.id = static_cast<OverlayLayerId>(i);
+        capture.sourceRoot = layerRoots[static_cast<size_t>(i)];
+        capture.enabled = capture.sourceRoot != nullptr;
+        if (!capture.enabled) {
+            out.layers[static_cast<size_t>(i)] = capture;
+            continue;
+        }
+
+        auto* layerTexture = CCRenderTexture::create(
+            static_cast<int>(std::ceil(captureSize.width)),
+            static_cast<int>(std::ceil(captureSize.height)),
+            kCCTexture2DPixelFormat_RGBA8888
+        );
+        if (!layerTexture) {
+            capture.enabled = false;
+            out.layers[static_cast<size_t>(i)] = capture;
+            continue;
+        }
+        layerTexture->retain();
+        capture.renderTexture = layerTexture;
+
+        auto* layerComposite = CCSprite::createWithTexture(layerTexture->getSprite()->getTexture());
+        if (!layerComposite) {
+            layerTexture->release();
+            capture.renderTexture = nullptr;
+            capture.enabled = false;
+            out.layers[static_cast<size_t>(i)] = capture;
+            continue;
+        }
+        layerComposite->setID("layer-capture-composite"_spr);
+        layerComposite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+        layerComposite->setAnchorPoint({0.0f, 0.0f});
+        layerComposite->setPosition({0.0f, 0.0f});
+        layerComposite->setFlipY(true);
+        float const cw = layerComposite->getContentSize().width;
+        float const ch = layerComposite->getContentSize().height;
+        layerComposite->setScaleX(cw > 0.0f ? captureSize.width / cw : captureSize.width);
+        layerComposite->setScaleY(ch > 0.0f ? captureSize.height / ch : captureSize.height);
+        mergeRoot->addChild(layerComposite, layerCompositeOrder(capture.id));
+        capture.compositeSprite = layerComposite;
+        out.layers[static_cast<size_t>(i)] = capture;
+    }
+
+    out.ok = true;
+    return out;
+}
+
+ObjectMotionBlurAttachResult attachObjectMotionBlur(
+    CCNode* overlayLayer,
+    CCSize captureSize,
+    CCSize outputSize,
+    int outputZOrder,
+    std::array<MotionBlurObjectSeed, kMotionBlurObjectCount> const& objectSeeds
+) {
+    ObjectMotionBlurAttachResult out{};
+    if (!overlayLayer || captureSize.width <= 0.0f || captureSize.height <= 0.0f || outputSize.width <= 0.0f
+        || outputSize.height <= 0.0f) {
+        return out;
+    }
+
+    auto* unifiedTexture = CCRenderTexture::create(
+        static_cast<int>(std::ceil(captureSize.width)),
+        static_cast<int>(std::ceil(captureSize.height)),
+        kCCTexture2DPixelFormat_RGBA8888
+    );
+    if (!unifiedTexture) {
+        return out;
+    }
+    unifiedTexture->retain();
+
+    auto* finalComposite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
+    if (!finalComposite) {
+        unifiedTexture->release();
+        return out;
+    }
+    finalComposite->setID("object-blur-final-composite"_spr);
+    finalComposite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+    finalComposite->setAnchorPoint({0.0f, 0.0f});
+    finalComposite->setPosition({0.0f, 0.0f});
+    finalComposite->setVisible(false);
+    finalComposite->setFlipY(true);
+    {
+        float const cw = finalComposite->getContentSize().width;
+        float const ch = finalComposite->getContentSize().height;
+        finalComposite->setScaleX(cw > 0.0f ? outputSize.width / cw : outputSize.width);
+        finalComposite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
+    }
+    overlayLayer->addChild(finalComposite, outputZOrder);
+
+    auto* whiteFlashSprite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
+    if (!whiteFlashSprite) {
+        unifiedTexture->release();
+        return out;
+    }
+    whiteFlashSprite->setID("object-blur-flash-sprite"_spr);
+    whiteFlashSprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+    whiteFlashSprite->setAnchorPoint({0.0f, 0.0f});
+    whiteFlashSprite->setPosition({0.0f, 0.0f});
+    whiteFlashSprite->setVisible(false);
+    whiteFlashSprite->setFlipY(true);
+    {
+        float const cw = whiteFlashSprite->getContentSize().width;
+        float const ch = whiteFlashSprite->getContentSize().height;
+        whiteFlashSprite->setScaleX(cw > 0.0f ? outputSize.width / cw : outputSize.width);
+        whiteFlashSprite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
+    }
+    overlayLayer->addChild(whiteFlashSprite, outputZOrder);
+
+    GLint locBlurDir = -1;
+    auto* blurProgram = createMotionBlurProgram(&locBlurDir);
+    if (!blurProgram || locBlurDir < 0) {
+        if (blurProgram) {
+            blurProgram->release();
+        }
+        unifiedTexture->release();
+        return out;
+    }
+
+    auto* whiteFlashProgram = createWhiteFlashProgram();
+    if (!whiteFlashProgram) {
+        blurProgram->release();
+        unifiedTexture->release();
+        return out;
+    }
+    whiteFlashSprite->setShaderProgram(whiteFlashProgram);
+
+    auto* colorInvertProgram = createColorInvertProgram();
+    if (!colorInvertProgram) {
+        whiteFlashProgram->release();
+        blurProgram->release();
+        unifiedTexture->release();
+        return out;
+    }
+
+    auto* mergeRoot = CCNode::create();
+    if (!mergeRoot) {
+        colorInvertProgram->release();
+        whiteFlashProgram->release();
+        blurProgram->release();
+        unifiedTexture->release();
+        return out;
+    }
+    mergeRoot->setID("object-merge-root"_spr);
+    mergeRoot->setPosition({0.0f, 0.0f});
+    mergeRoot->setVisible(false);
+    overlayLayer->addChild(mergeRoot, outputZOrder - 1);
+
+    for (int i = 0; i < kMotionBlurObjectCount; ++i) {
+        auto const& seed = objectSeeds[static_cast<size_t>(i)];
+        MotionBlurObjectCapture capture{};
+        capture.id = seed.id;
+        capture.sourceRoot = seed.sourceRoot;
+        capture.enabled = seed.enabled;
+        capture.tuning = seed.tuning;
+
+        auto* rt = CCRenderTexture::create(
+            static_cast<int>(std::ceil(captureSize.width)),
+            static_cast<int>(std::ceil(captureSize.height)),
+            kCCTexture2DPixelFormat_RGBA8888
+        );
+        if (!rt) {
+            out.objects[static_cast<size_t>(i)] = capture;
+            continue;
+        }
+        rt->retain();
+        capture.renderTexture = rt;
+
+        auto* objectBlur = MotionBlurSprite::create(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
+        if (!objectBlur) {
+            rt->release();
+            capture.renderTexture = nullptr;
+            capture.enabled = false;
+            out.objects[static_cast<size_t>(i)] = capture;
+            continue;
+        }
+        objectBlur->setID("object-motion-blur-sprite"_spr);
+        objectBlur->setShaderProgram(blurProgram);
+        objectBlur->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+        objectBlur->setAnchorPoint({0.0f, 0.0f});
+        objectBlur->setPosition({0.0f, 0.0f});
+        objectBlur->setVisible(true);
+        objectBlur->setFlipY(true);
+        {
+            float const cw = objectBlur->getContentSize().width;
+            float const ch = objectBlur->getContentSize().height;
+            objectBlur->setScaleX(cw > 0.0f ? captureSize.width / cw : captureSize.width);
+            objectBlur->setScaleY(ch > 0.0f ? captureSize.height / ch : captureSize.height);
+        }
+        mergeRoot->addChild(objectBlur, objectCompositeOrder(capture.id));
+        capture.blurSprite = objectBlur;
+        out.objects[static_cast<size_t>(i)] = capture;
+    }
+
+    out.ok = true;
+    out.blurProgram = blurProgram;
+    out.locBlurDir = locBlurDir;
+    out.whiteFlashProgram = whiteFlashProgram;
+    out.colorInvertProgram = colorInvertProgram;
+    out.unifiedMergeTexture = unifiedTexture;
+    out.mergeRoot = mergeRoot;
+    out.finalCompositeSprite = finalComposite;
+    out.whiteFlashSprite = whiteFlashSprite;
+    return out;
+}
+
 FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
     FireAuraAttachResult out{};
     if (!playerRoot || auraDiameterPx <= 0.0f) {
@@ -514,6 +771,185 @@ void refreshMotionBlurComposite(MotionBlurRefreshArgs const& args) {
     } else {
         captureRoot->setVisible(true);
         blurSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+    }
+}
+
+void refreshLayeredMotionBlurComposite(LayeredMotionBlurRefreshArgs const& args) {
+    auto const* layers = args.layers;
+    CCNode* const mergeRoot = args.mergeRoot;
+    CCRenderTexture* const unifiedMergeTexture = args.unifiedMergeTexture;
+    MotionBlurSprite* const blurSprite = args.blurSprite;
+    CCSprite* const whiteFlashSprite = args.whiteFlashSprite;
+    CCGLProgram* const whiteFlashProgram = args.whiteFlashProgram;
+    CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
+    PhysicsVelocity const vel = args.velocity;
+    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
+
+    if (!layers || !mergeRoot || !unifiedMergeTexture || !blurSprite) {
+        return;
+    }
+
+    float const speed = std::hypot(vel.vx, vel.vy);
+    bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
+    bool const needCapture = (speed >= kMinBlurSpeedPx) || impactFlashActive;
+
+    if (!needCapture) {
+        for (auto const& layer : *layers) {
+            if (layer.sourceRoot) {
+                layer.sourceRoot->setVisible(true);
+            }
+        }
+        blurSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+        mergeRoot->setVisible(false);
+        return;
+    }
+
+    float const t = std::min(speed / kMaxBlurSpeedPx, 1.0f);
+    float const spreadUv = t * kBlurUvSpread;
+    float const invSpeed = speed > kMinSpeedForInverse ? 1.0f / speed : 0.0f;
+    float const nx = -vel.vx * invSpeed;
+    float const ny = -vel.vy * invSpeed;
+    float const stepUv = spreadUv * (1.0f / static_cast<float>(kBlurStepDivisor));
+    blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
+
+    for (auto const& layer : *layers) {
+        if (!layer.sourceRoot) {
+            continue;
+        }
+        if (!layer.enabled || !layer.renderTexture) {
+            // Keep non-captured layers hidden during unified capture to avoid direct-draw bleed-through.
+            layer.sourceRoot->setVisible(false);
+            continue;
+        }
+        layer.sourceRoot->setVisible(true);
+        layer.renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+        layer.sourceRoot->visit();
+        layer.renderTexture->end();
+        layer.sourceRoot->setVisible(false);
+    }
+
+    mergeRoot->setVisible(true);
+    unifiedMergeTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+    mergeRoot->visit();
+    unifiedMergeTexture->end();
+    mergeRoot->setVisible(false);
+
+    if (impactFlashMode == ImpactFlashMode::WhiteSilhouette && whiteFlashSprite && whiteFlashProgram) {
+        whiteFlashSprite->setShaderProgram(whiteFlashProgram);
+        blurSprite->setVisible(false);
+        whiteFlashSprite->setVisible(true);
+    } else if (impactFlashMode == ImpactFlashMode::InvertSilhouette && whiteFlashSprite && colorInvertProgram) {
+        whiteFlashSprite->setShaderProgram(colorInvertProgram);
+        blurSprite->setVisible(false);
+        whiteFlashSprite->setVisible(true);
+    } else if (speed >= kMinBlurSpeedPx) {
+        blurSprite->setVisible(true);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+    } else {
+        for (auto const& layer : *layers) {
+            if (layer.sourceRoot) {
+                layer.sourceRoot->setVisible(true);
+            }
+        }
+        blurSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+    }
+}
+
+void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
+    auto* objects = args.objects;
+    CCNode* const mergeRoot = args.mergeRoot;
+    CCRenderTexture* const unifiedMergeTexture = args.unifiedMergeTexture;
+    CCSprite* const finalCompositeSprite = args.finalCompositeSprite;
+    CCSprite* const whiteFlashSprite = args.whiteFlashSprite;
+    CCGLProgram* const whiteFlashProgram = args.whiteFlashProgram;
+    CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
+    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
+
+    if (!objects || !mergeRoot || !unifiedMergeTexture || !finalCompositeSprite) {
+        return;
+    }
+
+    bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
+    bool needCapture = impactFlashActive;
+    for (auto const& object : *objects) {
+        if (!object.enabled || !object.sourceRoot) {
+            continue;
+        }
+        float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
+        if (speed >= object.tuning.minBlurSpeedPx) {
+            needCapture = true;
+            break;
+        }
+    }
+
+    if (!needCapture) {
+        for (auto& object : *objects) {
+            if (object.sourceRoot) {
+                object.sourceRoot->setVisible(true);
+            }
+        }
+        finalCompositeSprite->setVisible(false);
+        if (whiteFlashSprite) {
+            whiteFlashSprite->setVisible(false);
+        }
+        mergeRoot->setVisible(false);
+        return;
+    }
+
+    for (auto& object : *objects) {
+        if (!object.sourceRoot) {
+            continue;
+        }
+        if (!object.enabled || !object.renderTexture || !object.blurSprite) {
+            object.sourceRoot->setVisible(true);
+            continue;
+        }
+
+        float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
+        float const maxSpeed = std::max(object.tuning.maxBlurSpeedPx, object.tuning.minBlurSpeedPx + 1.0f);
+        float const normT = std::clamp(speed / maxSpeed, 0.0f, 1.0f);
+        float const spreadUv = normT * object.tuning.blurUvSpread;
+        float const invSpeed = speed > kMinSpeedForInverse ? 1.0f / speed : 0.0f;
+        float const nx = -object.velocity.vx * invSpeed;
+        float const ny = -object.velocity.vy * invSpeed;
+        int const divisor = std::max(object.tuning.blurStepDivisor, 1);
+        float const stepUv = spreadUv * (1.0f / static_cast<float>(divisor));
+        object.blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
+
+        object.sourceRoot->setVisible(true);
+        object.renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+        object.sourceRoot->visit();
+        object.renderTexture->end();
+        object.sourceRoot->setVisible(object.tuning.keepBaseVisible && !impactFlashActive);
+    }
+
+    mergeRoot->setVisible(true);
+    unifiedMergeTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+    mergeRoot->visit();
+    unifiedMergeTexture->end();
+    mergeRoot->setVisible(false);
+
+    if (impactFlashMode == ImpactFlashMode::WhiteSilhouette && whiteFlashSprite && whiteFlashProgram) {
+        whiteFlashSprite->setShaderProgram(whiteFlashProgram);
+        whiteFlashSprite->setVisible(true);
+        finalCompositeSprite->setVisible(false);
+    } else if (impactFlashMode == ImpactFlashMode::InvertSilhouette && whiteFlashSprite && colorInvertProgram) {
+        whiteFlashSprite->setShaderProgram(colorInvertProgram);
+        whiteFlashSprite->setVisible(true);
+        finalCompositeSprite->setVisible(false);
+    } else {
+        finalCompositeSprite->setVisible(true);
         if (whiteFlashSprite) {
             whiteFlashSprite->setVisible(false);
         }
