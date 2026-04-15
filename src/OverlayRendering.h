@@ -107,8 +107,6 @@ enum class ImpactFlashMode : int {
     InvertSilhouette,
 };
 
-int captureSizeForTarget(float targetSize);
-
 struct MotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCRenderTexture* renderTexture = nullptr;

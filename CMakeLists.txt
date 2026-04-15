@@ -17,6 +17,12 @@ set(SOURCES
   src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
+  src/vfx/FireAura.cpp
+  src/vfx/ImpactFlash.cpp
+  src/vfx/ImpactNoise.cpp
+  src/vfx/ObjectMotionBlurPipeline.cpp
+  src/vfx/SandevistanTrail.cpp
+  src/vfx/StarBurst.cpp
   src/events/ClickEvents.cpp
   src/events/ScreenPropertiesChangedEvent.cpp
   src/box2d-lite/Arbiter.cpp

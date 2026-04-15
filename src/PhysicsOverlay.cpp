@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <string>
 
 #include "OverlayRendering.h"
@@ -16,6 +15,12 @@
 #include "PhysicsMenu.h"
 #include "PlayerVisual.h"
 #include "events/ClickEvents.h"
+#include "vfx/FireAura.h"
+#include "vfx/ImpactFlash.h"
+#include "vfx/ImpactNoise.h"
+#include "vfx/ObjectMotionBlurPipeline.h"
+#include "vfx/SandevistanTrail.h"
+#include "vfx/StarBurst.h"
 
 using namespace geode::prelude;
 
@@ -64,7 +69,8 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     m_blurCaptureSize = m_winSize;
-    auto mr = overlay_rendering::attachObjectMotionBlur(
+    if (!vfx::object_motion_blur::attach(
+        m_objectBlur,
         this,
         m_blurCaptureSize,
         m_winSize,
@@ -95,8 +101,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
                 },
             },
         }
-    );
-    if (!mr.ok) {
+    )) {
         pr.root->removeFromParentAndCleanup(true);
         return;
     }
@@ -112,33 +117,14 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         m_playerRoot->setZOrder(kPlayerRootZOrder);
     }
     m_player = pr.player;
-    m_unifiedMergeTexture = mr.unifiedMergeTexture;
-    m_layerMergeRoot = mr.mergeRoot;
-    m_objectCaptures = mr.objects;
-    m_blurProgram = mr.blurProgram;
-    m_whiteFlashProgram = mr.whiteFlashProgram;
-    m_colorInvertProgram = mr.colorInvertProgram;
-    m_finalCompositeSprite = mr.finalCompositeSprite;
-    m_whiteFlashSprite = mr.whiteFlashSprite;
 
     auto const fa = overlay_rendering::attachFireAura(pr.root, m_targetSize * kFireAuraDiameterScale);
     if (fa.ok) {
-        m_fireAuraSprite = fa.sprite;
-        m_fireAuraProgram = fa.program;
+        m_fireAura.sprite = fa.sprite;
+        m_fireAura.program = fa.program;
     }
 
-    for (int i = 0; i < kStarBurstCount; ++i) {
-        auto* star = CCSprite::create("star1_hd.png"_spr);
-        if (star) {
-            star->setID(std::string(GEODE_MOD_ID) + "/star-burst-" + std::to_string(i));
-            star->setVisible(false);
-            star->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
-            if (m_starBurstLayer) {
-                m_starBurstLayer->addChild(star, kStarBurstZOrder);
-                m_starSprites[i] = star;
-            }
-        }
-    }
+    vfx::star_burst::createSprites(m_starBurst);
 
     // Always-visible invisible sprite so hit tests work when SimplePlayer is hidden (like motion blur)
     if (auto* hitProxy = CCSprite::create("star1_hd.png"_spr)) {
@@ -188,12 +174,11 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
     m_physics->setDragging(true);
     m_grabActive = true;
 
-    m_hitstopRemaining = 0.0f;
-    m_whiteFlashRemaining = 0.0f;
-    hideAllStars();
-    m_starPhaseIndex = -1;
-    if (m_whiteFlashSprite) {
-        m_whiteFlashSprite->stopAllActions();
+    m_impactFlash.hitstopRemaining = 0.0f;
+    m_impactFlash.whiteFlashRemaining = 0.0f;
+    vfx::star_burst::reset(m_starBurst);
+    if (m_objectBlur.whiteFlashSprite) {
+        m_objectBlur.whiteFlashSprite->stopAllActions();
     }
     return true;
 }
@@ -215,7 +200,7 @@ void PhysicsOverlay::toggleTestPanel() {
     if (m_physicsMenuVisual) {
         m_physics->destroyPanel();
         auto& menuCapture =
-            m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+            m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
         menuCapture.enabled = false;
         menuCapture.sourceRoot = nullptr;
         menuCapture.velocity = {};
@@ -243,7 +228,7 @@ void PhysicsOverlay::toggleTestPanel() {
             this->addChild(root, kPhysicsMenuZOrder);
         }
         auto& menuCapture =
-            m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+            m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
         menuCapture.sourceRoot = root;
         menuCapture.enabled = true;
     }
@@ -383,11 +368,11 @@ bool PhysicsOverlay::init() {
     m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
-    m_starBurstLayer = CCNode::create();
-    if (m_starBurstLayer) {
-        m_starBurstLayer->setID("global-star-burst-layer"_spr);
-        m_starBurstLayer->setPosition({0.0f, 0.0f});
-        this->addChild(m_starBurstLayer, kGlobalStartBurstZOrder);
+    m_starBurst.layer = CCNode::create();
+    if (m_starBurst.layer) {
+        m_starBurst.layer->setID("global-star-burst-layer"_spr);
+        m_starBurst.layer->setPosition({0.0f, 0.0f});
+        this->addChild(m_starBurst.layer, kGlobalStartBurstZOrder);
     }
 
     m_flashBackdrop = CCDrawNode::create();
@@ -420,22 +405,22 @@ bool PhysicsOverlay::init() {
 
     auto const noiseAttach = overlay_rendering::attachImpactNoise(this, m_winSize);
     if (noiseAttach.ok) {
-        m_impactNoiseSprite = noiseAttach.sprite;
-        m_impactNoiseProgram = noiseAttach.program;
-        m_impactNoiseRenderTexture = noiseAttach.renderTexture;
-        m_impactNoiseComposite = noiseAttach.compositeSprite;
+        m_impactNoise.sprite = noiseAttach.sprite;
+        m_impactNoise.program = noiseAttach.program;
+        m_impactNoise.renderTexture = noiseAttach.renderTexture;
+        m_impactNoise.composite = noiseAttach.compositeSprite;
     }
 
-    m_trailLayer = CCNode::create();
-    if (m_trailLayer) {
-        m_trailLayer->setID("sandevistan-trail-layer"_spr);
-        m_trailLayer->setPosition({0, 0});
+    m_trail.layer = CCNode::create();
+    if (m_trail.layer) {
+        m_trail.layer->setID("sandevistan-trail-layer"_spr);
+        m_trail.layer->setPosition({0, 0});
         auto* trailRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Trail);
         if (trailRoot) {
-            trailRoot->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
+            trailRoot->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         } else {
             log::warn("world capture root missing; sandevistan trail will bypass blur capture");
-            this->addChild(m_trailLayer, kSandevistanTrailLayerZOrder);
+            this->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         }
     }
 
@@ -450,12 +435,7 @@ bool PhysicsOverlay::init() {
 }
 
 void PhysicsOverlay::decrementCooldowns(float dt) {
-    if (m_impactFlashCooldownRemaining > 0.0f) {
-        m_impactFlashCooldownRemaining -= dt;
-        if (m_impactFlashCooldownRemaining < 0.0f) {
-            m_impactFlashCooldownRemaining = 0.0f;
-        }
-    }
+    vfx::impact_flash::decrementCooldown(m_impactFlash, dt);
 }
 
 void PhysicsOverlay::tryBuildVisualIfNeeded() {
@@ -465,10 +445,10 @@ void PhysicsOverlay::tryBuildVisualIfNeeded() {
 }
 
 void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
-    if (m_hitstopRemaining > 0.0f) {
-        m_hitstopRemaining -= dt;
-        if (m_hitstopRemaining < 0.0f) {
-            m_hitstopRemaining = 0.0f;
+    if (m_impactFlash.hitstopRemaining > 0.0f) {
+        m_impactFlash.hitstopRemaining -= dt;
+        if (m_impactFlash.hitstopRemaining < 0.0f) {
+            m_impactFlash.hitstopRemaining = 0.0f;
         }
         return;
     }
@@ -498,25 +478,25 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
                 && playerImpactIntensityPx >= kPlayerImpactMinShakeSpeed
                 && !m_grabActive
             ) {
-                m_sandevistanTrailActive = true;
-                m_sandevistanSpawnAccumulator = kSandevistanSpawnIntervalSec;
+                m_trail.active = true;
+                m_trail.spawnAccumulator = kSandevistanSpawnIntervalSec;
             }
 
             if (
                 kEnablePlayerImpactFlashStack
                 && !m_grabActive
                 && playerImpact.impactSpeedPx >= kPlayerImpactMinFlashSpeed
-                && m_impactFlashCooldownRemaining <= 0.0f
+                && m_impactFlash.impactFlashCooldownRemaining <= 0.0f
             ) {
-                if (m_impactNoiseRemaining > 0.0f) {
-                    m_impactNoiseExtraTimeSkip += kImpactNoiseStackedImpactTimeSkip;
+                if (m_impactNoise.remaining > 0.0f) {
+                    m_impactNoise.extraTimeSkip += kImpactNoiseStackedImpactTimeSkip;
                 }
-                m_hitstopRemaining = kImpactHitstopSeconds;
-                m_whiteFlashRemaining = kImpactFlashTotalSeconds;
-                m_impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
-                m_impactNoiseRemaining = kImpactNoiseFadeSeconds;
-                if (m_whiteFlashSprite) {
-                    m_whiteFlashSprite->stopAllActions();
+                m_impactFlash.hitstopRemaining = kImpactHitstopSeconds;
+                m_impactFlash.whiteFlashRemaining = kImpactFlashTotalSeconds;
+                m_impactFlash.impactFlashCooldownRemaining = kImpactFlashCooldownSeconds;
+                m_impactNoise.remaining = kImpactNoiseFadeSeconds;
+                if (m_objectBlur.whiteFlashSprite) {
+                    m_objectBlur.whiteFlashSprite->stopAllActions();
                 }
             }
         }
@@ -537,17 +517,8 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
         m_physicsAccumulator -= kFixedPhysicsDt;
         ++substepCount;
 
-        if (m_hitstopRemaining > 0.0f) {
+        if (m_impactFlash.hitstopRemaining > 0.0f) {
             break;
-        }
-    }
-}
-
-void PhysicsOverlay::decrementWhiteFlashRemaining(float dt) {
-    if (m_whiteFlashRemaining > 0.0f) {
-        m_whiteFlashRemaining -= dt;
-        if (m_whiteFlashRemaining < 0.0f) {
-            m_whiteFlashRemaining = 0.0f;
         }
     }
 }
@@ -557,186 +528,8 @@ void PhysicsOverlay::syncPlayerNodeFromPhysics() {
     auto state = m_physics->getPlayerRenderState(alpha);
     m_playerRoot->setPosition({state.x, state.y});
     m_player->setRotation(-state.angle * kRadToDeg);
-    if (m_starBurstLayer) {
-        m_starBurstLayer->setPosition(m_playerRoot->getPosition());
-    }
-}
-
-overlay_rendering::ImpactFlashMode PhysicsOverlay::currentImpactFlashMode() const {
-    if (m_whiteFlashRemaining <= 0.0f) {
-        return overlay_rendering::ImpactFlashMode::None;
-    }
-    float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
-    if (elapsed < kImpactFlashPhaseSeconds) {
-        return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
-    }
-    if (elapsed < static_cast<float>(kImpactFlashInvertPhaseEndPhaseCount) * kImpactFlashPhaseSeconds) {
-        return overlay_rendering::ImpactFlashMode::InvertSilhouette;
-    }
-    return overlay_rendering::ImpactFlashMode::WhiteSilhouette;
-}
-
-void PhysicsOverlay::updateFlashBackdrops(overlay_rendering::ImpactFlashMode flashMode) {
-    bool const impactFlashActive = flashMode != overlay_rendering::ImpactFlashMode::None;
-    if (m_flashBackdrop) {
-        m_flashBackdrop->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::WhiteSilhouette);
-    }
-    if (m_flashBackdropWhite) {
-        m_flashBackdropWhite->setVisible(impactFlashActive && flashMode == overlay_rendering::ImpactFlashMode::InvertSilhouette);
-    }
-}
-
-int PhysicsOverlay::computeCurrentStarPhase() const {
-    if (m_whiteFlashRemaining <= 0.0f) {
-        return -1;
-    }
-    float const elapsed = kImpactFlashTotalSeconds - m_whiteFlashRemaining;
-    int const phase = static_cast<int>(elapsed / kImpactFlashPhaseSeconds);
-    return std::min(phase, kStarBurstMaxPhaseIndex);
-}
-
-void PhysicsOverlay::hideAllStars() {
-    for (auto* s : m_starSprites) {
-        if (s) {
-            s->setVisible(false);
-            s->setColor(ccc3(255, 255, 255));
-        }
-    }
-}
-
-void PhysicsOverlay::repositionStarBurst() {
-    thread_local std::mt19937 rng{std::random_device{}()};
-    float const screenSmaller = m_winSize.width < m_winSize.height ? m_winSize.width : m_winSize.height;
-    std::uniform_real_distribution<float> sectorJitter(0.0f, 1.0f);
-    std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * std::numbers::pi_v<float>);
-    std::uniform_real_distribution<float> varianceDist(-kStarScaleVariance, kStarScaleVariance);
-    std::uniform_real_distribution<float> bigRadDist(
-        screenSmaller * kBigStarRadiusMin,
-        screenSmaller * kBigStarRadiusMax
-    );
-    std::uniform_real_distribution<float> smallRadDist(
-        screenSmaller * kSmallStarRadiusMin,
-        screenSmaller * kSmallStarRadiusMax
-    );
-
-    for (int i = 0; i < kBigStarCount; ++i) {
-        auto* s = m_starSprites[i];
-        if (!s) continue;
-
-        float const sector = (static_cast<float>(i) + sectorJitter(rng))
-                            / static_cast<float>(kBigStarCount);
-        float const angle = sector * 2.0f * std::numbers::pi_v<float>;
-        float const radius = bigRadDist(rng);
-        float const cw = s->getContentSize().width;
-        float const baseScale = cw > 0.0f ? (screenSmaller * kBigStarScreenFrac) / cw : 1.0f;
-
-        s->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
-        s->setRotation(0.0f);
-        s->setScale(baseScale * (1.0f + varianceDist(rng)));
-        s->setVisible(true);
-    }
-
-    for (int i = 0; i < kSmallStarCount; ++i) {
-        auto* s = m_starSprites[kBigStarCount + i];
-        if (!s) continue;
-
-        float const angle = angleDist(rng);
-        float const radius = smallRadDist(rng);
-        float const cw = s->getContentSize().width;
-        float const baseScale = cw > 0.0f ? (screenSmaller * kSmallStarScreenFrac) / cw : 1.0f;
-
-        s->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
-        s->setRotation(0.0f);
-        s->setScale(baseScale * (1.0f + varianceDist(rng)));
-        s->setVisible(true);
-    }
-
-    applyStarBurstTint();
-}
-
-void PhysicsOverlay::applyStarBurstTint() {
-    bool const whiteBackdrop =
-        currentImpactFlashMode() == overlay_rendering::ImpactFlashMode::InvertSilhouette;
-    ccColor3B const tint = whiteBackdrop ? ccc3(0, 0, 0) : ccc3(255, 255, 255);
-    for (auto* s : m_starSprites) {
-        if (s) {
-            s->setColor(tint);
-        }
-    }
-}
-
-void PhysicsOverlay::updateStarBurst() {
-    int const newPhase = computeCurrentStarPhase();
-
-    if (newPhase < 0) {
-        if (m_starPhaseIndex >= 0) {
-            hideAllStars();
-            m_starPhaseIndex = -1;
-        }
-        return;
-    }
-
-    if (newPhase != m_starPhaseIndex) {
-        m_starPhaseIndex = newPhase;
-        repositionStarBurst();
-    }
-}
-
-void PhysicsOverlay::updateImpactNoise(float dt) {
-    bool const flashActive = m_whiteFlashRemaining > 0.0f;
-    if (!flashActive && m_impactNoiseRemaining > 0.0f) {
-        m_impactNoiseRemaining -= dt;
-        if (m_impactNoiseRemaining < 0.0f) {
-            m_impactNoiseRemaining = 0.0f;
-        }
-    }
-
-    float alpha = m_impactNoiseRemaining / kImpactNoiseFadeSeconds;
-    if (alpha < 0.0f) alpha = 0.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
-
-    bool const visible = !flashActive && m_impactNoiseRemaining > 0.0f;
-
-    float const extraSkip = m_impactNoiseExtraTimeSkip;
-    m_impactNoiseExtraTimeSkip = 0.0f;
-
-    overlay_rendering::refreshImpactNoise({
-        .sprite = m_impactNoiseSprite,
-        .renderTexture = m_impactNoiseRenderTexture,
-        .compositeSprite = m_impactNoiseComposite,
-        .dt = dt,
-        .extraTimeSkip = extraSkip,
-        .time = &m_impactNoiseTime,
-        .alpha = alpha,
-        .visible = visible,
-    });
-}
-
-void PhysicsOverlay::updateSandevistanTrail(float dt) {
-    if (!m_trailLayer || !m_sandevistanTrailActive || !m_playerRoot || !m_player) {
-        return;
-    }
-
-    m_sandevistanSpawnAccumulator += dt;
-    while (m_sandevistanSpawnAccumulator >= kSandevistanSpawnIntervalSec) {
-        int childCount = 0;
-        if (CCArray* const ch = m_trailLayer->getChildren()) {
-            childCount = ch->count();
-        }
-        if (childCount >= kSandevistanMaxConcurrentGhosts) {
-            break;
-        }
-        m_sandevistanSpawnAccumulator -= kSandevistanSpawnIntervalSec;
-        player_visual::spawnFadingGhost(
-            m_trailLayer,
-            m_playerRoot->getPosition(),
-            m_player->getRotation(),
-            m_targetSize,
-            m_frameId,
-            m_iconTypeInt,
-            kSandevistanGhostFadeSec,
-            static_cast<unsigned char>(kSandevistanGhostStartOpacity)
-        );
+    if (m_starBurst.layer) {
+        m_starBurst.layer->setPosition(m_playerRoot->getPosition());
     }
 }
 
@@ -749,12 +542,10 @@ void PhysicsOverlay::update(float dt) {
     tryBuildVisualIfNeeded();
     stepPhysicsUnlessHitstop(dt);
 
-    if (m_physics && (m_grabActive || m_physics->getPlayerSpeed() < kSandevistanEndSpeedPx)) {
-        m_sandevistanTrailActive = false;
-    }
+    vfx::trail::stopIfSlowOrGrab(m_trail, m_grabActive, m_physics->getPlayerSpeed());
 
     if (!m_playerRoot || !m_player) {
-        decrementWhiteFlashRemaining(dt);
+        vfx::impact_flash::decrementWhiteFlash(m_impactFlash, dt);
         return;
     }
 
@@ -763,45 +554,30 @@ void PhysicsOverlay::update(float dt) {
         float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
         syncPanelNodeFromPhysics(alpha);
     }
-    updateSandevistanTrail(dt);
+    vfx::trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
 
-    overlay_rendering::ImpactFlashMode const flashMode = currentImpactFlashMode();
-    updateFlashBackdrops(flashMode);
+    overlay_rendering::ImpactFlashMode const flashMode = vfx::impact_flash::currentMode(m_impactFlash);
+    vfx::impact_flash::updateBackdrops(flashMode, m_flashBackdrop, m_flashBackdropWhite);
 
-    overlay_rendering::refreshFireAura({
-        .fireAura = m_fireAuraSprite,
-        .physics = m_physics.get(),
-        .dt = dt,
-        .impactFlashMode = flashMode,
-        .fireTime = &m_fireAuraTime,
-    });
+    vfx::fire_aura::update(m_fireAura, m_physics.get(), dt, flashMode);
 
     auto& playerCapture =
-        m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::Player)];
+        m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::Player)];
     playerCapture.sourceRoot = m_playerRoot;
     playerCapture.enabled = true;
     playerCapture.velocity = m_physics->getPlayerVelocityPixels();
 
     auto& menuCapture =
-        m_objectCaptures[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
+        m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
     bool const menuAvailable = m_physicsMenuVisual && m_physics->hasPanel();
     menuCapture.enabled = menuAvailable;
     menuCapture.velocity = menuAvailable ? m_physics->getPanelVelocityPixels() : PhysicsVelocity{};
 
-    overlay_rendering::refreshObjectMotionBlurComposite({
-        .objects = &m_objectCaptures,
-        .mergeRoot = m_layerMergeRoot,
-        .unifiedMergeTexture = m_unifiedMergeTexture,
-        .finalCompositeSprite = m_finalCompositeSprite,
-        .whiteFlashSprite = m_whiteFlashSprite,
-        .whiteFlashProgram = m_whiteFlashProgram,
-        .colorInvertProgram = m_colorInvertProgram,
-        .impactFlashMode = flashMode,
-    });
+    vfx::object_motion_blur::refresh(m_objectBlur, flashMode);
 
-    decrementWhiteFlashRemaining(dt);
-    updateImpactNoise(dt);
-    updateStarBurst();
+    vfx::impact_flash::decrementWhiteFlash(m_impactFlash, dt);
+    vfx::impact_noise::update(m_impactNoise, dt, m_impactFlash.whiteFlashRemaining > 0.0f);
+    vfx::star_burst::update(m_starBurst, m_impactFlash.whiteFlashRemaining, m_winSize, flashMode);
 }
 
 void PhysicsOverlay::onEnter() {
@@ -820,18 +596,18 @@ void PhysicsOverlay::onExit() {
     }
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
-    if (m_trailLayer) {
-        m_trailLayer->removeAllChildrenWithCleanup(true);
-        m_trailLayer->removeFromParentAndCleanup(true);
-        m_trailLayer = nullptr;
+    if (m_trail.layer) {
+        m_trail.layer->removeAllChildrenWithCleanup(true);
+        m_trail.layer->removeFromParentAndCleanup(true);
+        m_trail.layer = nullptr;
     }
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;
     }
-    if (m_starBurstLayer) {
-        m_starBurstLayer->removeFromParentAndCleanup(true);
-        m_starBurstLayer = nullptr;
+    if (m_starBurst.layer) {
+        m_starBurst.layer->removeFromParentAndCleanup(true);
+        m_starBurst.layer = nullptr;
     }
     for (auto*& layerRoot : m_layerRoots) {
         if (!layerRoot) {
@@ -847,57 +623,31 @@ void PhysicsOverlay::onExit() {
         m_hitProxy = nullptr;
     }
     m_player = nullptr;
-    m_finalCompositeSprite = nullptr;
-    m_fireAuraSprite = nullptr;
-    if (m_impactNoiseComposite) {
-        m_impactNoiseComposite->removeFromParentAndCleanup(true);
-        m_impactNoiseComposite = nullptr;
+    m_objectBlur.finalCompositeSprite = nullptr;
+    m_fireAura.sprite = nullptr;
+    if (m_impactNoise.composite) {
+        m_impactNoise.composite->removeFromParentAndCleanup(true);
+        m_impactNoise.composite = nullptr;
     }
-    if (m_impactNoiseRenderTexture) {
-        m_impactNoiseRenderTexture->release();
-        m_impactNoiseRenderTexture = nullptr;
+    if (m_impactNoise.renderTexture) {
+        m_impactNoise.renderTexture->release();
+        m_impactNoise.renderTexture = nullptr;
     }
-    if (m_impactNoiseSprite) {
-        m_impactNoiseSprite->removeFromParentAndCleanup(true);
-        m_impactNoiseSprite = nullptr;
+    if (m_impactNoise.sprite) {
+        m_impactNoise.sprite->removeFromParentAndCleanup(true);
+        m_impactNoise.sprite = nullptr;
     }
-    m_whiteFlashSprite = nullptr;
-    for (auto*& s : m_starSprites) { s = nullptr; }
-    m_starPhaseIndex = -1;
-    if (m_blurProgram) {
-        m_blurProgram->release();
-        m_blurProgram = nullptr;
+    m_objectBlur.whiteFlashSprite = nullptr;
+    m_starBurst.sprites = {};
+    m_starBurst.phaseIndex = -1;
+    if (m_fireAura.program) {
+        m_fireAura.program->release();
+        m_fireAura.program = nullptr;
     }
-    if (m_whiteFlashProgram) {
-        m_whiteFlashProgram->release();
-        m_whiteFlashProgram = nullptr;
+    if (m_impactNoise.program) {
+        m_impactNoise.program->release();
+        m_impactNoise.program = nullptr;
     }
-    if (m_colorInvertProgram) {
-        m_colorInvertProgram->release();
-        m_colorInvertProgram = nullptr;
-    }
-    if (m_fireAuraProgram) {
-        m_fireAuraProgram->release();
-        m_fireAuraProgram = nullptr;
-    }
-    if (m_impactNoiseProgram) {
-        m_impactNoiseProgram->release();
-        m_impactNoiseProgram = nullptr;
-    }
-    for (auto& object : m_objectCaptures) {
-        if (object.renderTexture) {
-            object.renderTexture->release();
-            object.renderTexture = nullptr;
-        }
-        object.blurSprite = nullptr;
-        object.sourceRoot = nullptr;
-        object.enabled = false;
-        object.velocity = {};
-    }
-    m_layerMergeRoot = nullptr;
-    if (m_unifiedMergeTexture) {
-        m_unifiedMergeTexture->release();
-        m_unifiedMergeTexture = nullptr;
-    }
+    vfx::object_motion_blur::release(m_objectBlur);
     CCLayer::onExit();
 }

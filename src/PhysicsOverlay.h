@@ -9,6 +9,7 @@
 #include "OverlayRendering.h"
 #include "PhysicsOverlayTuning.h"
 #include "PhysicsWorld.h"
+#include "vfx/VfxTypes.h"
 
 class SimplePlayer;
 class PhysicsMenu;
@@ -24,23 +25,14 @@ class CCGLProgram;
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
     std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
-    std::array<overlay_rendering::MotionBlurObjectCapture, overlay_rendering::kMotionBlurObjectCount> m_objectCaptures{};
-    cocos2d::CCNode* m_layerMergeRoot = nullptr;
-    cocos2d::CCRenderTexture* m_unifiedMergeTexture = nullptr;
-    cocos2d::CCNode* m_starBurstLayer = nullptr;
+    vfx::ObjectMotionBlurPipelineState m_objectBlur{};
+    vfx::StarBurstState m_starBurst{};
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
     cocos2d::CCSprite* m_hitProxy = nullptr;
-    cocos2d::CCSprite* m_finalCompositeSprite = nullptr;
-    overlay_rendering::FireAuraSprite* m_fireAuraSprite = nullptr;
-    overlay_rendering::ImpactNoiseSprite* m_impactNoiseSprite = nullptr;
-    cocos2d::CCRenderTexture* m_impactNoiseRenderTexture = nullptr;
-    cocos2d::CCSprite* m_impactNoiseComposite = nullptr;
-    cocos2d::CCGLProgram* m_blurProgram = nullptr;
-    cocos2d::CCGLProgram* m_fireAuraProgram = nullptr;
-    cocos2d::CCGLProgram* m_whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* m_colorInvertProgram = nullptr;
-    cocos2d::CCGLProgram* m_impactNoiseProgram = nullptr;
+    vfx::FireAuraState m_fireAura{};
+    vfx::ImpactNoiseState m_impactNoise{};
+    vfx::ImpactFlashState m_impactFlash{};
     cocos2d::CCSize m_blurCaptureSize{};
 
     int m_frameId = 0;
@@ -49,24 +41,10 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     bool m_grabActive = false;
     float m_targetSize = 0.0f;
     cocos2d::CCSize m_winSize{};
-    float m_hitstopRemaining = 0.0f;
-    float m_whiteFlashRemaining = 0.0f;
-    float m_impactFlashCooldownRemaining = 0.0f;
-    cocos2d::CCSprite* m_whiteFlashSprite = nullptr;
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
     float m_physicsAccumulator = 0.0f;
-    float m_fireAuraTime = 0.0f;
-    float m_impactNoiseRemaining = 0.0f;
-    float m_impactNoiseTime = 0.0f;
-    float m_impactNoiseExtraTimeSkip = 0.0f;
-
-    cocos2d::CCSprite* m_starSprites[kStarBurstCount]{};
-    int m_starPhaseIndex = -1;
-
-    cocos2d::CCNode* m_trailLayer = nullptr;
-    bool m_sandevistanTrailActive = false;
-    float m_sandevistanSpawnAccumulator = 0.0f;
+    vfx::SandevistanTrailState m_trail{};
 
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
@@ -100,16 +78,5 @@ private:
     void decrementCooldowns(float dt);
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
-    void decrementWhiteFlashRemaining(float dt);
     void syncPlayerNodeFromPhysics();
-    overlay_rendering::ImpactFlashMode currentImpactFlashMode() const;
-    void updateFlashBackdrops(overlay_rendering::ImpactFlashMode mode);
-
-    int computeCurrentStarPhase() const;
-    void repositionStarBurst();
-    void applyStarBurstTint();
-    void hideAllStars();
-    void updateStarBurst();
-    void updateSandevistanTrail(float dt);
-    void updateImpactNoise(float dt);
 };

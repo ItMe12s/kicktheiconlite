@@ -260,14 +260,6 @@ CCGLProgram* createFireAuraProgram(
     return p;
 }
 
-int captureSizeForTarget(float targetSize) {
-    int captureSize = static_cast<int>(std::ceil(targetSize * kBlurCaptureScale));
-    if (captureSize < kMinCaptureTextureSize) {
-        captureSize = kMinCaptureTextureSize;
-    }
-    return captureSize;
-}
-
 MotionBlurAttachResult attachMotionBlur(
     CCNode* overlayLayer,
     CCSize captureSize,
