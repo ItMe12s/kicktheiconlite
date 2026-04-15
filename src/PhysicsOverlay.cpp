@@ -4,6 +4,7 @@
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/draw_nodes/CCDrawNode.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
+#include <Geode/cocos/label_nodes/CCLabelBMFont.h>
 #include <Geode/utils/cocos.hpp>
 
 #include <algorithm>
@@ -36,6 +37,10 @@ inline ccColor4F flashBackdropWhiteFill() {
 inline ccColor4F flashBackdropBorderTransparent() {
     return ccc4f(0, 0, 0, 0);
 }
+
+constexpr float kDebugLabelMarginX = 14.0f;
+constexpr float kDebugLabelMarginY = 14.0f;
+constexpr int kDebugLabelZOrder = 10;
 
 } // namespace
 
@@ -367,6 +372,17 @@ bool PhysicsOverlay::init() {
     m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
+    auto* uiRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    if (uiRoot) {
+        m_debugLabel = CCLabelBMFont::create("Yo", "chatFont.fnt");
+        if (m_debugLabel) {
+            m_debugLabel->setID("debug-overlay-label"_spr);
+            m_debugLabel->setAnchorPoint({0.0f, 1.0f});
+            m_debugLabel->setPosition({kDebugLabelMarginX, m_winSize.height - kDebugLabelMarginY});
+            uiRoot->addChild(m_debugLabel, kDebugLabelZOrder);
+        }
+    }
+
     m_starBurst.layer = CCNode::create();
     if (m_starBurst.layer) {
         m_starBurst.layer->setID("global-star-burst-layer"_spr);
@@ -614,6 +630,7 @@ void PhysicsOverlay::onExit() {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;
     }
+    m_debugLabel = nullptr;
     if (m_starBurst.layer) {
         m_starBurst.layer->removeFromParentAndCleanup(true);
         m_starBurst.layer = nullptr;

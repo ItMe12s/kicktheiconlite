@@ -20,6 +20,7 @@ class CCDrawNode;
 class CCSprite;
 class CCRenderTexture;
 class CCGLProgram;
+class CCLabelBMFont;
 }
 
 class PhysicsOverlay : public cocos2d::CCLayer {
@@ -42,6 +43,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCSize m_winSize{};
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
+    cocos2d::CCLabelBMFont* m_debugLabel = nullptr;
     float m_physicsAccumulator = 0.0f;
     vfx::SandevistanTrailState m_trail{};
 
