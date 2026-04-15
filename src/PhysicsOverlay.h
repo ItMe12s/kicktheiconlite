@@ -5,6 +5,7 @@
 
 #include <array>
 #include <memory>
+#include <vector>
 
 #include "OverlayRendering.h"
 #include "PhysicsOverlayTuning.h"
@@ -43,8 +44,16 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCSize m_winSize{};
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
+    cocos2d::CCNode* m_debugLabelBackground = nullptr;
+    cocos2d::CCRenderTexture* m_debugLabelBackgroundTexture = nullptr;
+    std::vector<cocos2d::CCSprite*> m_debugLabelBackgroundSprites;
     cocos2d::CCLabelBMFont* m_debugLabel = nullptr;
+    cocos2d::CCLabelBMFont* m_debugLabelMeasure = nullptr;
+    float m_debugLabelAccumulator = 0.0f;
     float m_physicsAccumulator = 0.0f;
+    int m_lastPhysicsSubsteps = 0;
+    PhysicsImpactEvent m_lastPlayerImpact{};
+    PhysicsImpactEvent m_lastPanelImpact{};
     vfx::SandevistanTrailState m_trail{};
 
     geode::ListenerHandle m_doubleClickListener{};
@@ -81,4 +90,5 @@ private:
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
     void syncPlayerNodeFromPhysics();
+    void updateDebugOverlayText(float dt);
 };

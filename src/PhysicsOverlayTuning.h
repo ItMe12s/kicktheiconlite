@@ -28,7 +28,7 @@ constexpr int kGlobalStartBurstZOrder = 4;
 constexpr int kPhysicsMenuZOrder = 5;
 constexpr int kLayerTrailZOrderOffset = -1;
 constexpr int kLayerWorldZOrderOffset = 0;
-constexpr int kLayerUiZOrderOffset = 1;
+constexpr int kLayerUiZOrderOffset = 2;
 
 // Impact response toggles
 constexpr bool kEnablePlayerImpactTrail = true;
@@ -113,6 +113,21 @@ constexpr float kMenuMaxBlurSpeedPx = 1800.0f;
 constexpr float kMenuBlurUvSpread = 0.01f;
 constexpr int kMenuBlurStepDivisor = 4;
 constexpr bool kMenuKeepBaseVisible = false;
+
+// Debug overlay
+constexpr float kDebugLabelMarginX = 4.0f;
+constexpr float kDebugLabelMarginY = 4.0f;
+constexpr int   kDebugLabelZOrder = 6767;
+constexpr int   kDebugLabelBackgroundZOrder = kDebugLabelZOrder - 1;
+constexpr float kDebugLabelUpdateHz = 20.0f;
+constexpr float kDebugLabelUpdateInterval = 1.0f / kDebugLabelUpdateHz;
+constexpr float kDebugLabelFontScale = 0.5f;
+constexpr float kDebugLabelBoxPadX = 1.0f;
+constexpr float kDebugLabelBoxPadY = 0.0f;
+constexpr float kDebugLabelBoxColorR = 0.0f;
+constexpr float kDebugLabelBoxColorG = 0.0f;
+constexpr float kDebugLabelBoxColorB = 0.0f;
+constexpr float kDebugLabelBoxAlpha = 0.67f;
 
 // Physics menu panel defaults
 constexpr float kPanelDefaultWFrac = 0.35f;

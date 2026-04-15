@@ -432,6 +432,18 @@ PhysicsVelocity PhysicsWorld::getPanelVelocityPixels() const {
     return {v.x * kPixelsPerMeter, v.y * kPixelsPerMeter};
 }
 
+int PhysicsWorld::getBodyCount() const {
+    return static_cast<int>(m_impl->world.bodies.size());
+}
+
+int PhysicsWorld::getJointCount() const {
+    return static_cast<int>(m_impl->world.joints.size());
+}
+
+int PhysicsWorld::getArbiterCount() const {
+    return static_cast<int>(m_impl->world.arbiters.size());
+}
+
 void PhysicsWorld::setPanelDragging(bool on) {
     m_panelDragging = on;
 }

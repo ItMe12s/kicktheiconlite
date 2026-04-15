@@ -42,6 +42,9 @@ public:
     PhysicsState getPanelState() const;
     PhysicsState getPanelRenderState(float alpha) const;
     PhysicsVelocity getPanelVelocityPixels() const;
+    int getBodyCount() const;
+    int getJointCount() const;
+    int getArbiterCount() const;
 
     void setPanelDragging(bool on);
     void setPanelDragTargetPixels(float x, float y);
