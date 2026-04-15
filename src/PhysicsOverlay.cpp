@@ -592,6 +592,10 @@ void PhysicsOverlay::onEnter() {
 
 void PhysicsOverlay::onExit() {
     endGrab();
+    if (m_hitProxy) {
+        events::ClickTracker::get()->untrack(m_hitProxy);
+        m_hitProxy = nullptr;
+    }
     if (m_physicsMenuVisual) {
         if (m_physics) {
             m_physics->destroyPanel();
@@ -623,10 +627,6 @@ void PhysicsOverlay::onExit() {
     }
     m_doubleClickListener.destroy();
     m_tripleClickListener.destroy();
-    if (m_hitProxy) {
-        events::ClickTracker::get()->untrack(m_hitProxy);
-        m_hitProxy = nullptr;
-    }
     m_player = nullptr;
     m_objectBlur.finalCompositeSprite = nullptr;
     m_fireAura.sprite = nullptr;

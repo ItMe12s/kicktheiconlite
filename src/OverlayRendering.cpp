@@ -66,6 +66,8 @@ int objectCompositeOrder(MotionBlurObjectId id) {
     }
 }
 
+constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
+
 } // namespace
 
 void MotionBlurSprite::setBlurUniforms(CCGLProgram* prog, GLint locBlurDir) {
@@ -484,7 +486,7 @@ void globalScreenShake(float duration, float strength) {
     }
 
     CCPoint const base = scene->getPosition();
-    scene->stopAllActions();
+    scene->stopActionByTag(kScreenShakeActionTag);
 
     int const intervals = kScreenShakeIntervals;
     float const stepDuration = duration / static_cast<float>(intervals);
@@ -505,7 +507,9 @@ void globalScreenShake(float duration, float strength) {
         actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x + offX, base.y + offY)));
     }
     actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x, base.y)));
-    scene->runAction(CCSequence::create(actions));
+    auto* shakeAction = CCSequence::create(actions);
+    shakeAction->setTag(kScreenShakeActionTag);
+    scene->runAction(shakeAction);
 }
 
 void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
