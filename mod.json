@@ -13,7 +13,9 @@
 	"description": "Throw your custom icon around lol",
 	"resources": {
 		"files": [
-			"src/assets/img_star1.png"
+			"src/assets/img_star1.png",
+			"src/assets/glyph_atlas.png",
+			"src/assets/glyph_atlas.plist"
 		]
 	},
 	"dependencies": {
