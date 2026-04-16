@@ -6,6 +6,7 @@
 
 #include <array>
 
+#include "ModTuning.h"
 #include "PhysicsWorld.h"
 
 namespace cocos2d {
@@ -57,12 +58,12 @@ class FireAuraSprite : public cocos2d::CCSprite {
     float m_velY = 0.0f;
     float m_time = 0.0f;
     float m_intensity = 0.0f;
-    float m_colorPrimaryR = 1.0f;
-    float m_colorPrimaryG = 0.9f;
-    float m_colorPrimaryB = 0.5f;
-    float m_colorSecondaryR = 0.32f;
-    float m_colorSecondaryG = 0.02f;
-    float m_colorSecondaryB = 0.0f;
+    float m_colorPrimaryR = kFireAuraDefaultPrimaryR;
+    float m_colorPrimaryG = kFireAuraDefaultPrimaryG;
+    float m_colorPrimaryB = kFireAuraDefaultPrimaryB;
+    float m_colorSecondaryR = kFireAuraDefaultSecondaryR;
+    float m_colorSecondaryG = kFireAuraDefaultSecondaryG;
+    float m_colorSecondaryB = kFireAuraDefaultSecondaryB;
 
     void setFireUniforms(
         cocos2d::CCGLProgram* prog,

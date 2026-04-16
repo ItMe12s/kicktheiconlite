@@ -1,5 +1,4 @@
 #include "PlayerVisual.h"
-#include "PhysicsOverlayTuning.h"
 
 #include <Geode/Enums.hpp>
 #include <Geode/cocos/actions/CCActionInterval.h>
@@ -18,12 +17,10 @@ using namespace geode::prelude;
 
 namespace {
 
-constexpr int kSandevistanBlendWalkMaxDepth = 64;
-
 std::atomic<std::uint32_t> s_trailGhostSerial{0};
 
 void applyAdditiveBlendRecursive(CCNode* n, int depth, std::unordered_set<CCNode*>& visited) {
-    if (!n || depth > kSandevistanBlendWalkMaxDepth) {
+    if (!n || depth > player_visual::kMaxWorldBoundsTreeDepth) {
         return;
     }
     if (!visited.insert(n).second) {

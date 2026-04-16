@@ -8,7 +8,7 @@
 #include <array>
 
 #include "../OverlayRendering.h"
-#include "../PhysicsOverlayTuning.h"
+#include "../ModTuning.h"
 
 namespace vfx {
 

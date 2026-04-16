@@ -1,6 +1,6 @@
 #include "OverlayRendering.h"
 #include "OverlayShaders.h"
-#include "PhysicsOverlayTuning.h"
+#include "ModTuning.h"
 #include "PhysicsWorld.h"
 
 #include <Geode/binding/GameManager.hpp>
@@ -63,8 +63,6 @@ int objectCompositeOrder(MotionBlurObjectId id) {
         default: return 0;
     }
 }
-
-constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
 
 void resetObjectVisualState(MotionBlurObjectCapture& object) {
     if (object.sourceRoot) {

@@ -2,7 +2,7 @@
 
 #include <Geode/cocos/cocoa/CCArray.h>
 
-#include "../PhysicsOverlayTuning.h"
+#include "../ModTuning.h"
 
 namespace vfx::trail {
 

@@ -1,20 +1,13 @@
 #include "PhysicsMenu.h"
 
+#include "ModTuning.h"
+
 #include <Geode/Geode.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/cocos/extensions/GUI/CCControlExtension/CCScale9Sprite.h>
 
 using namespace cocos2d;
 using namespace geode::prelude;
-
-namespace {
-constexpr float kButtonSpacingPx = 8.0f;
-constexpr float kButtonScale = 0.55f;
-constexpr float kTitleLabelScale = 0.5f;
-constexpr float kTitleTopInset = 14.0f;
-constexpr float kMenuYFrac = 0.45;
-constexpr float kPopupOpacity = 192.0f;
-} // namespace
 
 PhysicsMenu::~PhysicsMenu() {
     if (m_root) {
@@ -48,7 +41,7 @@ bool PhysicsMenu::build(float width, float height) {
         popupBg->setContentSize({width, height});
         popupBg->setAnchorPoint({0.5f, 0.5f});
         popupBg->setPosition({hw, hh});
-        popupBg->setOpacity(static_cast<GLubyte>(kPopupOpacity));
+        popupBg->setOpacity(static_cast<GLubyte>(kPhysicsMenuPopupOpacity));
         root->addChild(popupBg, 0);
     }
 
@@ -62,9 +55,9 @@ bool PhysicsMenu::build(float width, float height) {
 
     auto* title = CCLabelBMFont::create("Physics Menu", "goldFont.fnt");
     if (title) {
-        title->setScale(kTitleLabelScale);
+        title->setScale(kPhysicsMenuTitleLabelScale);
         title->setAnchorPoint({0.5f, 1.0f});
-        title->setPosition({hw, height - kTitleTopInset});
+        title->setPosition({hw, height - kPhysicsMenuTitleTopInset});
         root->addChild(title, 2);
     }
 
@@ -76,13 +69,13 @@ bool PhysicsMenu::build(float width, float height) {
         menu->setPosition({hw, hh});
 
         auto* btnA = CCMenuItemExt::createSpriteExtra(
-            ButtonSprite::create("Aa123", "goldFont.fnt", "GJ_button_01.png", kButtonScale),
+            ButtonSprite::create("Aa123", "goldFont.fnt", "GJ_button_01.png", kPhysicsMenuButtonScale),
             [](CCMenuItemSpriteExtra*) {
                 log::info("physics menu: button A pressed");
             }
         );
         auto* btnB = CCMenuItemExt::createSpriteExtra(
-            ButtonSprite::create("Bb456", "goldFont.fnt", "GJ_button_01.png", kButtonScale),
+            ButtonSprite::create("Bb456", "goldFont.fnt", "GJ_button_01.png", kPhysicsMenuButtonScale),
             [](CCMenuItemSpriteExtra*) {
                 log::info("physics menu: button B pressed");
             }
@@ -91,12 +84,12 @@ bool PhysicsMenu::build(float width, float height) {
         if (btnA && btnB) {
             float const wA = btnA->getScaledContentSize().width;
             float const wB = btnB->getScaledContentSize().width;
-            float const totalW = wA + kButtonSpacingPx + wB;
+            float const totalW = wA + kPhysicsMenuButtonSpacingPx + wB;
             float const xStart = (width - totalW) * 0.5f;
-            float const y = height * kMenuYFrac;
+            float const y = height * kPhysicsMenuMenuYFrac;
 
             btnA->setPosition({xStart + wA * 0.5f, y});
-            btnB->setPosition({xStart + wA + kButtonSpacingPx + wB * 0.5f, y});
+            btnB->setPosition({xStart + wA + kPhysicsMenuButtonSpacingPx + wB * 0.5f, y});
             menu->addChild(btnA);
             menu->addChild(btnB);
         }

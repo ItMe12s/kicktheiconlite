@@ -9,16 +9,12 @@
 * It is provided "as is" without express or implied warranty.
 */
 
+#include "ModTuning.h"
 #include "box2d-lite/Arbiter.h"
 #include "box2d-lite/Body.h"
 #include "box2d-lite/World.h"
 
 namespace kti_b2l {
-
-// Restitution only above this incoming normal speed (world units / s)
-// so resting/stacking contacts are not repeatedly re-energized by bias, low-speed jitter stays inelastic
-static constexpr float kRestitutionInSpeedThreshold = 3.0f;
-static constexpr float kRestitutionCoefficient = 0.67f;
 
 Arbiter::Arbiter(Body* b1, Body* b2)
 {
@@ -118,10 +114,10 @@ void Arbiter::PreStep(float inv_dt)
 		// Bounce boost only for real impacts
 		Vec2 dv = body2->velocity + Cross(body2->angularVelocity, r2) - body1->velocity - Cross(body1->angularVelocity, r1);
 		float vRel = Dot(dv, c->normal);
-		if (vRel < -kRestitutionInSpeedThreshold)
+		if (vRel < -kB2RestitutionInSpeedThreshold)
 		{
-			float const excess = vRel + kRestitutionInSpeedThreshold; // negative
-			c->bias += -kRestitutionCoefficient * excess;
+			float const excess = vRel + kB2RestitutionInSpeedThreshold; // negative
+			c->bias += -kB2RestitutionCoefficient * excess;
 		}
 
 		if (World::accumulateImpulses)

@@ -1,6 +1,23 @@
 #pragma once
 
+#include <algorithm>
 #include <numbers>
+
+// App-wide tuning (single header), box2d-lite collision/restitution/vertex cap
+// included here for one place to edit, see kB2* symbols
+
+namespace player_visual {
+
+constexpr int kMaxWorldBoundsTreeDepth = 64;
+constexpr float kMinVisualWidthPx = 1.0f;
+constexpr float kPlayerTargetSizeFraction = 0.125f;
+constexpr int kMinPlayerFrameId = 1;
+
+constexpr float kPlayerRootAnchorXFrac = 0.5f;
+constexpr float kPlayerRootAnchorYFrac = 0.5f;
+constexpr int kPlayerVisualLocalZOrder = 0;
+
+} // namespace player_visual
 
 // Overlay/input ordering
 constexpr int kPhysicsOverlayZOrder = 1000;
@@ -104,16 +121,23 @@ constexpr int kSandevistanTrailHueCyanR = 80;
 constexpr int kSandevistanTrailHueCyanG = 230;
 constexpr int kSandevistanTrailHueCyanB = 255;
 
-// Fire aura intensity
+// Fire aura intensity (shader input scaling)
 constexpr float kMinFireAuraSpeedPx = 600.0f;
 constexpr float kMaxFireAuraSpeedPx = 2800.0f;
 constexpr float kFireAuraDiameterScale = 2.25f;
 constexpr float kFireAuraVelocityToShader = 0.002f;
+// FireAuraSprite default uniforms (RGB 0..1 before setFireColors)
+constexpr float kFireAuraDefaultPrimaryR = 1.0f;
+constexpr float kFireAuraDefaultPrimaryG = 0.9f;
+constexpr float kFireAuraDefaultPrimaryB = 0.5f;
+constexpr float kFireAuraDefaultSecondaryR = 0.32f;
+constexpr float kFireAuraDefaultSecondaryG = 0.02f;
+constexpr float kFireAuraDefaultSecondaryB = 0.0f;
 
 // Object motion blur tuning
 constexpr float kPlayerMinBlurSpeedPx = 120.0f;
 constexpr float kPlayerMaxBlurSpeedPx = 3200.0f;
-constexpr float kPlayerBlurUvSpread = 0.03f;
+constexpr float kPlayerBlurUvSpread = 0.035f;
 constexpr int kPlayerBlurStepDivisor = 6;
 constexpr bool kPlayerKeepBaseVisible = true;
 constexpr float kMenuMinBlurSpeedPx = 180.0f;
@@ -125,8 +149,8 @@ constexpr bool kMenuKeepBaseVisible = false;
 // Debug overlay
 constexpr float kDebugLabelMarginX = 4.0f;
 constexpr float kDebugLabelMarginY = 4.0f;
-constexpr int   kDebugLabelZOrder = 6767;
-constexpr int   kDebugLabelBackgroundZOrder = kDebugLabelZOrder - 1;
+constexpr int kDebugLabelZOrder = 6767;
+constexpr int kDebugLabelBackgroundZOrder = kDebugLabelZOrder - 1;
 constexpr float kDebugLabelUpdateHz = 20.0f;
 constexpr float kDebugLabelUpdateInterval = 1.0f / kDebugLabelUpdateHz;
 constexpr float kDebugLabelFontScale = 0.5f;
@@ -135,7 +159,7 @@ constexpr float kDebugLabelBoxPadY = 0.0f;
 constexpr float kDebugLabelBoxColorR = 0.0f;
 constexpr float kDebugLabelBoxColorG = 0.0f;
 constexpr float kDebugLabelBoxColorB = 0.0f;
-constexpr float kDebugLabelBoxAlpha = 0.67f;
+constexpr float kDebugLabelBoxAlpha = 0.35f;
 
 // Physics menu panel defaults
 constexpr float kPanelDefaultWFrac = 0.35f;
@@ -153,3 +177,75 @@ constexpr float kMenuShardAngularVelocityMin = 15.0f;
 constexpr float kMenuShardAngularVelocityMax = 67.0f;
 constexpr float kMenuShardHoldSeconds = 12.0f;
 constexpr float kMenuShardFadeSeconds = 3.0f;
+
+// Physics world (box2d-lite integration)
+constexpr float kPixelsPerMeter = 50.0f;
+
+constexpr float kEarthGravity = 9.8f;
+constexpr float kGravityScale = 1.75f;
+constexpr int kWorldIterations = 10;
+
+constexpr float kWallHalfThickness = 0.5f;
+constexpr float kWallLengthPadding = 4.0f;
+constexpr float kWallThickness = 1.0f;
+constexpr float kArenaCenterFrac = 0.5f;
+
+constexpr float kPlayerDensity = 1.0f;
+constexpr float kPlayerInitialXFrac = 0.25f;
+constexpr float kPlayerInitialYFrac = 0.25f;
+
+constexpr float kPlayerInitialVelX = 5.0f;
+constexpr float kPlayerInitialVelY = 10.0f;
+constexpr float kPlayerInitialAngularVel = 30.0f;
+constexpr float kPlayerFriction = 0.4f;
+
+constexpr float kDragSpring = 200.0f;
+constexpr float kDragDamping = 10.0f;
+constexpr float kDragAngularDamping = 0.2f;
+constexpr float kDefaultDragTargetXFrac = 0.5f;
+constexpr float kDefaultDragTargetYFrac = 0.5f;
+
+constexpr float kPanelDragSpring = 170.0f;
+constexpr float kPanelDragDamping = 15.0f;
+constexpr float kPanelDragAngularDamping = 0.3f;
+
+constexpr float kOutsideBarrierSlack = 1.2f;
+
+constexpr float kPanelDensity = 1.25f;
+constexpr float kPanelFriction = 0.6f;
+
+// Click / gesture (ClickTracker)
+constexpr double kClickWindowSec = 0.5;
+// Minimum delay before scheduling a double-commit, actual schedule uses kDoubleClickScheduledDelaySec
+constexpr double kDoubleTapMinCommitDelaySec = 0.15;
+// Scheduled delay before DoubleClickEvent fires, must be >= kClickWindowSec so a third tap can still land in the chain window
+constexpr double kDoubleClickScheduledDelaySec =
+    std::max(kDoubleTapMinCommitDelaySec, kClickWindowSec);
+
+constexpr int kPendingDoubleActionTag = 0x434C4B44; // Means CLKD, deferred double click
+
+// Began vs Ended
+constexpr float kTapSlopPx = 12.0f;
+// When the icon moves, the finger often moves with it
+constexpr float kTrackResidualSlopPx = 20.0f;
+// Residual path is only for short gestures, long drags exceed this even if residual is small
+constexpr float kMaxFingerForTrackTapPx = 48.0f;
+constexpr double kMaxTapGestureSec = 0.24;
+
+// Physics menu UI chrome (PhysicsMenu::build)
+constexpr float kPhysicsMenuButtonSpacingPx = 8.0f;
+constexpr float kPhysicsMenuButtonScale = 0.55f;
+constexpr float kPhysicsMenuTitleLabelScale = 0.5f;
+constexpr float kPhysicsMenuTitleTopInset = 14.0f;
+constexpr float kPhysicsMenuMenuYFrac = 0.45f;
+constexpr float kPhysicsMenuPopupOpacity = 192.0f;
+
+// OverlayRendering: CCAction tag for screen shake sequences
+constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
+
+// box2d-lite
+constexpr int kB2MaxPolygonVertices = 16;
+constexpr float kB2RestitutionInSpeedThreshold = 3.0f;
+constexpr float kB2RestitutionCoefficient = 0.67f;
+constexpr float kB2CollideReferenceEdgeRelativeTol = 0.98f;
+constexpr float kB2CollideReferenceEdgeAbsoluteTol = 0.001f;

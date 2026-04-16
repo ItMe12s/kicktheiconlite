@@ -1,5 +1,7 @@
 #include "ClickEvents.h"
 
+#include "ModTuning.h"
+
 #include <Geode/cocos/actions/CCActionInstant.h>
 #include <Geode/cocos/actions/CCActionInterval.h>
 #include <Geode/cocos/cocoa/CCObject.h>
@@ -12,23 +14,6 @@
 using namespace geode::prelude;
 
 namespace {
-
-constexpr double kClickWindowSec = 0.5;
-// Minimum delay before scheduling a double-commit, actual schedule uses kDoubleClickScheduledDelaySec
-constexpr double kDoubleTapMinCommitDelaySec = 0.15;
-// Scheduled delay before DoubleClickEvent fires, must be >= kClickWindowSec so a third tap can still land in the chain window
-constexpr double kDoubleClickScheduledDelaySec =
-    std::max(kDoubleTapMinCommitDelaySec, kClickWindowSec);
-
-constexpr int kPendingDoubleActionTag = 0x434C4B44; // Means CLKD, deferred double click
-
-// Began vs Ended
-constexpr float kTapSlopPx = 12.0f;
-// When the icon moves, the finger often moves with it
-constexpr float kTrackResidualSlopPx = 20.0f;
-// Residual path is only for short gestures, long drags exceed this even if residual is small
-constexpr float kMaxFingerForTrackTapPx = 48.0f;
-constexpr double kMaxTapGestureSec = 0.24;
 
 double nowSec() {
     using clock = std::chrono::steady_clock;

@@ -12,6 +12,7 @@
 #ifndef BODY_H
 #define BODY_H
 
+#include "ModTuning.h"
 #include "MathUtils.h"
 #include <vector>
 
@@ -19,7 +20,7 @@ namespace kti_b2l {
 
 struct Body
 {
-	static constexpr int kMaxPolygonVertices = 16;
+	static constexpr int kMaxPolygonVertices = kB2MaxPolygonVertices;
 
 	Body();
 	void Set(const Vec2* verts, int count, float m);

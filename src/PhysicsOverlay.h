@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "OverlayRendering.h"
-#include "PhysicsOverlayTuning.h"
 #include "PhysicsWorld.h"
 #include "vfx/VfxTypes.h"
 

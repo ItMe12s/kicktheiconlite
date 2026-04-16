@@ -9,6 +9,7 @@
 * It is provided "as is" without express or implied warranty.
 */
 
+#include "ModTuning.h"
 #include "box2d-lite/Arbiter.h"
 #include "box2d-lite/Body.h"
 
@@ -169,9 +170,7 @@ int Collide(Contact* contacts, Body* bodyA, Body* bodyB)
 	std::vector<Vec2> const* incVerts = &vertsB;
 	int refEdge = refEdgeA;
 	bool flip = false;
-	constexpr float relativeTol = 0.98f;
-	constexpr float absoluteTol = 0.001f;
-	if (separationB > separationA * relativeTol + absoluteTol) {
+	if (separationB > separationA * kB2CollideReferenceEdgeRelativeTol + kB2CollideReferenceEdgeAbsoluteTol) {
 		refBody = bodyB;
 		incBody = bodyA;
 		refVerts = &vertsB;

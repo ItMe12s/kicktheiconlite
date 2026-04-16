@@ -1,5 +1,6 @@
 #include "PhysicsWorld.h"
 
+#include "ModTuning.h"
 #include "box2d-lite/World.h"
 #include "box2d-lite/Body.h"
 #include "box2d-lite/Arbiter.h"
@@ -11,41 +12,6 @@
 #include <vector>
 
 using namespace kti_b2l;
-
-static constexpr float kPixelsPerMeter = 50.0f;
-
-static constexpr float kEarthGravity = 9.8f;
-static constexpr float kGravityScale = 1.75f;
-static constexpr int kWorldIterations = 10;
-
-static constexpr float kWallHalfThickness = 0.5f;
-static constexpr float kWallLengthPadding = 4.0f;
-static constexpr float kWallThickness = 1.0f;
-static constexpr float kArenaCenterFrac = 0.5f;
-
-static constexpr float kPlayerDensity = 1.0f;
-static constexpr float kPlayerInitialXFrac = 0.25f;
-static constexpr float kPlayerInitialYFrac = 0.25f;
-
-static constexpr float kPlayerInitialVelX = 5.0f;
-static constexpr float kPlayerInitialVelY = 10.0f;
-static constexpr float kPlayerInitialAngularVel = 30.0f;
-static constexpr float kPlayerFriction = 0.4f;
-
-static constexpr float kDragSpring = 200.0f;
-static constexpr float kDragDamping = 10.0f;
-static constexpr float kDragAngularDamping = 0.2f;
-static constexpr float kDefaultDragTargetXFrac = 0.5f;
-static constexpr float kDefaultDragTargetYFrac = 0.5f;
-
-static constexpr float kPanelDragSpring = 170.0f;
-static constexpr float kPanelDragDamping = 15.0f;
-static constexpr float kPanelDragAngularDamping = 0.3f;
-
-static constexpr float kOutsideBarrierSlack = 1.2f;
-
-static constexpr float kPanelDensity = 1.25;
-static constexpr float kPanelFriction = 0.6f;
 
 static float lerpAngleRad(float aRad, float bRad, float t) {
     float const pi = std::numbers::pi_v<float>;

@@ -1,19 +1,12 @@
 #pragma once
 
+#include "ModTuning.h"
+
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
 
 namespace player_visual {
-
-constexpr int kMaxWorldBoundsTreeDepth = 64;
-constexpr float kMinVisualWidthPx = 1.0f;
-constexpr float kPlayerTargetSizeFraction = 0.125;
-constexpr int kMinPlayerFrameId = 1;
-
-constexpr float kPlayerRootAnchorXFrac = 0.5f;
-constexpr float kPlayerRootAnchorYFrac = 0.5f;
-constexpr int kPlayerVisualLocalZOrder = 0;
 
 void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt);
 
