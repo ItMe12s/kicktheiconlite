@@ -195,7 +195,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         if (sprite != m_hitProxy) {
             return false;
         }
-        toggleTestPanel();
+        tryOpenPhysicsMenu();
         return false;
     });
 
@@ -240,13 +240,11 @@ void PhysicsOverlay::endGrab() {
     }
 }
 
-void PhysicsOverlay::toggleTestPanel() {
+void PhysicsOverlay::tryOpenPhysicsMenu() {
     if (!m_physics) {
         return;
     }
     if (m_physicsMenuVisual) {
-        destroyPhysicsMenuVisual();
-        log::info("physics menu destroyed");
         return;
     }
     clearMenuShatter();

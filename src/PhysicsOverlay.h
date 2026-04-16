@@ -101,7 +101,7 @@ private:
     bool tryBeginGrab(cocos2d::CCPoint const& locationInNode);
     void endGrab();
 
-    void toggleTestPanel();
+    void tryOpenPhysicsMenu();
     bool tryBeginPanelGrab(cocos2d::CCPoint const& locationInNode);
     void syncPanelNodeFromPhysics(float alpha);
     void destroyPhysicsMenuVisual();

@@ -139,10 +139,10 @@ constexpr float kPanelDefaultYFrac = 0.7f;
 // Fake menu shard simulation
 constexpr int kMenuShardRows = 4;
 constexpr int kMenuShardCols = 6;
-constexpr float kMenuShardLaunchSpeedMinPx = 240.0f;
-constexpr float kMenuShardLaunchSpeedMaxPx = 760.0f;
+constexpr float kMenuShardLaunchSpeedMinPx = 343.0f;
+constexpr float kMenuShardLaunchSpeedMaxPx = 767.0f;
 constexpr float kMenuShardExtraImpactVelocityScale = 0.35f;
-constexpr float kMenuShardAngularVelocityMin = 2.0f;
-constexpr float kMenuShardAngularVelocityMax = 9.0f;
+constexpr float kMenuShardAngularVelocityMin = 15.0f;
+constexpr float kMenuShardAngularVelocityMax = 67.0f;
 constexpr float kMenuShardHoldSeconds = 12.0f;
 constexpr float kMenuShardFadeSeconds = 3.0f;
