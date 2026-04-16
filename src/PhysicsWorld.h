@@ -34,6 +34,8 @@ struct PhysicsShatterBodyInit {
     float angularVelocityRad = 0.0f;
     float friction = 0.45f;
     float density = 0.85f;
+    float linearDampingPerSecond = 0.0f;
+    float angularDampingPerSecond = 0.0f;
 };
 
 class PhysicsWorld {

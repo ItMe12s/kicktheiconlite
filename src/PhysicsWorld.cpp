@@ -139,6 +139,11 @@ static void clampBodyToScreenBorder(Body& body, float worldWidthMeters, float wo
 }
 
 struct PhysicsWorld::Impl {
+    struct ShatterBodyTuning {
+        float linearDampingPerSecond = 0.0f;
+        float angularDampingPerSecond = 0.0f;
+    };
+
     World world;
     Body wallBottom;
     Body wallTop;
@@ -147,6 +152,7 @@ struct PhysicsWorld::Impl {
     Body player;
     std::unique_ptr<Body> panel;
     std::vector<std::unique_ptr<Body>> shatterBodies;
+    std::vector<ShatterBodyTuning> shatterBodyTunings;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
         : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
@@ -282,6 +288,19 @@ void PhysicsWorld::step(float dt) {
         if (shard) {
             clampBodyToScreenBorder(*shard, ww, wh);
         }
+    }
+
+    float const dampingDt = std::max(0.0f, dt);
+    for (size_t i = 0; i < m_impl->shatterBodies.size(); ++i) {
+        auto const& shard = m_impl->shatterBodies[i];
+        if (!shard || i >= m_impl->shatterBodyTunings.size()) {
+            continue;
+        }
+        auto const& tuning = m_impl->shatterBodyTunings[i];
+        float const linearScale = std::max(0.0f, 1.0f - tuning.linearDampingPerSecond * dampingDt);
+        float const angularScale = std::max(0.0f, 1.0f - tuning.angularDampingPerSecond * dampingDt);
+        shard->velocity *= linearScale;
+        shard->angularVelocity *= angularScale;
     }
 }
 
@@ -517,6 +536,10 @@ int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
     body->friction = init.friction;
     m_impl->world.Add(body.get());
     m_impl->shatterBodies.push_back(std::move(body));
+    m_impl->shatterBodyTunings.push_back({
+        std::max(0.0f, init.linearDampingPerSecond),
+        std::max(0.0f, init.angularDampingPerSecond),
+    });
     return static_cast<int>(m_impl->shatterBodies.size() - 1);
 }
 
@@ -548,6 +571,7 @@ void PhysicsWorld::clearShatterBodies() {
         }
     }
     m_impl->shatterBodies.clear();
+    m_impl->shatterBodyTunings.clear();
 }
 
 int PhysicsWorld::getShatterBodyCount() const {

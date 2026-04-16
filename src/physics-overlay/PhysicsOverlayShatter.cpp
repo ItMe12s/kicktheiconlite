@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <utility>
 
 #include "OverlayRendering.h"
@@ -128,7 +129,7 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
         return false;
     }
 
-    float const shatterBaseAngleRad = -prevRot * (static_cast<float>(M_PI) / 180.0f);
+    float const shatterBaseAngleRad = -prevRot * (std::numbers::pi_v<float> / 180.0f);
     float const panelWidth = panelSize.width;
     float const panelHeight = panelSize.height;
     float const cellW = panelWidth / static_cast<float>(kMenuShardCols);
@@ -222,6 +223,8 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
                 shardInit.velocityXPx = launchVx;
                 shardInit.velocityYPx = launchVy;
                 shardInit.angularVelocityRad = angularVel;
+                shardInit.linearDampingPerSecond = kMenuShardLinearDampingPerSecond;
+                shardInit.angularDampingPerSecond = kMenuShardAngularDampingPerSecond;
 
                 int const bodyHandle = m_physics->spawnShatterBody(shardInit);
 

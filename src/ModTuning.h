@@ -171,11 +171,13 @@ constexpr float kPanelDefaultYFrac = 0.7f;
 constexpr int kMenuShardRows = 4;
 constexpr int kMenuShardCols = 6;
 constexpr int kMenuShardTrianglesTotal = kMenuShardRows * kMenuShardCols * 2;
-constexpr float kMenuShardLaunchSpeedMinPx = 343.0f;
-constexpr float kMenuShardLaunchSpeedMaxPx = 767.0f;
+constexpr float kMenuShardLaunchSpeedMinPx = 167.0f;
+constexpr float kMenuShardLaunchSpeedMaxPx = 567.0f;
 constexpr float kMenuShardExtraImpactVelocityScale = 0.35f;
-constexpr float kMenuShardAngularVelocityMin = 15.0f;
+constexpr float kMenuShardAngularVelocityMin = 6.7f;
 constexpr float kMenuShardAngularVelocityMax = 67.0f;
+constexpr float kMenuShardLinearDampingPerSecond = 2.25f;
+constexpr float kMenuShardAngularDampingPerSecond = 3.75f;
 constexpr float kMenuShardHoldSeconds = 12.0f;
 constexpr float kMenuShardFadeSeconds = 3.0f;
 
