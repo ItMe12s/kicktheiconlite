@@ -487,10 +487,20 @@ void PhysicsWorld::setPanelDragGrabOffsetPixels(float offsetX, float offsetY) {
 
 int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
     auto body = std::make_unique<Body>();
-    std::vector<Vec2> const shardPoly = makeBoxPolygon(
-        init.widthPx / kPixelsPerMeter,
-        init.heightPx / kPixelsPerMeter
-    );
+    std::vector<Vec2> shardPoly;
+    if (init.shape == PhysicsShatterBodyShape::Triangle) {
+        shardPoly.reserve(3);
+        for (int i = 0; i < 3; ++i) {
+            shardPoly.push_back(Vec2(
+                init.cornerWorldPx[i][0] / kPixelsPerMeter,
+                init.cornerWorldPx[i][1] / kPixelsPerMeter));
+        }
+    } else {
+        shardPoly = makeBoxPolygon(
+            init.widthPx / kPixelsPerMeter,
+            init.heightPx / kPixelsPerMeter
+        );
+    }
     body->Set(shardPoly.data(), static_cast<int>(shardPoly.size()), init.density);
     body->position.Set(init.xPx / kPixelsPerMeter, init.yPx / kPixelsPerMeter);
     body->rotation = init.angleRad;

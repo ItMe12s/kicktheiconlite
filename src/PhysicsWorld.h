@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 struct PhysicsState {
@@ -18,9 +19,13 @@ struct PhysicsImpactEvent {
     float impactSpeedPx = 0.0f;
 };
 
+enum class PhysicsShatterBodyShape : std::uint8_t { Box, Triangle };
+
 struct PhysicsShatterBodyInit {
+    PhysicsShatterBodyShape shape = PhysicsShatterBodyShape::Box;
     float widthPx = 0.0f;
     float heightPx = 0.0f;
+    float cornerWorldPx[3][2] = {};
     float xPx = 0.0f;
     float yPx = 0.0f;
     float angleRad = 0.0f;

@@ -16,6 +16,7 @@ set(SOURCES
   src/physics-overlay/PhysicsOverlay.cpp
   src/physics-overlay/PhysicsOverlayTouch.cpp
   src/physics-overlay/PhysicsOverlayShatter.cpp
+  src/physics-overlay/MenuShatterTriangleNode.cpp
   src/physics-overlay/PhysicsOverlayDebug.cpp
   src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp

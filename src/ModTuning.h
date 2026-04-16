@@ -167,9 +167,10 @@ constexpr float kPanelDefaultHFrac = 0.25f;
 constexpr float kPanelDefaultXFrac = 0.5f;
 constexpr float kPanelDefaultYFrac = 0.7f;
 
-// Fake menu shard simulation
+// Fake menu shard simulation (two triangles per grid cell)
 constexpr int kMenuShardRows = 4;
 constexpr int kMenuShardCols = 6;
+constexpr int kMenuShardTrianglesTotal = kMenuShardRows * kMenuShardCols * 2;
 constexpr float kMenuShardLaunchSpeedMinPx = 343.0f;
 constexpr float kMenuShardLaunchSpeedMaxPx = 767.0f;
 constexpr float kMenuShardExtraImpactVelocityScale = 0.35f;

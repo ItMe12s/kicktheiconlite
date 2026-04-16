@@ -14,12 +14,13 @@
 
 class SimplePlayer;
 class PhysicsMenu;
+class MenuShatterTriangleNode;
 
 namespace cocos2d {
 class CCNode;
 class CCDrawNode;
 class CCSprite;
-class CCRenderTexture;
+class CCTexture2D;
 class CCGLProgram;
 class CCLabelBMFont;
 }
@@ -27,7 +28,7 @@ class CCLabelBMFont;
 class PhysicsOverlay : public cocos2d::CCLayer {
     struct MenuShatterPiece {
         int bodyHandle = -1;
-        cocos2d::CCSprite* sprite = nullptr;
+        MenuShatterTriangleNode* shard = nullptr;
     };
 
     struct MenuShatterState {
@@ -35,7 +36,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
         float elapsed = 0.0f;
         cocos2d::CCNode* root = nullptr;
         cocos2d::CCNode* captureRoot = nullptr;
-        cocos2d::CCRenderTexture* snapshot = nullptr;
+        cocos2d::CCTexture2D* shatterTexture = nullptr;
         std::vector<MenuShatterPiece> pieces;
     };
 
