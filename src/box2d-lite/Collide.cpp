@@ -12,34 +12,8 @@
 #include "box2d-lite/Arbiter.h"
 #include "box2d-lite/Body.h"
 
-// Box vertex and edge numbering:
-//
-//        ^ y
-//        |
-//        e1
-//   v2 ------ v1
-//    |        |
-// e2 |        | e4  --> x
-//    |        |
-//   v3 ------ v4
-//        e3
-
-enum Axis
-{
-	FACE_A_X,
-	FACE_A_Y,
-	FACE_B_X,
-	FACE_B_Y
-};
-
-enum EdgeNumbers
-{
-	NO_EDGE = 0,
-	EDGE1,
-	EDGE2,
-	EDGE3,
-	EDGE4
-};
+namespace {
+constexpr char NO_EDGE = 0;
 
 struct ClipVertex
 {
@@ -52,6 +26,83 @@ void Flip(FeaturePair& fp)
 {
 	Swap(fp.e.inEdge1, fp.e.inEdge2);
 	Swap(fp.e.outEdge1, fp.e.outEdge2);
+}
+
+std::vector<Vec2> worldVertices(Body const* body) {
+	Mat22 const rot(body->rotation);
+	std::vector<Vec2> out;
+	out.reserve(body->vertices.size());
+	for (Vec2 const& v : body->vertices) {
+		out.push_back(body->position + rot * v);
+	}
+	return out;
+}
+
+void projectPolygon(std::vector<Vec2> const& vertices, Vec2 const& axis, float& outMin, float& outMax) {
+	outMin = outMax = Dot(vertices[0], axis);
+	for (size_t i = 1; i < vertices.size(); ++i) {
+		float const p = Dot(vertices[i], axis);
+		if (p < outMin) outMin = p;
+		if (p > outMax) outMax = p;
+	}
+}
+
+float findAxisLeastPenetration(
+	Body const* reference,
+	std::vector<Vec2> const& referenceVerts,
+	Body const* incident,
+	std::vector<Vec2> const& incidentVerts,
+	int& outRefEdge
+) {
+	Mat22 const referenceRot(reference->rotation);
+	float bestSeparation = -FLT_MAX;
+	int bestEdge = 0;
+	for (size_t i = 0; i < reference->normals.size(); ++i) {
+		Vec2 const worldNormal = referenceRot * reference->normals[i];
+		float refMin = 0.0f;
+		float refMax = 0.0f;
+		float incMin = 0.0f;
+		float incMax = 0.0f;
+		projectPolygon(referenceVerts, worldNormal, refMin, refMax);
+		projectPolygon(incidentVerts, worldNormal, incMin, incMax);
+		float const separation = incMin - refMax;
+		if (separation > bestSeparation) {
+			bestSeparation = separation;
+			bestEdge = static_cast<int>(i);
+		}
+	}
+	outRefEdge = bestEdge;
+	return bestSeparation;
+}
+
+void computeIncidentEdge(
+	ClipVertex outIncidentEdge[2],
+	Body const* incident,
+	std::vector<Vec2> const& incidentVerts,
+	Vec2 const& referenceNormal
+) {
+	Mat22 const incidentRot(incident->rotation);
+	float minDot = FLT_MAX;
+	int incidentEdge = 0;
+	for (size_t i = 0; i < incident->normals.size(); ++i) {
+		Vec2 const worldNormal = incidentRot * incident->normals[i];
+		float const d = Dot(worldNormal, referenceNormal);
+		if (d < minDot) {
+			minDot = d;
+			incidentEdge = static_cast<int>(i);
+		}
+	}
+
+	int const next = (incidentEdge + 1) % static_cast<int>(incidentVerts.size());
+	outIncidentEdge[0].v = incidentVerts[incidentEdge];
+	outIncidentEdge[1].v = incidentVerts[next];
+
+	char const edgeA = static_cast<char>(incidentEdge + 1);
+	char const edgeB = static_cast<char>(next + 1);
+	outIncidentEdge[0].fp.e.inEdge2 = edgeA;
+	outIncidentEdge[0].fp.e.outEdge2 = edgeB;
+	outIncidentEdge[1].fp.e.inEdge2 = edgeB;
+	outIncidentEdge[1].fp.e.outEdge2 = edgeA;
 }
 
 int ClipSegmentToLine(ClipVertex vOut[2], ClipVertex vIn[2],
@@ -91,235 +142,94 @@ int ClipSegmentToLine(ClipVertex vOut[2], ClipVertex vIn[2],
 
 	return numOut;
 }
-
-static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
-								const Mat22& Rot, const Vec2& normal)
-{
-	// The normal is from the reference box. Convert it
-	// to the incident boxe's frame and flip sign.
-	Mat22 RotT = Rot.Transpose();
-	Vec2 n = -(RotT * normal);
-	Vec2 nAbs = Abs(n);
-
-	if (nAbs.x > nAbs.y)
-	{
-		if (Sign(n.x) > 0.0f)
-		{
-			c[0].v.Set(h.x, -h.y);
-			c[0].fp.e.inEdge2 = EDGE3;
-			c[0].fp.e.outEdge2 = EDGE4;
-
-			c[1].v.Set(h.x, h.y);
-			c[1].fp.e.inEdge2 = EDGE4;
-			c[1].fp.e.outEdge2 = EDGE1;
-		}
-		else
-		{
-			c[0].v.Set(-h.x, h.y);
-			c[0].fp.e.inEdge2 = EDGE1;
-			c[0].fp.e.outEdge2 = EDGE2;
-
-			c[1].v.Set(-h.x, -h.y);
-			c[1].fp.e.inEdge2 = EDGE2;
-			c[1].fp.e.outEdge2 = EDGE3;
-		}
-	}
-	else
-	{
-		if (Sign(n.y) > 0.0f)
-		{
-			c[0].v.Set(h.x, h.y);
-			c[0].fp.e.inEdge2 = EDGE4;
-			c[0].fp.e.outEdge2 = EDGE1;
-
-			c[1].v.Set(-h.x, h.y);
-			c[1].fp.e.inEdge2 = EDGE1;
-			c[1].fp.e.outEdge2 = EDGE2;
-		}
-		else
-		{
-			c[0].v.Set(-h.x, -h.y);
-			c[0].fp.e.inEdge2 = EDGE2;
-			c[0].fp.e.outEdge2 = EDGE3;
-
-			c[1].v.Set(h.x, -h.y);
-			c[1].fp.e.inEdge2 = EDGE3;
-			c[1].fp.e.outEdge2 = EDGE4;
-		}
-	}
-
-	c[0].v = pos + Rot * c[0].v;
-	c[1].v = pos + Rot * c[1].v;
-}
+} // namespace
 
 // The normal points from A to B
 int Collide(Contact* contacts, Body* bodyA, Body* bodyB)
 {
-	// Setup
-	Vec2 hA = 0.5f * bodyA->width;
-	Vec2 hB = 0.5f * bodyB->width;
-
-	Vec2 posA = bodyA->position;
-	Vec2 posB = bodyB->position;
-
-	Mat22 RotA(bodyA->rotation), RotB(bodyB->rotation);
-
-	Mat22 RotAT = RotA.Transpose();
-	Mat22 RotBT = RotB.Transpose();
-
-	Vec2 dp = posB - posA;
-	Vec2 dA = RotAT * dp;
-	Vec2 dB = RotBT * dp;
-
-	Mat22 C = RotAT * RotB;
-	Mat22 absC = Abs(C);
-	Mat22 absCT = absC.Transpose();
-
-	// Box A faces
-	Vec2 faceA = Abs(dA) - hA - absC * hB;
-	if (faceA.x > 0.0f || faceA.y > 0.0f)
+	if (bodyA->vertices.size() < 3 || bodyB->vertices.size() < 3)
 		return 0;
 
-	// Box B faces
-	Vec2 faceB = Abs(dB) - absCT * hA - hB;
-	if (faceB.x > 0.0f || faceB.y > 0.0f)
+	std::vector<Vec2> const vertsA = worldVertices(bodyA);
+	std::vector<Vec2> const vertsB = worldVertices(bodyB);
+
+	int refEdgeA = 0;
+	int refEdgeB = 0;
+	float const separationA = findAxisLeastPenetration(bodyA, vertsA, bodyB, vertsB, refEdgeA);
+	if (separationA > 0.0f)
+		return 0;
+	float const separationB = findAxisLeastPenetration(bodyB, vertsB, bodyA, vertsA, refEdgeB);
+	if (separationB > 0.0f)
 		return 0;
 
-	// Find best axis
-	Axis axis;
-	float separation;
-	Vec2 normal;
-
-	// Box A faces
-	axis = FACE_A_X;
-	separation = faceA.x;
-	normal = dA.x > 0.0f ? RotA.col1 : -RotA.col1;
-
-	const float relativeTol = 0.95f;
-	const float absoluteTol = 0.01f;
-
-	if (faceA.y > relativeTol * separation + absoluteTol * hA.y)
-	{
-		axis = FACE_A_Y;
-		separation = faceA.y;
-		normal = dA.y > 0.0f ? RotA.col2 : -RotA.col2;
+	Body* refBody = bodyA;
+	Body* incBody = bodyB;
+	std::vector<Vec2> const* refVerts = &vertsA;
+	std::vector<Vec2> const* incVerts = &vertsB;
+	int refEdge = refEdgeA;
+	bool flip = false;
+	constexpr float relativeTol = 0.98f;
+	constexpr float absoluteTol = 0.001f;
+	if (separationB > separationA * relativeTol + absoluteTol) {
+		refBody = bodyB;
+		incBody = bodyA;
+		refVerts = &vertsB;
+		incVerts = &vertsA;
+		refEdge = refEdgeB;
+		flip = true;
 	}
 
-	// Box B faces
-	if (faceB.x > relativeTol * separation + absoluteTol * hB.x)
-	{
-		axis = FACE_B_X;
-		separation = faceB.x;
-		normal = dB.x > 0.0f ? RotB.col1 : -RotB.col1;
+	Mat22 const refRot(refBody->rotation);
+	Vec2 const v1 = (*refVerts)[refEdge];
+	Vec2 const v2 = (*refVerts)[(refEdge + 1) % static_cast<int>(refVerts->size())];
+	Vec2 sideNormal = v2 - v1;
+	float sideLen = sideNormal.Length();
+	if (sideLen <= 1.0e-6f) {
+		return 0;
 	}
+	sideNormal *= 1.0f / sideLen;
+	Vec2 const refNormal = refRot * refBody->normals[refEdge];
 
-	if (faceB.y > relativeTol * separation + absoluteTol * hB.y)
-	{
-		axis = FACE_B_Y;
-		separation = faceB.y;
-		normal = dB.y > 0.0f ? RotB.col2 : -RotB.col2;
-	}
-
-	// Setup clipping plane data based on the separating axis
-	Vec2 frontNormal, sideNormal;
 	ClipVertex incidentEdge[2];
-	float front, negSide, posSide;
-	char negEdge, posEdge;
+	computeIncidentEdge(incidentEdge, incBody, *incVerts, refNormal);
 
-	// Compute the clipping lines and the line segment to be clipped.
-	switch (axis)
-	{
-	case FACE_A_X:
-		{
-			frontNormal = normal;
-			front = Dot(posA, frontNormal) + hA.x;
-			sideNormal = RotA.col2;
-			float side = Dot(posA, sideNormal);
-			negSide = -side + hA.y;
-			posSide =  side + hA.y;
-			negEdge = EDGE3;
-			posEdge = EDGE1;
-			ComputeIncidentEdge(incidentEdge, hB, posB, RotB, frontNormal);
-		}
-		break;
-
-	case FACE_A_Y:
-		{
-			frontNormal = normal;
-			front = Dot(posA, frontNormal) + hA.y;
-			sideNormal = RotA.col1;
-			float side = Dot(posA, sideNormal);
-			negSide = -side + hA.x;
-			posSide =  side + hA.x;
-			negEdge = EDGE2;
-			posEdge = EDGE4;
-			ComputeIncidentEdge(incidentEdge, hB, posB, RotB, frontNormal);
-		}
-		break;
-
-	case FACE_B_X:
-		{
-			frontNormal = -normal;
-			front = Dot(posB, frontNormal) + hB.x;
-			sideNormal = RotB.col2;
-			float side = Dot(posB, sideNormal);
-			negSide = -side + hB.y;
-			posSide =  side + hB.y;
-			negEdge = EDGE3;
-			posEdge = EDGE1;
-			ComputeIncidentEdge(incidentEdge, hA, posA, RotA, frontNormal);
-		}
-		break;
-
-	case FACE_B_Y:
-		{
-			frontNormal = -normal;
-			front = Dot(posB, frontNormal) + hB.y;
-			sideNormal = RotB.col1;
-			float side = Dot(posB, sideNormal);
-			negSide = -side + hB.x;
-			posSide =  side + hB.x;
-			negEdge = EDGE2;
-			posEdge = EDGE4;
-			ComputeIncidentEdge(incidentEdge, hA, posA, RotA, frontNormal);
-		}
-		break;
-	}
-
-	// clip other face with 5 box planes (1 face plane, 4 edge planes)
+	float const negSide = -Dot(sideNormal, v1);
+	float const posSide = Dot(sideNormal, v2);
+	int const refCount = static_cast<int>(refVerts->size());
+	char const negEdge = static_cast<char>(refEdge + 1);
+	char const posEdge = static_cast<char>(((refEdge + 1) % refCount) + 1);
 
 	ClipVertex clipPoints1[2];
 	ClipVertex clipPoints2[2];
 	int np;
 
-	// Clip to box side 1
+	// Clip to reference edge side planes
 	np = ClipSegmentToLine(clipPoints1, incidentEdge, -sideNormal, negSide, negEdge);
 
 	if (np < 2)
 		return 0;
 
-	// Clip to negative box side 1
 	np = ClipSegmentToLine(clipPoints2, clipPoints1,  sideNormal, posSide, posEdge);
 
 	if (np < 2)
 		return 0;
 
-	// Now clipPoints2 contains the clipping points.
-	// Due to roundoff, it is possible that clipping removes all points.
-
+	float const front = Dot(refNormal, v1);
+	Vec2 const collisionNormal = flip ? (-1.0f * refNormal) : refNormal;
 	int numContacts = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		float separation = Dot(frontNormal, clipPoints2[i].v) - front;
+		float separation = Dot(refNormal, clipPoints2[i].v) - front;
 
 		if (separation <= 0)
 		{
 			contacts[numContacts].separation = separation;
-			contacts[numContacts].normal = normal;
-			// slide contact point onto reference face (easy to cull)
-			contacts[numContacts].position = clipPoints2[i].v - separation * frontNormal;
+			contacts[numContacts].normal = collisionNormal;
+			contacts[numContacts].position = clipPoints2[i].v - separation * refNormal;
 			contacts[numContacts].feature = clipPoints2[i].fp;
-			if (axis == FACE_B_X || axis == FACE_B_Y)
+			contacts[numContacts].feature.e.inEdge1 = static_cast<char>(refEdge + 1);
+			contacts[numContacts].feature.e.outEdge1 = static_cast<char>(((refEdge + 1) % refCount) + 1);
+			if (flip)
 				Flip(contacts[numContacts].feature);
 			++numContacts;
 		}

@@ -38,7 +38,7 @@ Arbiter::Arbiter(Body* b1, Body* b2)
 
 void Arbiter::Update(Contact* newContacts, int numNewContacts)
 {
-	Contact mergedContacts[2];
+	Contact mergedContacts[MAX_POINTS];
 
 	for (int i = 0; i < numNewContacts; ++i)
 	{

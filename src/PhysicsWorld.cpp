@@ -73,6 +73,35 @@ struct DragTuning {
     float angularDamping = 0.0f;
 };
 
+static std::vector<Vec2> makeBoxPolygon(float widthMeters, float heightMeters) {
+    float const hx = widthMeters * 0.5f;
+    float const hy = heightMeters * 0.5f;
+    return {
+        Vec2(-hx, -hy),
+        Vec2(hx, -hy),
+        Vec2(hx, hy),
+        Vec2(-hx, hy),
+    };
+}
+
+static void bodyWorldExtents(Body const& body, float& outXExtent, float& outYExtent) {
+    if (body.vertices.empty()) {
+        outXExtent = 0.0f;
+        outYExtent = 0.0f;
+        return;
+    }
+    Mat22 const rot(body.rotation);
+    float maxX = 0.0f;
+    float maxY = 0.0f;
+    for (Vec2 const& local : body.vertices) {
+        Vec2 const w = rot * local;
+        maxX = std::max(maxX, std::fabs(w.x));
+        maxY = std::max(maxY, std::fabs(w.y));
+    }
+    outXExtent = maxX;
+    outYExtent = maxY;
+}
+
 static void applyDragForces(
     Body& body,
     float grabLocalX,
@@ -103,12 +132,9 @@ static void applyDragForces(
 }
 
 static void clampBodyToScreenBorder(Body& body, float worldWidthMeters, float worldHeightMeters) {
-    float const a = body.width.x * 0.5f;
-    float const b = body.width.y * 0.5f;
-    float const c = std::cos(body.rotation);
-    float const s = std::sin(body.rotation);
-    float const ex = std::fabs(c) * a + std::fabs(s) * b;
-    float const ey = std::fabs(s) * a + std::fabs(c) * b;
+    float ex = 0.0f;
+    float ey = 0.0f;
+    bodyWorldExtents(body, ex, ey);
 
     float const left = body.position.x - ex;
     float const right = body.position.x + ex;
@@ -161,20 +187,23 @@ struct PhysicsWorld::Impl {
         float wh = worldH / kPixelsPerMeter;
         float bw = bodyW / kPixelsPerMeter;
         float bh = bodyH / kPixelsPerMeter;
+        std::vector<Vec2> const horizontalWallPoly = makeBoxPolygon(ww + kWallLengthPadding, kWallThickness);
+        std::vector<Vec2> const verticalWallPoly = makeBoxPolygon(kWallThickness, wh + kWallLengthPadding);
+        std::vector<Vec2> const playerPoly = makeBoxPolygon(bw, bh);
 
+        wallBottom.Set(horizontalWallPoly.data(), static_cast<int>(horizontalWallPoly.size()), FLT_MAX);
         wallBottom.position.Set(ww * kArenaCenterFrac, -kWallHalfThickness);
-        wallBottom.width.Set(ww + kWallLengthPadding, kWallThickness);
 
+        wallTop.Set(horizontalWallPoly.data(), static_cast<int>(horizontalWallPoly.size()), FLT_MAX);
         wallTop.position.Set(ww * kArenaCenterFrac, wh + kWallHalfThickness);
-        wallTop.width.Set(ww + kWallLengthPadding, kWallThickness);
 
+        wallLeft.Set(verticalWallPoly.data(), static_cast<int>(verticalWallPoly.size()), FLT_MAX);
         wallLeft.position.Set(-kWallHalfThickness, wh * kArenaCenterFrac);
-        wallLeft.width.Set(kWallThickness, wh + kWallLengthPadding);
 
+        wallRight.Set(verticalWallPoly.data(), static_cast<int>(verticalWallPoly.size()), FLT_MAX);
         wallRight.position.Set(ww + kWallHalfThickness, wh * kArenaCenterFrac);
-        wallRight.width.Set(kWallThickness, wh + kWallLengthPadding);
 
-        player.Set(Vec2(bw, bh), kPlayerDensity);
+        player.Set(playerPoly.data(), static_cast<int>(playerPoly.size()), kPlayerDensity);
         player.position.Set(ww * kPlayerInitialXFrac, wh * kPlayerInitialYFrac);
         player.velocity.Set(kPlayerInitialVelX, kPlayerInitialVelY);
         player.angularVelocity = kPlayerInitialAngularVel;
@@ -378,7 +407,8 @@ void PhysicsWorld::spawnPanel(float bodyW, float bodyH, float xPx, float yPx) {
     auto panel = std::make_unique<Body>();
     float const bw = bodyW / kPixelsPerMeter;
     float const bh = bodyH / kPixelsPerMeter;
-    panel->Set(Vec2(bw, bh), kPanelDensity);
+    std::vector<Vec2> const panelPoly = makeBoxPolygon(bw, bh);
+    panel->Set(panelPoly.data(), static_cast<int>(panelPoly.size()), kPanelDensity);
     panel->position.Set(xPx / kPixelsPerMeter, yPx / kPixelsPerMeter);
     panel->velocity.Set(0.0f, 0.0f);
     panel->angularVelocity = 0.0f;
@@ -485,10 +515,11 @@ void PhysicsWorld::setPanelDragGrabOffsetPixels(float offsetX, float offsetY) {
 
 int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
     auto body = std::make_unique<Body>();
-    body->Set(
-        Vec2(init.widthPx / kPixelsPerMeter, init.heightPx / kPixelsPerMeter),
-        init.density
+    std::vector<Vec2> const shardPoly = makeBoxPolygon(
+        init.widthPx / kPixelsPerMeter,
+        init.heightPx / kPixelsPerMeter
     );
+    body->Set(shardPoly.data(), static_cast<int>(shardPoly.size()), init.density);
     body->position.Set(init.xPx / kPixelsPerMeter, init.yPx / kPixelsPerMeter);
     body->rotation = init.angleRad;
     body->velocity.Set(init.velocityXPx / kPixelsPerMeter, init.velocityYPx / kPixelsPerMeter);

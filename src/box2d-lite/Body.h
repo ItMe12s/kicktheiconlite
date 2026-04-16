@@ -13,11 +13,14 @@
 #define BODY_H
 
 #include "MathUtils.h"
+#include <vector>
 
 struct Body
 {
+	static constexpr int kMaxPolygonVertices = 16;
+
 	Body();
-	void Set(const Vec2& w, float m);
+	void Set(const Vec2* verts, int count, float m);
 
 	void AddForce(const Vec2& f)
 	{
@@ -33,7 +36,9 @@ struct Body
 	Vec2 force;
 	float torque;
 
-	Vec2 width;
+	std::vector<Vec2> vertices;
+	std::vector<Vec2> normals;
+	Vec2 centroid;
 
 	float friction;
 	float mass, invMass;
