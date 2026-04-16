@@ -6,7 +6,6 @@
 #include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
-#include <Geode/cocos/platform/CCImage.h>
 #include <Geode/cocos/textures/CCTexture2D.h>
 #include <Geode/utils/cocos.hpp>
 
@@ -35,7 +34,7 @@ void ensureCCWPanel(float lx[3], float ly[3]) {
     }
 }
 
-/// UVs are normalized to the standalone texture (CCImage from RT, then initWithImage)
+/// UVs are normalized to captured RT texture dimensions
 cocos2d::ccTex2F uvForSnapshotCorner(
     float lx,
     float ly,
@@ -102,9 +101,9 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
     auto const prevScaleX = root->getScaleX();
     auto const prevScaleY = root->getScaleY();
     bool const prevVisible = root->isVisible();
-    root->setPosition({static_cast<float>(texW) * 0.5f, static_cast<float>(texH) * 0.5f});
+    root->setPosition({0.0f, 0.0f});
     root->setRotation(0.0f);
-    root->setAnchorPoint({0.5f, 0.5f});
+    root->setAnchorPoint({0.0f, 0.0f});
     root->setScaleX(1.0f);
     root->setScaleY(1.0f);
     root->setVisible(true);
@@ -118,23 +117,18 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
     root->setScaleY(prevScaleY);
     root->setVisible(prevVisible);
 
-    CCImage* img = snapshot->newCCImage(true);
-    snapshot->release();
-    snapshot = nullptr;
-    if (!img) {
+    cocos2d::CCTexture2D* shatterTex = nullptr;
+    if (auto* rtSprite = snapshot->getSprite()) {
+        shatterTex = rtSprite->getTexture();
+    }
+    if (!shatterTex) {
+        snapshot->release();
+        snapshot = nullptr;
         destroyPhysicsMenuVisual();
         return false;
     }
-    auto* shatterTex = new CCTexture2D();
-    if (!shatterTex->initWithImage(img)) {
-        img->release();
-        shatterTex->release();
-        destroyPhysicsMenuVisual();
-        return false;
-    }
-    img->release();
 
-    PhysicsState const panelState = m_physics->getPanelState();
+    float const shatterBaseAngleRad = -prevRot * (static_cast<float>(M_PI) / 180.0f);
     float const panelWidth = panelSize.width;
     float const panelHeight = panelSize.height;
     float const cellW = panelWidth / static_cast<float>(kMenuShardCols);
@@ -146,20 +140,16 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
     m_menuShatter.active = true;
     m_menuShatter.elapsed = 0.0f;
     m_menuShatter.captureRoot = shardRoot;
-    m_menuShatter.shatterTexture = shatterTex;
+    m_menuShatter.snapshot = snapshot;
     m_menuShatter.pieces.clear();
     m_menuShatter.pieces.reserve(static_cast<size_t>(kMenuShardTrianglesTotal));
 
     float const texWf = static_cast<float>(texW);
     float const texHf = static_cast<float>(texH);
-    float const c = std::cos(panelState.angle);
-    float const s = std::sin(panelState.angle);
-
     auto const panelToWorld = [&](float lx, float ly) {
-        return CCPoint{
-            panelState.x + (lx * c - ly * s),
-            panelState.y + (lx * s + ly * c),
-        };
+        return root->convertToWorldSpace(
+            CCPoint{lx + panelWidth * 0.5f, ly + panelHeight * 0.5f}
+        );
     };
 
     for (int row = 0; row < kMenuShardRows; ++row) {
@@ -228,7 +218,7 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
                 shardInit.cornerWorldPx[2][1] = w2.y;
                 shardInit.xPx = cWorld.x;
                 shardInit.yPx = cWorld.y;
-                shardInit.angleRad = panelState.angle;
+                shardInit.angleRad = shatterBaseAngleRad;
                 shardInit.velocityXPx = launchVx;
                 shardInit.velocityYPx = launchVy;
                 shardInit.angularVelocityRad = angularVel;
@@ -241,16 +231,15 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
                     uvForSnapshotCorner(lx[2], ly[2], panelWidth, panelHeight, texWf, texHf),
                 };
 
-                // R(-theta) * (W - C) in screen space == panel-local offset from centroid (matches CCSprite + setRotation)
                 float const vertLocalX[3] = {
-                    (w0.x - cWorld.x) * c + (w0.y - cWorld.y) * s,
-                    (w1.x - cWorld.x) * c + (w1.y - cWorld.y) * s,
-                    (w2.x - cWorld.x) * c + (w2.y - cWorld.y) * s,
+                    lx[0] - cx,
+                    lx[1] - cx,
+                    lx[2] - cx,
                 };
                 float const vertLocalY[3] = {
-                    -(w0.x - cWorld.x) * s + (w0.y - cWorld.y) * c,
-                    -(w1.x - cWorld.x) * s + (w1.y - cWorld.y) * c,
-                    -(w2.x - cWorld.x) * s + (w2.y - cWorld.y) * c,
+                    ly[0] - cy,
+                    ly[1] - cy,
+                    ly[2] - cy,
                 };
 
                 auto* shard = MenuShatterTriangleNode::create(
@@ -267,8 +256,10 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
                     continue;
                 }
                 shard->setOpacity(255);
-                shard->setPosition({cWorld.x, cWorld.y});
-                shard->setRotation(-panelState.angle * kRadToDeg);
+                CCPoint const shardPosInRoot =
+                    shardRoot ? shardRoot->convertToNodeSpace(cWorld) : cWorld;
+                shard->setPosition(shardPosInRoot);
+                shard->setRotation(prevRot);
                 shardRoot->addChild(shard, kPhysicsMenuZOrder);
                 m_menuShatter.pieces.push_back({bodyHandle, shard});
             }
@@ -302,7 +293,11 @@ void PhysicsOverlay::updateMenuShatter(float dt) {
         }
         PhysicsState state{};
         if (m_physics->getShatterBodyState(piece.bodyHandle, state)) {
-            piece.shard->setPosition({state.x, state.y});
+            CCPoint const worldPos{state.x, state.y};
+            CCPoint const posInRoot = m_menuShatter.captureRoot
+                ? m_menuShatter.captureRoot->convertToNodeSpace(worldPos)
+                : worldPos;
+            piece.shard->setPosition(posInRoot);
             piece.shard->setRotation(-state.angle * kRadToDeg);
         }
         piece.shard->setOpacity(opacity);
@@ -321,9 +316,9 @@ void PhysicsOverlay::clearMenuShatter() {
         }
     }
     m_menuShatter.pieces.clear();
-    if (m_menuShatter.shatterTexture) {
-        m_menuShatter.shatterTexture->release();
-        m_menuShatter.shatterTexture = nullptr;
+    if (m_menuShatter.snapshot) {
+        m_menuShatter.snapshot->release();
+        m_menuShatter.snapshot = nullptr;
     }
     m_menuShatter.captureRoot = nullptr;
     if (m_physics) {

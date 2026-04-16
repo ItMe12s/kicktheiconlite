@@ -489,11 +489,19 @@ int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
     auto body = std::make_unique<Body>();
     std::vector<Vec2> shardPoly;
     if (init.shape == PhysicsShatterBodyShape::Triangle) {
+        float const cx = init.xPx / kPixelsPerMeter;
+        float const cy = init.yPx / kPixelsPerMeter;
+        float const c = std::cos(init.angleRad);
+        float const s = std::sin(init.angleRad);
         shardPoly.reserve(3);
         for (int i = 0; i < 3; ++i) {
-            shardPoly.push_back(Vec2(
-                init.cornerWorldPx[i][0] / kPixelsPerMeter,
-                init.cornerWorldPx[i][1] / kPixelsPerMeter));
+            float const wx = init.cornerWorldPx[i][0] / kPixelsPerMeter;
+            float const wy = init.cornerWorldPx[i][1] / kPixelsPerMeter;
+            float const dx = wx - cx;
+            float const dy = wy - cy;
+            float const lx = c * dx + s * dy;
+            float const ly = -s * dx + c * dy;
+            shardPoly.push_back(Vec2(lx, ly));
         }
     } else {
         shardPoly = makeBoxPolygon(
