@@ -11,6 +11,15 @@
 	"version": "v1.0.0",
 	"developer": "imes",
 	"description": "Throw your custom icon around lol",
+	"links": {
+		"community": "https://discord.gg/E8f6D6XqbW"
+	},
+	"tags": [
+		"universal",
+		"offline",
+		"content",
+		"joke"
+	],
 	"resources": {
 		"files": [
 			"src/assets/img_star1.png",

@@ -8,6 +8,7 @@
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/utils/cocos.hpp>
+#include <Geode/cocos/platform/CCEGLViewProtocol.h>
 
 #include <algorithm>
 #include <cmath>
@@ -20,6 +21,7 @@
 #include "PhysicsWorld.h"
 #include "PhysicsMenu.h"
 #include "PlayerVisual.h"
+#include "RuntimeRestart.h"
 #include "events/ClickEvents.h"
 #include "vfx/ImpactFlash.h"
 #include "vfx/ImpactNoise.h"
@@ -506,7 +508,15 @@ bool PhysicsOverlay::init() {
     this->setTouchMode(kCCTouchesOneByOne);
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
+    if (auto* view = CCDirector::get()->getOpenGLView()) {
+        // Using the protocol interface so this compiles on all platforms
+        auto* protocol = (cocos2d::CCEGLViewProtocol*)view;
+        m_lastGlReady = protocol->isOpenGLReady();
+        m_glReadyCheckInitialized = true;
+    }
+
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, kPhysicsOverlaySchedulerPriority, false);
+    runtime_restart::registerPhysicsOverlay(this);
     return true;
 }
 
@@ -744,6 +754,25 @@ void PhysicsOverlay::syncPlayerNodeFromPhysics() {
 }
 
 void PhysicsOverlay::update(float dt) {
+    if (m_selfDestructRequested || runtime_restart::isRestartRequired()) {
+        return;
+    }
+
+    // GL context/draw-surface invalidation detection
+    // Fullscreen toggles and some lifecycle events that recreate the GL context
+    // isOpenGLReady() is the cross-platform signal to bail out before drawing with stale handles
+    if (m_glReadyCheckInitialized) {
+        if (auto* view = CCDirector::get()->getOpenGLView()) {
+            auto* protocol = (cocos2d::CCEGLViewProtocol*)view;
+            bool const glReady = protocol->isOpenGLReady();
+            if (m_lastGlReady && !glReady) {
+                runtime_restart::requestFullscreenSelfDestruct("openGL context became unready");
+                return;
+            }
+            m_lastGlReady = glReady;
+        }
+    }
+
     if (!m_physics) {
         return;
     }
@@ -807,7 +836,29 @@ void PhysicsOverlay::onEnter() {
     handleTouchPriorityWith(this, kPhysicsOverlayTouchPriority, true);
 }
 
+void PhysicsOverlay::beginFullscreenSelfDestruct() {
+    if (m_selfDestructRequested) {
+        return;
+    }
+
+    m_selfDestructRequested = true;
+    m_skipGraphicsCleanup = true;
+    this->setTouchEnabled(false);
+    this->setVisible(false);
+    endTouchInteraction();
+    this->stopAllActions();
+    CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
+    this->retain();
+    geode::queueInMainThread([this] {
+        if (this->getParent()) {
+            this->removeFromParentAndCleanup(true);
+        }
+        this->release();
+    });
+}
+
 void PhysicsOverlay::onExit() {
+    runtime_restart::unregisterPhysicsOverlay(this);
     endGrab();
     if (m_hitProxy) {
         events::ClickTracker::get()->untrack(m_hitProxy);
@@ -834,7 +885,9 @@ void PhysicsOverlay::onExit() {
     m_debugLabel = nullptr;
     m_debugLabelBackground = nullptr;
     if (m_debugLabelBackgroundTexture) {
-        m_debugLabelBackgroundTexture->release();
+        if (!m_skipGraphicsCleanup) {
+            m_debugLabelBackgroundTexture->release();
+        }
         m_debugLabelBackgroundTexture = nullptr;
     }
     m_debugLabelBackgroundSprites.clear();
@@ -860,7 +913,9 @@ void PhysicsOverlay::onExit() {
         m_impactNoise.composite = nullptr;
     }
     if (m_impactNoise.renderTexture) {
-        m_impactNoise.renderTexture->release();
+        if (!m_skipGraphicsCleanup) {
+            m_impactNoise.renderTexture->release();
+        }
         m_impactNoise.renderTexture = nullptr;
     }
     if (m_impactNoise.sprite) {
@@ -871,13 +926,21 @@ void PhysicsOverlay::onExit() {
     m_starBurst.sprites = {};
     m_starBurst.phaseIndex = -1;
     if (m_fireAura.program) {
-        m_fireAura.program->release();
+        if (!m_skipGraphicsCleanup) {
+            m_fireAura.program->release();
+        }
         m_fireAura.program = nullptr;
     }
     if (m_impactNoise.program) {
-        m_impactNoise.program->release();
+        if (!m_skipGraphicsCleanup) {
+            m_impactNoise.program->release();
+        }
         m_impactNoise.program = nullptr;
     }
-    vfx::object_motion_blur::release(m_objectBlur);
+    if (!m_skipGraphicsCleanup) {
+        vfx::object_motion_blur::release(m_objectBlur);
+    } else {
+        m_objectBlur = {};
+    }
     CCLayer::onExit();
 }

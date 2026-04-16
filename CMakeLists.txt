@@ -17,6 +17,7 @@ set(SOURCES
   src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
+  src/RuntimeRestart.cpp
   src/vfx/ImpactFlash.cpp
   src/vfx/ImpactNoise.cpp
   src/vfx/ObjectMotionBlurPipeline.cpp
@@ -61,7 +62,7 @@ else()
     message(STATUS "Found Geode: $ENV{GEODE_SDK}")
 endif()
 
-add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+add_subdirectory("$ENV{GEODE_SDK}" ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 

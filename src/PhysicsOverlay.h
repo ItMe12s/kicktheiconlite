@@ -61,6 +61,10 @@ class PhysicsOverlay : public cocos2d::CCLayer {
 
     std::unique_ptr<PhysicsMenu> m_physicsMenuVisual;
     bool m_panelDragActive = false;
+    bool m_selfDestructRequested = false;
+    bool m_skipGraphicsCleanup = false;
+    bool m_glReadyCheckInitialized = false;
+    bool m_lastGlReady = true;
 
 public:
     CREATE_FUNC(PhysicsOverlay);
@@ -70,6 +74,7 @@ public:
     void update(float dt) override;
     void onEnter() override;
     void onExit() override;
+    void beginFullscreenSelfDestruct();
 
     bool ccTouchBegan(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
     void ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
