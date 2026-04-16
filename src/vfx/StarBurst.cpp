@@ -34,7 +34,7 @@ void applyTint(StarBurstState& state, overlay_rendering::ImpactFlashMode flashMo
 }
 
 void reposition(StarBurstState& state, cocos2d::CCSize winSize, overlay_rendering::ImpactFlashMode flashMode) {
-    thread_local std::mt19937 rng{std::random_device{}()};
+    static std::mt19937 rng{std::random_device{}()};
     float const screenSmaller = winSize.width < winSize.height ? winSize.width : winSize.height;
     std::uniform_real_distribution<float> sectorJitter(0.0f, 1.0f);
     std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * std::numbers::pi_v<float>);

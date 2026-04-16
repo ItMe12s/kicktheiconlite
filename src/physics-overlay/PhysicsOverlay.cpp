@@ -220,7 +220,7 @@ bool PhysicsOverlay::init() {
 
     if (auto* view = CCDirector::get()->getOpenGLView()) {
         // Using the protocol interface so this compiles on all platforms
-        auto* protocol = (cocos2d::CCEGLViewProtocol*)view;
+        auto* protocol = static_cast<cocos2d::CCEGLViewProtocol*>(view);
         m_lastGlReady = protocol->isOpenGLReady();
         m_glReadyCheckInitialized = true;
     }
@@ -350,12 +350,17 @@ void PhysicsOverlay::update(float dt) {
         return;
     }
 
+    if (!std::isfinite(dt) || dt <= 0.0f) {
+        return;
+    }
+    dt = std::min(dt, kMaxSimulationFrameDt);
+
     // GL context/draw-surface invalidation detection
     // Fullscreen toggles and some lifecycle events that recreate the GL context
     // isOpenGLReady() is the cross-platform signal to bail out before drawing with stale handles
     if (m_glReadyCheckInitialized) {
         if (auto* view = CCDirector::get()->getOpenGLView()) {
-            auto* protocol = (cocos2d::CCEGLViewProtocol*)view;
+            auto* protocol = static_cast<cocos2d::CCEGLViewProtocol*>(view);
             bool const glReady = protocol->isOpenGLReady();
             if (m_lastGlReady && !glReady) {
                 runtime_restart::requestFullscreenSelfDestruct("openGL context became unready");

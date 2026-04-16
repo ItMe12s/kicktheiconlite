@@ -32,17 +32,19 @@ inline GLubyte colorToByte(float channel) {
     return static_cast<GLubyte>(clamped * 255.0f);
 }
 
-std::vector<std::string> splitDebugLines(std::string const& text) {
-    std::vector<std::string> lines;
+std::vector<std::string> g_debugLinesScratch;
+
+std::vector<std::string> const& splitDebugLinesInto(std::string const& text) {
+    g_debugLinesScratch.clear();
     std::istringstream stream(text);
     std::string line;
     while (std::getline(stream, line)) {
-        lines.emplace_back(std::move(line));
+        g_debugLinesScratch.emplace_back(std::move(line));
     }
-    if (lines.empty()) {
-        lines.emplace_back("");
+    if (g_debugLinesScratch.empty()) {
+        g_debugLinesScratch.emplace_back("");
     }
-    return lines;
+    return g_debugLinesScratch;
 }
 
 } // namespace
@@ -115,7 +117,7 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
     std::string const text = debug.str();
     m_debugLabel->setString(text.c_str());
     if (m_debugLabelBackground && m_debugLabelMeasure) {
-        auto const lines = splitDebugLines(text);
+        auto const& lines = splitDebugLinesInto(text);
 
         float const scaledTotalHeight = m_debugLabel->getContentSize().height * kDebugLabelFontScale;
         float const lineAdvance =

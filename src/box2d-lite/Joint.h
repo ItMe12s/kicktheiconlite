@@ -14,6 +14,8 @@
 
 #include "MathUtils.h"
 
+namespace kti_b2l {
+
 struct Body;
 
 struct Joint
@@ -39,5 +41,7 @@ struct Joint
 	float biasFactor;
 	float softness;
 };
+
+} // namespace kti_b2l
 
 #endif

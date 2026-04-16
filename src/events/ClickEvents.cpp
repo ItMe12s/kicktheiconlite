@@ -140,6 +140,8 @@ void onDeferredDoubleConfirm(cocos2d::CCSprite* sprite) {
 }
 
 // CCCallFunc has no lambda create
+// INVARIANT: m_sprite must stay alive until fire() or be untracked via ClickTracker::untrack before
+// deferred run, otherwise onDeferredDoubleConfirm's tracked.contains check is insufficient (UAF)
 class DeferredDoubleDispatch : public cocos2d::CCObject {
 public:
     cocos2d::CCSprite* m_sprite = nullptr;

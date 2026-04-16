@@ -13,6 +13,8 @@
 #include "box2d-lite/Body.h"
 #include "box2d-lite/World.h"
 
+namespace kti_b2l {
+
 void Joint::Set(Body* b1, Body* b2, const Vec2& anchor)
 {
 	body1 = b1;
@@ -107,3 +109,5 @@ void Joint::ApplyImpulse()
 
 	P += impulse;
 }
+
+} // namespace kti_b2l

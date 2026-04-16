@@ -13,6 +13,8 @@
 #include "box2d-lite/Body.h"
 #include "box2d-lite/World.h"
 
+namespace kti_b2l {
+
 // Restitution only above this incoming normal speed (world units / s)
 // so resting/stacking contacts are not repeatedly re-energized by bias, low-speed jitter stays inelastic
 static constexpr float kRestitutionInSpeedThreshold = 3.0f;
@@ -209,3 +211,5 @@ void Arbiter::ApplyImpulse()
 		b2->angularVelocity += b2->invI * Cross(c->r2, Pt);
 	}
 }
+
+} // namespace kti_b2l

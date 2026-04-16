@@ -10,7 +10,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <memory>
 #include <string>
+#include <unordered_set>
 
 using namespace geode::prelude;
 
@@ -20,8 +22,11 @@ constexpr int kSandevistanBlendWalkMaxDepth = 64;
 
 std::atomic<std::uint32_t> s_trailGhostSerial{0};
 
-void applyAdditiveBlendRecursive(CCNode* n, int depth) {
+void applyAdditiveBlendRecursive(CCNode* n, int depth, std::unordered_set<CCNode*>& visited) {
     if (!n || depth > kSandevistanBlendWalkMaxDepth) {
+        return;
+    }
+    if (!visited.insert(n).second) {
         return;
     }
     if (auto* const spr = typeinfo_cast<CCSprite*>(n)) {
@@ -29,7 +34,7 @@ void applyAdditiveBlendRecursive(CCNode* n, int depth) {
     }
     if (CCArray* const ch = n->getChildren()) {
         for (unsigned i = 0; i < static_cast<unsigned>(ch->count()); ++i) {
-            applyAdditiveBlendRecursive(typeinfo_cast<CCNode*>(ch->objectAtIndex(i)), depth + 1);
+            applyAdditiveBlendRecursive(typeinfo_cast<CCNode*>(ch->objectAtIndex(i)), depth + 1, visited);
         }
     }
 }
@@ -75,13 +80,12 @@ ccColor3B sandevistanTrailColorAtUnit(float t) {
 class SandevistanPlayerHueAction : public CCActionInterval {
 public:
     static SandevistanPlayerHueAction* create(float duration) {
-        auto* const a = new SandevistanPlayerHueAction();
-        if (a->initWithDuration(duration)) {
-            a->autorelease();
-            return a;
+        auto a = std::unique_ptr<SandevistanPlayerHueAction>(new SandevistanPlayerHueAction());
+        if (!a->initWithDuration(duration)) {
+            return nullptr;
         }
-        delete a;
-        return nullptr;
+        a->autorelease();
+        return a.release();
     }
 
     void update(float time) override {
@@ -263,7 +267,9 @@ bool spawnFadingGhost(
     player->setColors(c0, c0);
     player->setGlowOutline(c0);
     player->updateColors();
-    applyAdditiveBlendRecursive(player, 0);
+    std::unordered_set<CCNode*> blendVisited;
+    blendVisited.reserve(32);
+    applyAdditiveBlendRecursive(player, 0, blendVisited);
 
     float const w = visualWidthForPlayer(player);
     float const scale = targetSize / w;

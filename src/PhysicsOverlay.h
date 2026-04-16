@@ -39,6 +39,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
         std::vector<MenuShatterPiece> pieces;
     };
 
+    // Cocos nodes/sprites: child-of-this or autorelease from create(), released when overlay destroyed
+    // m_physics owned uniquely, Geode listeners torn down in onExit()
     std::unique_ptr<PhysicsWorld> m_physics;
     std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
     vfx::ObjectMotionBlurPipelineState m_objectBlur{};

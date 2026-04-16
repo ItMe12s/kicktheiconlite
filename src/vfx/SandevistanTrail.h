@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../PlayerVisual.h"
+#include "PlayerVisual.h"
 #include "VfxTypes.h"
 
 namespace vfx::trail {

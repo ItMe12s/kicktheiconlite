@@ -15,6 +15,8 @@
 
 #include <algorithm>
 
+namespace kti_b2l {
+
 using std::vector;
 using std::map;
 using std::pair;
@@ -152,3 +154,5 @@ void World::Step(float dt)
 		b->torque = 0.0f;
 	}
 }
+
+} // namespace kti_b2l

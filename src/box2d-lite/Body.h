@@ -15,6 +15,8 @@
 #include "MathUtils.h"
 #include <vector>
 
+namespace kti_b2l {
+
 struct Body
 {
 	static constexpr int kMaxPolygonVertices = 16;
@@ -44,5 +46,7 @@ struct Body
 	float mass, invMass;
 	float I, invI;
 };
+
+} // namespace kti_b2l
 
 #endif

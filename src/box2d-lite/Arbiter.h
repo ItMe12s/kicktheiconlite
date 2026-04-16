@@ -14,6 +14,8 @@
 
 #include "MathUtils.h"
 
+namespace kti_b2l {
+
 struct Body;
 
 union FeaturePair
@@ -96,5 +98,7 @@ inline bool operator < (const ArbiterKey& a1, const ArbiterKey& a2)
 }
 
 int Collide(Contact* contacts, Body* body1, Body* body2);
+
+} // namespace kti_b2l
 
 #endif

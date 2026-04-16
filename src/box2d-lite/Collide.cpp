@@ -12,6 +12,7 @@
 #include "box2d-lite/Arbiter.h"
 #include "box2d-lite/Body.h"
 
+namespace kti_b2l {
 namespace {
 constexpr char NO_EDGE = 0;
 
@@ -237,3 +238,5 @@ int Collide(Contact* contacts, Body* bodyA, Body* bodyB)
 
 	return numContacts;
 }
+
+} // namespace kti_b2l

@@ -5,6 +5,8 @@
 #include "box2d-lite/Arbiter.h"
 
 #include <algorithm>
+
+using namespace kti_b2l;
 #include <cmath>
 #include <memory>
 #include <numbers>
@@ -271,6 +273,10 @@ void PhysicsWorld::setDragTargetPixels(float x, float y) {
 }
 
 void PhysicsWorld::step(float dt) {
+    if (!std::isfinite(dt) || dt <= 0.0f) {
+        return;
+    }
+
     m_playerPrevRender = getPlayerState();
     if (m_impl->panel) {
         m_panelPrevRender = getPanelState();

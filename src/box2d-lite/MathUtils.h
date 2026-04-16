@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+namespace kti_b2l {
+
 const float k_pi = 3.14159265358979323846264f;
 
 struct Vec2
@@ -191,5 +193,7 @@ inline float Random(float lo, float hi)
 	r = (hi - lo) * r + lo;
 	return r;
 }
+
+} // namespace kti_b2l
 
 #endif

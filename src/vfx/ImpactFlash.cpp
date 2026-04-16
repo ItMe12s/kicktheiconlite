@@ -2,23 +2,21 @@
 
 #include "../PhysicsOverlayTuning.h"
 
+#include <algorithm>
+
 namespace vfx::impact_flash {
 
 void decrementCooldown(ImpactFlashState& state, float dt) {
     if (state.impactFlashCooldownRemaining > 0.0f) {
         state.impactFlashCooldownRemaining -= dt;
-        if (state.impactFlashCooldownRemaining < 0.0f) {
-            state.impactFlashCooldownRemaining = 0.0f;
-        }
+        state.impactFlashCooldownRemaining = std::max(0.0f, state.impactFlashCooldownRemaining);
     }
 }
 
 void decrementWhiteFlash(ImpactFlashState& state, float dt) {
     if (state.whiteFlashRemaining > 0.0f) {
         state.whiteFlashRemaining -= dt;
-        if (state.whiteFlashRemaining < 0.0f) {
-            state.whiteFlashRemaining = 0.0f;
-        }
+        state.whiteFlashRemaining = std::max(0.0f, state.whiteFlashRemaining);
     }
 }
 

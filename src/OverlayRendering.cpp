@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <memory>
 #include <random>
 
 using namespace geode::prelude;
@@ -24,26 +25,24 @@ namespace overlay_rendering {
 namespace {
 
 CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
-    auto* p = new CCGLProgram();
+    auto p = std::unique_ptr<CCGLProgram>(new CCGLProgram());
     if (!p->initWithVertexShaderByteArray(vert, frag)) {
-        delete p;
         return nullptr;
     }
     p->addAttribute(kCCAttributeNamePosition, kCCVertexAttrib_Position);
     p->addAttribute(kCCAttributeNameColor, kCCVertexAttrib_Color);
     p->addAttribute(kCCAttributeNameTexCoord, kCCVertexAttrib_TexCoords);
     if (!p->link()) {
-        delete p;
         return nullptr;
     }
     p->updateUniforms();
     p->retain();
-    return p;
+    return p.release();
 }
 
 CCTexture2D* createOneByOneWhiteTexture() {
     static unsigned char const pixels[4] = {255, 255, 255, 255};
-    auto* tex = new CCTexture2D();
+    auto tex = std::unique_ptr<CCTexture2D>(new CCTexture2D());
     if (!tex->initWithData(
             pixels,
             kCCTexture2DPixelFormat_RGBA8888,
@@ -51,11 +50,10 @@ CCTexture2D* createOneByOneWhiteTexture() {
             1,
             CCSizeMake(1, 1)
         )) {
-        delete tex;
         return nullptr;
     }
     tex->autorelease();
-    return tex;
+    return tex.release();
 }
 
 int objectCompositeOrder(MotionBlurObjectId id) {
@@ -275,6 +273,44 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         return out;
     }
 
+    struct Rollback {
+        CCRenderTexture* unifiedTexture = nullptr;
+        CCSprite* finalComposite = nullptr;
+        CCSprite* whiteFlashSprite = nullptr;
+        CCNode* mergeRoot = nullptr;
+        CCGLProgram* blurProgram = nullptr;
+        CCGLProgram* whiteFlashProgram = nullptr;
+        CCGLProgram* colorInvertProgram = nullptr;
+        bool armed = true;
+        ~Rollback() {
+            if (!armed) {
+                return;
+            }
+            if (mergeRoot) {
+                mergeRoot->removeFromParentAndCleanup(true);
+            }
+            if (whiteFlashSprite) {
+                whiteFlashSprite->removeFromParentAndCleanup(true);
+            }
+            if (finalComposite) {
+                finalComposite->removeFromParentAndCleanup(true);
+            }
+            if (colorInvertProgram) {
+                colorInvertProgram->release();
+            }
+            if (whiteFlashProgram) {
+                whiteFlashProgram->release();
+            }
+            if (blurProgram) {
+                blurProgram->release();
+            }
+            if (unifiedTexture) {
+                unifiedTexture->release();
+            }
+        }
+        void disarm() { armed = false; }
+    } rb;
+
     auto* unifiedTexture = CCRenderTexture::create(
         static_cast<int>(std::ceil(captureSize.width)),
         static_cast<int>(std::ceil(captureSize.height)),
@@ -284,10 +320,10 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         return out;
     }
     unifiedTexture->retain();
+    rb.unifiedTexture = unifiedTexture;
 
     auto* finalComposite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
     if (!finalComposite) {
-        unifiedTexture->release();
         return out;
     }
     finalComposite->setID("object-blur-final-composite"_spr);
@@ -303,10 +339,10 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         finalComposite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
     }
     overlayLayer->addChild(finalComposite, outputZOrder);
+    rb.finalComposite = finalComposite;
 
     auto* whiteFlashSprite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
     if (!whiteFlashSprite) {
-        unifiedTexture->release();
         return out;
     }
     whiteFlashSprite->setID("object-blur-flash-sprite"_spr);
@@ -322,6 +358,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         whiteFlashSprite->setScaleY(ch > 0.0f ? outputSize.height / ch : outputSize.height);
     }
     overlayLayer->addChild(whiteFlashSprite, outputZOrder);
+    rb.whiteFlashSprite = whiteFlashSprite;
 
     GLint locBlurDir = -1;
     auto* blurProgram = createMotionBlurProgram(&locBlurDir);
@@ -329,38 +366,32 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         if (blurProgram) {
             blurProgram->release();
         }
-        unifiedTexture->release();
         return out;
     }
+    rb.blurProgram = blurProgram;
 
     auto* whiteFlashProgram = createWhiteFlashProgram();
     if (!whiteFlashProgram) {
-        blurProgram->release();
-        unifiedTexture->release();
         return out;
     }
+    rb.whiteFlashProgram = whiteFlashProgram;
     whiteFlashSprite->setShaderProgram(whiteFlashProgram);
 
     auto* colorInvertProgram = createColorInvertProgram();
     if (!colorInvertProgram) {
-        whiteFlashProgram->release();
-        blurProgram->release();
-        unifiedTexture->release();
         return out;
     }
+    rb.colorInvertProgram = colorInvertProgram;
 
     auto* mergeRoot = CCNode::create();
     if (!mergeRoot) {
-        colorInvertProgram->release();
-        whiteFlashProgram->release();
-        blurProgram->release();
-        unifiedTexture->release();
         return out;
     }
     mergeRoot->setID("object-merge-root"_spr);
     mergeRoot->setPosition({0.0f, 0.0f});
     mergeRoot->setVisible(false);
     overlayLayer->addChild(mergeRoot, outputZOrder - 1);
+    rb.mergeRoot = mergeRoot;
 
     for (int i = 0; i < kMotionBlurObjectCount; ++i) {
         auto const& seed = objectSeeds[static_cast<size_t>(i)];
@@ -408,6 +439,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         out.objects[static_cast<size_t>(i)] = capture;
     }
 
+    rb.disarm();
     out.ok = true;
     out.blurProgram = blurProgram;
     out.locBlurDir = locBlurDir;
@@ -504,7 +536,7 @@ void globalScreenShake(float duration, float strength) {
     s_nextShakeAllowedSec =
         nowSec + static_cast<double>(totalShakeSec + kScreenShakeCooldownExtraSeconds);
 
-    thread_local std::mt19937 rng{std::random_device{}()};
+    static std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist(kScreenShakeSampleMin, kScreenShakeSampleMax);
 
     CCArray* actions = CCArray::create();

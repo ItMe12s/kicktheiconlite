@@ -2,19 +2,17 @@
 
 #include "../PhysicsOverlayTuning.h"
 
+#include <algorithm>
+
 namespace vfx::impact_noise {
 
 void update(ImpactNoiseState& state, float dt, bool flashActive) {
     if (!flashActive && state.remaining > 0.0f) {
         state.remaining -= dt;
-        if (state.remaining < 0.0f) {
-            state.remaining = 0.0f;
-        }
+        state.remaining = std::max(0.0f, state.remaining);
     }
 
-    float alpha = state.remaining / kImpactNoiseFadeSeconds;
-    if (alpha < 0.0f) alpha = 0.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
+    float const alpha = std::clamp(state.remaining / kImpactNoiseFadeSeconds, 0.0f, 1.0f);
 
     bool const visible = !flashActive && state.remaining > 0.0f;
     float const extraSkip = state.extraTimeSkip;

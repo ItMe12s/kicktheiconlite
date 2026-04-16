@@ -17,6 +17,8 @@
 #include "MathUtils.h"
 #include "Arbiter.h"
 
+namespace kti_b2l {
+
 struct Body;
 struct Joint;
 
@@ -42,5 +44,7 @@ struct World
 	static bool warmStarting;
 	static bool positionCorrection;
 };
+
+} // namespace kti_b2l
 
 #endif

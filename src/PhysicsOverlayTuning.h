@@ -11,7 +11,10 @@ constexpr int kHitProxyLocalZOrder = 6767; // Invisible touch target for ClickTr
 // Simulation and math
 constexpr int kPlayerRootZOrder = 1;
 constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
+static_assert(kFixedPhysicsDt > 0.0f);
 constexpr int kMaxPhysicsSubsteps = 16;
+// Clamp cocos scheduler dt so hitches do not explode physics accumulator before kPhysicsAccumulatorCap
+constexpr float kMaxSimulationFrameDt = 1.0f / 30.0f;
 constexpr float kPhysicsAccumulatorCap = kFixedPhysicsDt * static_cast<float>(kMaxPhysicsSubsteps);
 constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
 constexpr float kMinSpeedForInverse = 1e-6f;

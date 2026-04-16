@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 
+namespace kti_b2l {
 namespace {
 float polygonAreaAndCentroid(
 	const std::vector<Vec2>& vertices,
@@ -143,3 +144,5 @@ void Body::Set(const Vec2* verts, int count, float m)
 		invI = 0.0f;
 	}
 }
+
+} // namespace kti_b2l
