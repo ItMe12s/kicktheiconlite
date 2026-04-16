@@ -13,7 +13,10 @@ project(frickyou VERSION 1.0.0)
 set(SOURCES
   src/main.cpp
   src/OverlayRendering.cpp
-  src/PhysicsOverlay.cpp
+  src/physics-overlay/PhysicsOverlay.cpp
+  src/physics-overlay/PhysicsOverlayTouch.cpp
+  src/physics-overlay/PhysicsOverlayShatter.cpp
+  src/physics-overlay/PhysicsOverlayDebug.cpp
   src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
