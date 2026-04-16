@@ -131,6 +131,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
                     .blurUvSpread = kPlayerBlurUvSpread,
                     .blurStepDivisor = kPlayerBlurStepDivisor,
                     .keepBaseVisible = kPlayerKeepBaseVisible,
+                    .alwaysCaptureWhenEnabled = false,
                 },
             },
             overlay_rendering::MotionBlurObjectSeed {
@@ -143,6 +144,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
                     .blurUvSpread = kMenuBlurUvSpread,
                     .blurStepDivisor = kMenuBlurStepDivisor,
                     .keepBaseVisible = kMenuKeepBaseVisible,
+                    .alwaysCaptureWhenEnabled = false,
                 },
             },
         }
@@ -350,11 +352,12 @@ bool PhysicsOverlay::beginMenuShatter(float impactSpeedPx) {
     float const cellW = panelWidth / static_cast<float>(kMenuShardCols);
     float const cellH = panelHeight / static_cast<float>(kMenuShardRows);
     auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
-    auto* shardRoot = uiLayerRoot ? uiLayerRoot : this;
+    auto* shardRoot = m_menuShatter.root ? m_menuShatter.root : (uiLayerRoot ? uiLayerRoot : this);
     float const impactBias = std::max(0.0f, impactSpeedPx - kPanelShatterMinImpactSpeed);
 
     m_menuShatter.active = true;
     m_menuShatter.elapsed = 0.0f;
+    m_menuShatter.captureRoot = shardRoot;
     m_menuShatter.snapshot = snapshot;
     m_menuShatter.pieces.clear();
     m_menuShatter.pieces.reserve(static_cast<size_t>(kMenuShardRows * kMenuShardCols));
@@ -467,6 +470,7 @@ void PhysicsOverlay::clearMenuShatter() {
         }
     }
     m_menuShatter.pieces.clear();
+    m_menuShatter.captureRoot = nullptr;
     if (m_physics) {
         m_physics->clearShatterBodies();
     }
@@ -606,7 +610,19 @@ bool PhysicsOverlay::init() {
     m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
-    auto* uiRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    m_menuShatter.root = CCNode::create();
+    if (m_menuShatter.root) {
+        m_menuShatter.root->setID("menu-shatter-root"_spr);
+        m_menuShatter.root->setPosition({0.0f, 0.0f});
+        if (uiLayerRoot) {
+            uiLayerRoot->addChild(m_menuShatter.root, kPhysicsMenuZOrder);
+        } else {
+            this->addChild(m_menuShatter.root, kPhysicsMenuZOrder);
+        }
+    }
+
+    auto* uiRoot = uiLayerRoot;
     if (uiRoot) {
         float const baseX = kDebugLabelMarginX;
         float const baseY = m_winSize.height - kDebugLabelMarginY;
@@ -1028,7 +1044,13 @@ void PhysicsOverlay::update(float dt) {
     auto& menuCapture =
         m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
     bool const menuAvailable = m_physicsMenuVisual && m_physics->hasPanel();
-    menuCapture.enabled = menuAvailable;
+    bool const shatterAvailable =
+        m_menuShatter.active && m_menuShatter.captureRoot && !m_menuShatter.pieces.empty();
+    menuCapture.sourceRoot = menuAvailable
+        ? m_physicsMenuVisual->getRoot()
+        : (shatterAvailable ? m_menuShatter.captureRoot : nullptr);
+    menuCapture.enabled = menuCapture.sourceRoot != nullptr;
+    menuCapture.tuning.alwaysCaptureWhenEnabled = shatterAvailable;
     menuCapture.velocity = menuAvailable ? m_physics->getPanelVelocityPixels() : PhysicsVelocity{};
 
     vfx::object_motion_blur::refresh(m_objectBlur, flashMode);
@@ -1082,6 +1104,11 @@ void PhysicsOverlay::onExit() {
         m_trail.layer->removeFromParentAndCleanup(true);
         m_trail.layer = nullptr;
     }
+    if (m_menuShatter.root) {
+        m_menuShatter.root->removeFromParentAndCleanup(true);
+        m_menuShatter.root = nullptr;
+    }
+    m_menuShatter.captureRoot = nullptr;
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;

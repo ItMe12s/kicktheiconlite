@@ -541,6 +541,10 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
         if (!object.enabled || !object.sourceRoot) {
             continue;
         }
+        if (object.tuning.alwaysCaptureWhenEnabled) {
+            needCapture = true;
+            break;
+        }
         float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
         if (speed >= object.tuning.minBlurSpeedPx) {
             needCapture = true;

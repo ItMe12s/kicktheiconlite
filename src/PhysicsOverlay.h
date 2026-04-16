@@ -33,6 +33,8 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     struct MenuShatterState {
         bool active = false;
         float elapsed = 0.0f;
+        cocos2d::CCNode* root = nullptr;
+        cocos2d::CCNode* captureRoot = nullptr;
         cocos2d::CCRenderTexture* snapshot = nullptr;
         std::vector<MenuShatterPiece> pieces;
     };

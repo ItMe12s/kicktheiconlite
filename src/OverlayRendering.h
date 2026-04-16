@@ -128,6 +128,7 @@ struct MotionBlurObjectTuning {
     float blurUvSpread = 0.0f;
     int blurStepDivisor = 1;
     bool keepBaseVisible = false;
+    bool alwaysCaptureWhenEnabled = false;
 };
 
 struct MotionBlurObjectSeed {
