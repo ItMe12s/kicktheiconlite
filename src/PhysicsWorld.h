@@ -18,6 +18,19 @@ struct PhysicsImpactEvent {
     float impactSpeedPx = 0.0f;
 };
 
+struct PhysicsShatterBodyInit {
+    float widthPx = 0.0f;
+    float heightPx = 0.0f;
+    float xPx = 0.0f;
+    float yPx = 0.0f;
+    float angleRad = 0.0f;
+    float velocityXPx = 0.0f;
+    float velocityYPx = 0.0f;
+    float angularVelocityRad = 0.0f;
+    float friction = 0.45f;
+    float density = 0.85f;
+};
+
 class PhysicsWorld {
 public:
     PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH);
@@ -49,6 +62,10 @@ public:
     void setPanelDragging(bool on);
     void setPanelDragTargetPixels(float x, float y);
     void setPanelDragGrabOffsetPixels(float offsetX, float offsetY);
+    int spawnShatterBody(PhysicsShatterBodyInit const& init);
+    bool getShatterBodyState(int handle, PhysicsState& out) const;
+    void clearShatterBodies();
+    int getShatterBodyCount() const;
 
 private:
     void clampPlayerToScreenBorder();

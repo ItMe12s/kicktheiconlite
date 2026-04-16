@@ -8,6 +8,7 @@
 #include <cmath>
 #include <memory>
 #include <numbers>
+#include <vector>
 
 static constexpr float kPixelsPerMeter = 50.0f;
 
@@ -151,6 +152,7 @@ struct PhysicsWorld::Impl {
     Body wallRight;
     Body player;
     std::unique_ptr<Body> panel;
+    std::vector<std::unique_ptr<Body>> shatterBodies;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
         : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
@@ -273,6 +275,13 @@ void PhysicsWorld::step(float dt) {
     m_impl->world.Step(dt);
     clampPlayerToScreenBorder();
     clampPanelToScreenBorder();
+    float const ww = m_worldW / kPixelsPerMeter;
+    float const wh = m_worldH / kPixelsPerMeter;
+    for (auto const& shard : m_impl->shatterBodies) {
+        if (shard) {
+            clampBodyToScreenBorder(*shard, ww, wh);
+        }
+    }
 }
 
 PhysicsState PhysicsWorld::getPlayerState() const {
@@ -472,6 +481,56 @@ void PhysicsWorld::setPanelDragGrabOffsetPixels(float offsetX, float offsetY) {
     float const s = std::sin(p.rotation);
     m_panelGrabLocalX = c * wx + s * wy;
     m_panelGrabLocalY = -s * wx + c * wy;
+}
+
+int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
+    auto body = std::make_unique<Body>();
+    body->Set(
+        Vec2(init.widthPx / kPixelsPerMeter, init.heightPx / kPixelsPerMeter),
+        init.density
+    );
+    body->position.Set(init.xPx / kPixelsPerMeter, init.yPx / kPixelsPerMeter);
+    body->rotation = init.angleRad;
+    body->velocity.Set(init.velocityXPx / kPixelsPerMeter, init.velocityYPx / kPixelsPerMeter);
+    body->angularVelocity = init.angularVelocityRad;
+    body->friction = init.friction;
+    m_impl->world.Add(body.get());
+    m_impl->shatterBodies.push_back(std::move(body));
+    return static_cast<int>(m_impl->shatterBodies.size() - 1);
+}
+
+bool PhysicsWorld::getShatterBodyState(int handle, PhysicsState& out) const {
+    if (handle < 0) {
+        return false;
+    }
+    size_t const index = static_cast<size_t>(handle);
+    if (index >= m_impl->shatterBodies.size()) {
+        return false;
+    }
+    auto const& body = m_impl->shatterBodies[index];
+    if (!body) {
+        return false;
+    }
+    out = {
+        body->position.x * kPixelsPerMeter,
+        body->position.y * kPixelsPerMeter,
+        body->rotation,
+    };
+    return true;
+}
+
+void PhysicsWorld::clearShatterBodies() {
+    for (auto& body : m_impl->shatterBodies) {
+        if (body) {
+            m_impl->world.Remove(body.get());
+            body.reset();
+        }
+    }
+    m_impl->shatterBodies.clear();
+}
+
+int PhysicsWorld::getShatterBodyCount() const {
+    return static_cast<int>(m_impl->shatterBodies.size());
 }
 
 void PhysicsWorld::clampPanelToScreenBorder() {

@@ -54,6 +54,7 @@ constexpr float kPanelImpactMinShakeSpeed = 220.0f;
 constexpr float kPanelImpactShakeDuration = 0.18f;
 constexpr float kPanelImpactShakeSpeedToStrength = 0.0035f;
 constexpr float kPanelImpactMaxShakeStrength = 3.0f;
+constexpr float kPanelShatterMinImpactSpeed = 2200.0f;
 constexpr int kScreenShakeIntervals = 10;
 constexpr float kScreenShakeSampleMin = -1.0f;
 constexpr float kScreenShakeSampleMax = 1.0f;
@@ -134,3 +135,14 @@ constexpr float kPanelDefaultWFrac = 0.35f;
 constexpr float kPanelDefaultHFrac = 0.25f;
 constexpr float kPanelDefaultXFrac = 0.5f;
 constexpr float kPanelDefaultYFrac = 0.7f;
+
+// Fake menu shard simulation
+constexpr int kMenuShardRows = 4;
+constexpr int kMenuShardCols = 6;
+constexpr float kMenuShardLaunchSpeedMinPx = 240.0f;
+constexpr float kMenuShardLaunchSpeedMaxPx = 760.0f;
+constexpr float kMenuShardExtraImpactVelocityScale = 0.35f;
+constexpr float kMenuShardAngularVelocityMin = 2.0f;
+constexpr float kMenuShardAngularVelocityMax = 9.0f;
+constexpr float kMenuShardHoldSeconds = 12.0f;
+constexpr float kMenuShardFadeSeconds = 3.0f;

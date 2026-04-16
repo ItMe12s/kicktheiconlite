@@ -25,6 +25,18 @@ class CCLabelBMFont;
 }
 
 class PhysicsOverlay : public cocos2d::CCLayer {
+    struct MenuShatterPiece {
+        int bodyHandle = -1;
+        cocos2d::CCSprite* sprite = nullptr;
+    };
+
+    struct MenuShatterState {
+        bool active = false;
+        float elapsed = 0.0f;
+        cocos2d::CCRenderTexture* snapshot = nullptr;
+        std::vector<MenuShatterPiece> pieces;
+    };
+
     std::unique_ptr<PhysicsWorld> m_physics;
     std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
     vfx::ObjectMotionBlurPipelineState m_objectBlur{};
@@ -60,6 +72,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     geode::ListenerHandle m_tripleClickListener{};
 
     std::unique_ptr<PhysicsMenu> m_physicsMenuVisual;
+    MenuShatterState m_menuShatter{};
     bool m_panelDragActive = false;
     bool m_selfDestructRequested = false;
     bool m_skipGraphicsCleanup = false;
@@ -89,6 +102,10 @@ private:
     void toggleTestPanel();
     bool tryBeginPanelGrab(cocos2d::CCPoint const& locationInNode);
     void syncPanelNodeFromPhysics(float alpha);
+    void destroyPhysicsMenuVisual();
+    bool beginMenuShatter(float impactSpeedPx);
+    void updateMenuShatter(float dt);
+    void clearMenuShatter();
     void endTouchInteraction();
 
     void decrementCooldowns(float dt);

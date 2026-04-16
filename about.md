@@ -7,18 +7,28 @@
 
 - A cube that you can smack and throw around anywhere in the game
 - Many stimulating visual effects and sound effects
-- Random events that can happen while using the mod
+- Random events that can happen while messing around
+  - (Events will not trigger if you're not interacting with the mod)
 - Extra features and easter eggs that you can discover
-- Deep configuration (default settings are recommended for the best experience)
+- Deep configuration
+  - (Default settings are recommended for the best experience)
 
 ## How to play
 
 - Just tap and hold the cube to pick it up then throw it by releasing your finger
 - Triple tap the cube to summon a *special menu*
+  - (There's no close button, you'll have to *break* it)
 
 ## Events that can happen
 
-- Soggy Invasion
-- The Crossing
+- **Soggy Invasion**
+- **The Crossing**
 - **[REDACTED]**
 - ... and more to come in the future!
+
+### Cool techical stuff
+
+- Using a modified Box2D-Lite for the physics engine
+- Custom double/triple clicks event detection
+- GLSL shaders with a custom rendering pipeline
+- 3D assets were made in Blender
