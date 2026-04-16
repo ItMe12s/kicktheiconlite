@@ -68,6 +68,15 @@ int objectCompositeOrder(MotionBlurObjectId id) {
 
 constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
 
+void resetObjectVisualState(MotionBlurObjectCapture& object) {
+    if (object.sourceRoot) {
+        object.sourceRoot->setVisible(true);
+    }
+    if (object.blurSprite) {
+        object.blurSprite->setVisible(false);
+    }
+}
+
 } // namespace
 
 void MotionBlurSprite::setBlurUniforms(CCGLProgram* prog, GLint locBlurDir) {
@@ -541,9 +550,7 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
 
     if (!needCapture) {
         for (auto& object : *objects) {
-            if (object.sourceRoot) {
-                object.sourceRoot->setVisible(true);
-            }
+            resetObjectVisualState(object);
         }
         finalCompositeSprite->setVisible(false);
         if (whiteFlashSprite) {
@@ -554,13 +561,11 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
     }
 
     for (auto& object : *objects) {
-        if (!object.sourceRoot) {
+        if (!object.enabled || !object.sourceRoot || !object.renderTexture || !object.blurSprite) {
+            resetObjectVisualState(object);
             continue;
         }
-        if (!object.enabled || !object.renderTexture || !object.blurSprite) {
-            object.sourceRoot->setVisible(true);
-            continue;
-        }
+        object.blurSprite->setVisible(true);
 
         float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
         float const maxSpeed = std::max(object.tuning.maxBlurSpeedPx, object.tuning.minBlurSpeedPx + 1.0f);

@@ -12,8 +12,8 @@
 	"developer": "imes",
 	"description": "Throw your custom icon around lol",
 	"resources": {
-		"sprites": [
-			"src/assets/*.png"
+		"files": [
+			"src/assets/img_star1.png"
 		]
 	},
 	"dependencies": {
