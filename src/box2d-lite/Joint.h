@@ -21,8 +21,8 @@ struct Body;
 struct Joint
 {
 	Joint() :
-		body1(0), body2(0),
 		P(0.0f, 0.0f),
+		body1(0), body2(0),
 		biasFactor(0.2f), softness(0.0f)
 		{}
 

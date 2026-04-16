@@ -5,12 +5,12 @@
 #include "box2d-lite/Arbiter.h"
 
 #include <algorithm>
-
-using namespace kti_b2l;
 #include <cmath>
 #include <memory>
 #include <numbers>
 #include <vector>
+
+using namespace kti_b2l;
 
 static constexpr float kPixelsPerMeter = 50.0f;
 

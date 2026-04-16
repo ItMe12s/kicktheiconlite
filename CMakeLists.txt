@@ -69,8 +69,8 @@ add_subdirectory("$ENV{GEODE_SDK}" ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-# target_compile_options(${PROJECT_NAME} PRIVATE
-#   $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wpedantic>
-#   $<$<CXX_COMPILER_ID:MSVC>:/W4>)
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wpedantic>
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 
 setup_geode_mod(${PROJECT_NAME})

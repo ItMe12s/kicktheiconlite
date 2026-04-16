@@ -32,22 +32,20 @@ inline GLubyte colorToByte(float channel) {
     return static_cast<GLubyte>(clamped * 255.0f);
 }
 
-std::vector<std::string> g_debugLinesScratch;
+} // namespace
 
-std::vector<std::string> const& splitDebugLinesInto(std::string const& text) {
-    g_debugLinesScratch.clear();
+std::vector<std::string> const& PhysicsOverlay::splitDebugLinesInto(std::string const& text) {
+    m_debugLineScratch.clear();
     std::istringstream stream(text);
     std::string line;
     while (std::getline(stream, line)) {
-        g_debugLinesScratch.emplace_back(std::move(line));
+        m_debugLineScratch.emplace_back(std::move(line));
     }
-    if (g_debugLinesScratch.empty()) {
-        g_debugLinesScratch.emplace_back("");
+    if (m_debugLineScratch.empty()) {
+        m_debugLineScratch.emplace_back("");
     }
-    return g_debugLinesScratch;
+    return m_debugLineScratch;
 }
-
-} // namespace
 
 void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
     if (!m_debugLabel || !m_physics) {

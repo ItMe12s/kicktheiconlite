@@ -5,6 +5,7 @@
 
 #include <array>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "OverlayRendering.h"
@@ -71,6 +72,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     PhysicsImpactEvent m_lastPlayerImpact{};
     PhysicsImpactEvent m_lastPanelImpact{};
     vfx::SandevistanTrailState m_trail{};
+    std::vector<std::string> m_debugLineScratch{};
 
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
@@ -117,4 +119,5 @@ private:
     void stepPhysicsUnlessHitstop(float dt);
     void syncPlayerNodeFromPhysics();
     void updateDebugOverlayText(float dt);
+    std::vector<std::string> const& splitDebugLinesInto(std::string const& text);
 };

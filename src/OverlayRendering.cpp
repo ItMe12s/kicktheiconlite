@@ -440,6 +440,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     }
 
     rb.disarm();
+    // ok reflects shared pipeline only, individual object captures may still be nullptr
     out.ok = true;
     out.blurProgram = blurProgram;
     out.locBlurDir = locBlurDir;

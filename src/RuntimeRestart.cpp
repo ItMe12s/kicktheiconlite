@@ -82,6 +82,11 @@ bool isRestartRequired() {
 
 } // namespace runtime_restart
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#endif
+
 struct $modify(KickTheIconMenuLayerHook, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) {
@@ -108,4 +113,8 @@ struct $modify(KickTheIconFullscreenHook, CCEGLView) {
         }
     }
 };
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif

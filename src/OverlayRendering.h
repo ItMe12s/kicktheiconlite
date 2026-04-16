@@ -148,6 +148,8 @@ struct MotionBlurObjectCapture {
     PhysicsVelocity velocity = {};
 };
 
+// ok: shared pipeline (programs + merge root + composites) built successfully
+// Per-object render textures / MotionBlurSprite in objects[] are best-effort, missing entries stay disabled
 struct ObjectMotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCGLProgram* blurProgram = nullptr;

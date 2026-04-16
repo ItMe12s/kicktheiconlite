@@ -15,7 +15,11 @@ static_assert(kFixedPhysicsDt > 0.0f);
 constexpr int kMaxPhysicsSubsteps = 16;
 // Clamp cocos scheduler dt so hitches do not explode physics accumulator before kPhysicsAccumulatorCap
 constexpr float kMaxSimulationFrameDt = 1.0f / 30.0f;
+static_assert(kMaxSimulationFrameDt > 0.0f);
 constexpr float kPhysicsAccumulatorCap = kFixedPhysicsDt * static_cast<float>(kMaxPhysicsSubsteps);
+static_assert(kPhysicsAccumulatorCap > 0.0f);
+// One scheduler frame may add at most one capped step worth into the bucket (worst hitch still bounded)
+static_assert(kMaxSimulationFrameDt <= kPhysicsAccumulatorCap);
 constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
 constexpr float kMinSpeedForInverse = 1e-6f;
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;

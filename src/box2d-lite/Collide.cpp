@@ -51,7 +51,7 @@ void projectPolygon(std::vector<Vec2> const& vertices, Vec2 const& axis, float& 
 float findAxisLeastPenetration(
 	Body const* reference,
 	std::vector<Vec2> const& referenceVerts,
-	Body const* incident,
+	[[maybe_unused]] Body const* incident,
 	std::vector<Vec2> const& incidentVerts,
 	int& outRefEdge
 ) {

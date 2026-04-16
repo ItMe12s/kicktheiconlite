@@ -219,10 +219,10 @@ bool PhysicsOverlay::init() {
     this->setTouchPriority(kPhysicsOverlayTouchPriority);
 
     if (auto* view = CCDirector::get()->getOpenGLView()) {
-        // Using the protocol interface so this compiles on all platforms
-        auto* protocol = static_cast<cocos2d::CCEGLViewProtocol*>(view);
-        m_lastGlReady = protocol->isOpenGLReady();
-        m_glReadyCheckInitialized = true;
+        if (auto* protocol = typeinfo_cast<cocos2d::CCEGLViewProtocol*>(view)) {
+            m_lastGlReady = protocol->isOpenGLReady();
+            m_glReadyCheckInitialized = true;
+        }
     }
 
     CCDirector::get()->getScheduler()->scheduleUpdateForTarget(this, kPhysicsOverlaySchedulerPriority, false);
@@ -360,13 +360,14 @@ void PhysicsOverlay::update(float dt) {
     // isOpenGLReady() is the cross-platform signal to bail out before drawing with stale handles
     if (m_glReadyCheckInitialized) {
         if (auto* view = CCDirector::get()->getOpenGLView()) {
-            auto* protocol = static_cast<cocos2d::CCEGLViewProtocol*>(view);
-            bool const glReady = protocol->isOpenGLReady();
-            if (m_lastGlReady && !glReady) {
-                runtime_restart::requestFullscreenSelfDestruct("openGL context became unready");
-                return;
+            if (auto* protocol = typeinfo_cast<cocos2d::CCEGLViewProtocol*>(view)) {
+                bool const glReady = protocol->isOpenGLReady();
+                if (m_lastGlReady && !glReady) {
+                    runtime_restart::requestFullscreenSelfDestruct("openGL context became unready");
+                    return;
+                }
+                m_lastGlReady = glReady;
             }
-            m_lastGlReady = glReady;
         }
     }
 

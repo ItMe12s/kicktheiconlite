@@ -149,7 +149,8 @@ CCRect unionWorldBoundsTree(CCNode* n, int depth) {
     }
     CCRect acc = worldBoundsFromNode(n);
     if (CCArray* children = n->getChildren()) {
-        for (int i = 0; i < children->count(); ++i) {
+        unsigned int const nChildren = children->count();
+        for (unsigned int i = 0; i < nChildren; ++i) {
             auto* ch = typeinfo_cast<CCNode*>(children->objectAtIndex(i));
             if (!ch) {
                 continue;

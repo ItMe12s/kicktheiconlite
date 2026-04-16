@@ -14,7 +14,6 @@ constexpr float kTitleLabelScale = 0.5f;
 constexpr float kTitleTopInset = 14.0f;
 constexpr float kMenuYFrac = 0.45;
 constexpr float kPopupOpacity = 192.0f;
-constexpr float kPopupFrameInset = 4.0f;
 } // namespace
 
 PhysicsMenu::~PhysicsMenu() {
@@ -55,7 +54,7 @@ bool PhysicsMenu::build(float width, float height) {
 
     // auto* popupFrame = cocos2d::extension::CCScale9Sprite::create("square02b_001.png");
     // if (popupFrame) {
-    //     popupFrame->setContentSize({width - kPopupFrameInset * 2.0f, height - kPopupFrameInset * 2.0f});
+    //     popupFrame->setContentSize({width - 8.0f, height - 8.0f}); // 4px inset each side
     //     popupFrame->setAnchorPoint({0.5f, 0.5f});
     //     popupFrame->setPosition({hw, hh});
     //     root->addChild(popupFrame, 1);
