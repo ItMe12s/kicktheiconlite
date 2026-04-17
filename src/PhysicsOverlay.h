@@ -74,6 +74,11 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     PhysicsImpactEvent m_lastPanelImpact{};
     vfx::SandevistanTrailState m_trail{};
     std::vector<std::string> m_debugLineScratch{};
+    cocos2d::CCNode* m_glyphDemoRoot = nullptr;
+    cocos2d::CCSprite* m_glyphDemoStaticLine = nullptr;
+    std::vector<cocos2d::CCSprite*> m_glyphDemoWobbleSprites;
+    std::vector<cocos2d::CCPoint> m_glyphDemoWobbleBasePositions;
+    float m_glyphDemoTime = 0.0f;
 
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
@@ -119,6 +124,9 @@ private:
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
     void syncPlayerNodeFromPhysics();
+    void initGlyphVisualTest();
+    void updateGlyphVisualTest(float dt);
+    void clearGlyphVisualTest();
     void updateDebugOverlayText(float dt);
     std::vector<std::string> const& splitDebugLinesInto(std::string const& text);
 };

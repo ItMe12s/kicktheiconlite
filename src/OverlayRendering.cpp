@@ -79,7 +79,14 @@ bool runGlyphApiSanityChecks() {
     options.unsupportedPolicy = GlyphUnsupportedPolicy::ReplaceWithFallback;
     auto sanity = layoutGlyphText("A?~", options);
     if (!sanity.ok || sanity.glyphs.size() != 3) {
-        log::warn("Glyph text API sanity check failed: expected 3 supported glyphs");
+        if (!sanity.ok) {
+            log::warn("Glyph text API sanity check failed: {}", sanity.error);
+        } else {
+            log::warn(
+                "Glyph text API sanity check failed: expected 3 supported glyphs, got {}",
+                sanity.glyphs.size()
+            );
+        }
         return false;
     }
     options.unsupportedPolicy = GlyphUnsupportedPolicy::Skip;

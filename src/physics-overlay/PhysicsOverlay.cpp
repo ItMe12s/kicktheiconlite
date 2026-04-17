@@ -28,6 +28,17 @@
 using namespace geode::prelude;
 
 namespace {
+constexpr char kGlyphDemoStaticText[] = "Lorem ipsum dolor sit amet,";
+constexpr char kGlyphDemoWobbleText[] = "consectetur adipiscing elit,";
+constexpr float kGlyphDemoStaticScale = 0.35f;
+constexpr float kGlyphDemoWobbleScale = 0.35f;
+constexpr float kGlyphDemoLetterSpacing = -7.0f;
+constexpr float kGlyphDemoLineGap = 50.0f;
+constexpr float kGlyphDemoWobbleAmpX = 5.0f;
+constexpr float kGlyphDemoWobbleAmpY = 7.0f;
+constexpr float kGlyphDemoWobbleFreqX = 3.2f;
+constexpr float kGlyphDemoWobbleFreqY = 4.5f;
+constexpr float kGlyphDemoWobblePhaseStep = 0.45f;
 
 inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
@@ -212,6 +223,8 @@ bool PhysicsOverlay::init() {
         }
     }
 
+    initGlyphVisualTest();
+
     setID("physics-overlay"_spr);
 
     this->setTouchEnabled(true);
@@ -345,6 +358,103 @@ void PhysicsOverlay::syncPlayerNodeFromPhysics() {
     }
 }
 
+void PhysicsOverlay::initGlyphVisualTest() {
+    clearGlyphVisualTest();
+
+    auto* uiRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    if (!uiRoot) {
+        return;
+    }
+
+    m_glyphDemoRoot = CCNode::create();
+    if (!m_glyphDemoRoot) {
+        return;
+    }
+    m_glyphDemoRoot->setID("glyph-visual-test-root"_spr);
+    m_glyphDemoRoot->setPosition({0.0f, 0.0f});
+    uiRoot->addChild(m_glyphDemoRoot, kDebugLabelZOrder + 1);
+
+    overlay_rendering::GlyphTextOptions staticOptions{};
+    staticOptions.scale = kGlyphDemoStaticScale;
+    staticOptions.letterSpacing = kGlyphDemoLetterSpacing;
+    staticOptions.align = overlay_rendering::GlyphTextAlign::Center;
+    auto* staticLine = overlay_rendering::buildGlyphTextSprite(kGlyphDemoStaticText, staticOptions);
+    if (staticLine) {
+        staticLine->setID("glyph-visual-test-static-line"_spr);
+        staticLine->setAnchorPoint({0.5f, 0.5f});
+        staticLine->setPosition({m_winSize.width * 0.5f, m_winSize.height * 0.5f});
+        m_glyphDemoRoot->addChild(staticLine);
+        m_glyphDemoStaticLine = staticLine;
+    }
+
+    overlay_rendering::GlyphTextOptions wobbleOptions{};
+    wobbleOptions.scale = kGlyphDemoWobbleScale;
+    wobbleOptions.letterSpacing = kGlyphDemoLetterSpacing;
+    wobbleOptions.align = overlay_rendering::GlyphTextAlign::Left;
+    auto wobbleSprites = overlay_rendering::buildGlyphTextSprites(kGlyphDemoWobbleText, wobbleOptions);
+    if (wobbleSprites.empty()) {
+        return;
+    }
+
+    auto const wobbleLayout = overlay_rendering::layoutGlyphText(kGlyphDemoWobbleText, wobbleOptions);
+    if (!wobbleLayout.ok || wobbleLayout.glyphs.empty()) {
+        return;
+    }
+
+    float const baselineX = (m_winSize.width - wobbleLayout.bounds.width) * 0.5f;
+    float const baselineY = (m_winSize.height * 0.5f) - kGlyphDemoLineGap;
+    size_t const glyphCount = std::min(wobbleSprites.size(), wobbleLayout.glyphs.size());
+    m_glyphDemoWobbleSprites.reserve(glyphCount);
+    m_glyphDemoWobbleBasePositions.reserve(glyphCount);
+    for (size_t idx = 0; idx < glyphCount; ++idx) {
+        auto* sprite = wobbleSprites[idx];
+        if (!sprite) {
+            continue;
+        }
+        auto const& glyph = wobbleLayout.glyphs[idx];
+        CCPoint const basePosition = {
+            baselineX + glyph.position.x,
+            baselineY + glyph.position.y,
+        };
+        sprite->setID("glyph-visual-test-wobble-glyph"_spr);
+        sprite->setPosition(basePosition);
+        m_glyphDemoRoot->addChild(sprite);
+        m_glyphDemoWobbleSprites.push_back(sprite);
+        m_glyphDemoWobbleBasePositions.push_back(basePosition);
+    }
+}
+
+void PhysicsOverlay::updateGlyphVisualTest(float dt) {
+    if (m_glyphDemoWobbleSprites.empty()) {
+        return;
+    }
+
+    m_glyphDemoTime += dt;
+    size_t const glyphCount = std::min(m_glyphDemoWobbleSprites.size(), m_glyphDemoWobbleBasePositions.size());
+    for (size_t idx = 0; idx < glyphCount; ++idx) {
+        auto* sprite = m_glyphDemoWobbleSprites[idx];
+        if (!sprite) {
+            continue;
+        }
+        CCPoint const base = m_glyphDemoWobbleBasePositions[idx];
+        float const phase = static_cast<float>(idx) * kGlyphDemoWobblePhaseStep;
+        float const wobbleX = std::sin(m_glyphDemoTime * kGlyphDemoWobbleFreqX + phase) * kGlyphDemoWobbleAmpX;
+        float const wobbleY = std::cos(m_glyphDemoTime * kGlyphDemoWobbleFreqY + phase) * kGlyphDemoWobbleAmpY;
+        sprite->setPosition({base.x + wobbleX, base.y + wobbleY});
+    }
+}
+
+void PhysicsOverlay::clearGlyphVisualTest() {
+    m_glyphDemoWobbleSprites.clear();
+    m_glyphDemoWobbleBasePositions.clear();
+    m_glyphDemoStaticLine = nullptr;
+    m_glyphDemoTime = 0.0f;
+    if (m_glyphDemoRoot) {
+        m_glyphDemoRoot->removeFromParentAndCleanup(true);
+        m_glyphDemoRoot = nullptr;
+    }
+}
+
 void PhysicsOverlay::update(float dt) {
     if (m_selfDestructRequested || runtime_restart::isRestartRequired()) {
         return;
@@ -378,6 +488,7 @@ void PhysicsOverlay::update(float dt) {
     decrementCooldowns(dt);
     tryBuildVisualIfNeeded();
     stepPhysicsUnlessHitstop(dt);
+    updateGlyphVisualTest(dt);
 
     m_debugLabelAccumulator += dt;
     if (m_debugLabelAccumulator >= kDebugLabelUpdateInterval) {
@@ -473,6 +584,7 @@ void PhysicsOverlay::onExit() {
         destroyPhysicsMenuVisual();
     }
     clearMenuShatter();
+    clearGlyphVisualTest();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
     if (m_trail.layer) {

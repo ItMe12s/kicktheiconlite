@@ -5,10 +5,12 @@
 #include <Geode/cocos/platform/CCFileUtils.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/cocos/sprite_nodes/CCSpriteFrameCache.h>
+#include <Geode/loader/Mod.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
-#include <fstream>
+#include <cstddef>
 #include <regex>
 #include <sstream>
 #include <unordered_map>
@@ -27,6 +29,24 @@ struct GlyphAtlasCache {
 GlyphAtlasCache& glyphAtlasCache() {
     static GlyphAtlasCache cache;
     return cache;
+}
+
+std::string qualifyFrameName(std::string const& rawFrameName) {
+    return Mod::get()->getID() + "/" + rawFrameName;
+}
+
+CCSpriteFrame* findGlyphFrame(std::string const& rawFrameName, bool allowNamespacedFallback = true) {
+    auto* cache = CCSpriteFrameCache::sharedSpriteFrameCache();
+    // Raw frame keys are what glyph_atlas.plist stores
+    // Probe them first to avoid Geode fallback-texture warnings for missing namespaced keys
+    if (auto* raw = cache->spriteFrameByName(rawFrameName.c_str())) {
+        return raw;
+    }
+    if (!allowNamespacedFallback) {
+        return nullptr;
+    }
+    std::string const qualified = qualifyFrameName(rawFrameName);
+    return cache->spriteFrameByName(qualified.c_str());
 }
 
 std::string decodeXmlEntityString(std::string text) {
@@ -93,15 +113,8 @@ bool tryLoadGlyphAtlasMapping(std::string* outError = nullptr) {
     if (cache.loaded) {
         return true;
     }
-    if (cache.attemptedLoad) {
-        if (outError) {
-            *outError = "glyph atlas not loaded";
-        }
-        return false;
-    }
-    cache.attemptedLoad = true;
 
-    std::string const atlasPlist = "glyph_atlas.plist";
+    std::string const atlasPlist = "glyph_atlas.plist"_spr;
     std::string const fullPath = CCFileUtils::sharedFileUtils()->fullPathForFilename(atlasPlist.c_str(), false);
     if (fullPath.empty()) {
         if (outError) {
@@ -110,20 +123,26 @@ bool tryLoadGlyphAtlasMapping(std::string* outError = nullptr) {
         return false;
     }
 
-    CCSpriteFrameCache::sharedSpriteFrameCache()->addSpriteFramesWithFile(atlasPlist.c_str());
+    std::string const atlasTexture = "glyph_atlas.png"_spr;
+    CCSpriteFrameCache::sharedSpriteFrameCache()->addSpriteFramesWithFile(
+        atlasPlist.c_str(),
+        atlasTexture.c_str()
+    );
 
-    std::ifstream file(fullPath, std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
+    unsigned long dataSize = 0;
+    auto* rawData = CCFileUtils::sharedFileUtils()->getFileData(atlasPlist.c_str(), "rb", &dataSize);
+    if (!rawData || dataSize == 0) {
         if (outError) {
             *outError = "failed to open glyph_atlas.plist";
         }
+        delete[] rawData;
         return false;
     }
 
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
+    std::string plistXml(reinterpret_cast<char const*>(rawData), static_cast<size_t>(dataSize));
+    delete[] rawData;
     std::unordered_map<char, std::string> mapping;
-    if (!parseSymbolFrameKeysFromPlist(buffer.str(), mapping)) {
+    if (!parseSymbolFrameKeysFromPlist(plistXml, mapping)) {
         if (outError) {
             *outError = "failed to parse metadata.symbolFrameKeys";
         }
@@ -131,15 +150,27 @@ bool tryLoadGlyphAtlasMapping(std::string* outError = nullptr) {
     }
 
     for (auto const& [symbol, frameName] : mapping) {
-        if (!CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(frameName.c_str())) {
+        if (!findGlyphFrame(frameName, false)) {
             if (outError) {
-                *outError = "missing sprite frame in atlas cache";
+                *outError = fmt::format(
+                    "missing sprite frame in atlas cache (raw='{}', namespaced='{}')",
+                    frameName,
+                    qualifyFrameName(frameName)
+                );
             }
             return false;
         }
     }
 
+    if (!findGlyphFrame("glyph_001_A.png", false)) {
+        if (outError) {
+            *outError = "atlas verification failed: glyph_001_A.png unresolved";
+        }
+        return false;
+    }
+
     cache.symbolFrameNames = std::move(mapping);
+    cache.attemptedLoad = true;
     cache.loaded = true;
     return true;
 }
@@ -147,11 +178,15 @@ bool tryLoadGlyphAtlasMapping(std::string* outError = nullptr) {
 CCSpriteFrame* resolveGlyphFrame(char symbol, std::string& outFrameName) {
     auto& cache = glyphAtlasCache();
     auto it = cache.symbolFrameNames.find(symbol);
+    if (it == cache.symbolFrameNames.end() && std::isalpha(static_cast<unsigned char>(symbol))) {
+        char const upperSymbol = static_cast<char>(std::toupper(static_cast<unsigned char>(symbol)));
+        it = cache.symbolFrameNames.find(upperSymbol);
+    }
     if (it == cache.symbolFrameNames.end()) {
         return nullptr;
     }
     outFrameName = it->second;
-    return CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(outFrameName.c_str());
+    return findGlyphFrame(outFrameName);
 }
 
 float effectiveLineHeight(float maxGlyphHeight, TextOptions const& options) {
@@ -206,6 +241,12 @@ float measureWordWidth(std::string const& text, size_t start, TextOptions const&
         hasGlyph = true;
     }
     return width;
+}
+
+float spaceAdvance(TextOptions const& options) {
+    float const safeScale = std::max(options.scale, 0.0f);
+    // Pick a simple margin for spaces so they don't render fallback glyphs
+    return std::max(8.0f, 56.0f * safeScale);
 }
 
 std::vector<CCSprite*> buildSpritesFromLayout(LayoutResult const& layout) {
@@ -266,6 +307,13 @@ LayoutResult layoutText(std::string const& text, TextOptions const& options) {
         if (symbol == '\n') {
             finalizeLine();
             y -= effectiveLineHeight(maxGlyphHeight, options);
+            continue;
+        }
+        if (symbol == ' ') {
+            if (hasGlyphInLine) {
+                x += options.letterSpacing;
+            }
+            x += spaceAdvance(options);
             continue;
         }
 
