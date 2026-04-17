@@ -3,6 +3,7 @@
 
 #include <Geode/loader/Mod.hpp>
 #include <Geode/loader/SettingV3.hpp>
+#include <algorithm>
 #include "ModSettings.h"
 #include "ModTuning.h"
 
@@ -108,8 +109,8 @@ void bindAll() {
     listenForSettingChanges<double>("panel-impact-max-shake-strength", [](double v) { kPanelImpactMaxShakeStrength = static_cast<float>(v); });
     kPanelShatterMinImpactSpeed = static_cast<float>(mod->getSettingValue<double>("panel-shatter-min-impact-speed"));
     listenForSettingChanges<double>("panel-shatter-min-impact-speed", [](double v) { kPanelShatterMinImpactSpeed = static_cast<float>(v); });
-    kScreenShakeIntervals = static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-intervals"));
-    listenForSettingChanges<int64_t>("screen-shake-intervals", [](int64_t v) { kScreenShakeIntervals = static_cast<int>(v); });
+    kScreenShakeIntervals = std::max(static_cast<int>(static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-intervals"))), 1);
+    listenForSettingChanges<int64_t>("screen-shake-intervals", [](int64_t v) { kScreenShakeIntervals = std::max(static_cast<int>(v), 1); });
     kScreenShakeSampleMin = static_cast<float>(mod->getSettingValue<double>("screen-shake-sample-min"));
     listenForSettingChanges<double>("screen-shake-sample-min", [](double v) { kScreenShakeSampleMin = static_cast<float>(v); });
     kScreenShakeSampleMax = static_cast<float>(mod->getSettingValue<double>("screen-shake-sample-max"));
@@ -118,8 +119,8 @@ void bindAll() {
     listenForSettingChanges<double>("screen-shake-cooldown-extra-seconds", [](double v) { kScreenShakeCooldownExtraSeconds = static_cast<float>(v); });
 
     // Impact noise pass
-    kImpactNoiseFadeSeconds = static_cast<float>(mod->getSettingValue<double>("impact-noise-fade-seconds"));
-    listenForSettingChanges<double>("impact-noise-fade-seconds", [](double v) { kImpactNoiseFadeSeconds = static_cast<float>(v); });
+    kImpactNoiseFadeSeconds = std::max(static_cast<float>(static_cast<float>(mod->getSettingValue<double>("impact-noise-fade-seconds"))), 0.0001f);
+    listenForSettingChanges<double>("impact-noise-fade-seconds", [](double v) { kImpactNoiseFadeSeconds = std::max(static_cast<float>(v), 0.0001f); });
     kImpactNoiseStackedImpactTimeSkip = static_cast<float>(mod->getSettingValue<double>("impact-noise-stacked-impact-time-skip"));
     listenForSettingChanges<double>("impact-noise-stacked-impact-time-skip", [](double v) { kImpactNoiseStackedImpactTimeSkip = static_cast<float>(v); });
     kImpactNoiseCompositeNearestFilter = mod->getSettingValue<bool>("impact-noise-composite-nearest-filter");
@@ -276,8 +277,8 @@ void bindAll() {
     listenForSettingChanges<double>("menu-shard-fade-seconds", [](double v) { kMenuShardFadeSeconds = static_cast<float>(v); });
 
     // World physics
-    kPixelsPerMeter = static_cast<float>(mod->getSettingValue<double>("pixels-per-meter"));
-    listenForSettingChanges<double>("pixels-per-meter", [](double v) { kPixelsPerMeter = static_cast<float>(v); });
+    kPixelsPerMeter = std::max(static_cast<float>(static_cast<float>(mod->getSettingValue<double>("pixels-per-meter"))), 1.0f);
+    listenForSettingChanges<double>("pixels-per-meter", [](double v) { kPixelsPerMeter = std::max(static_cast<float>(v), 1.0f); });
     kEarthGravity = static_cast<float>(mod->getSettingValue<double>("earth-gravity"));
     listenForSettingChanges<double>("earth-gravity", [](double v) { kEarthGravity = static_cast<float>(v); });
     kGravityScale = static_cast<float>(mod->getSettingValue<double>("gravity-scale"));

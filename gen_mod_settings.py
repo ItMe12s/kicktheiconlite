@@ -24,6 +24,26 @@ SKIP_SYMBOLS = {
     "kB2MaxPolygonVertices",  # Body struct layout
 }
 
+# Runtime safety clamps for values loaded from mod settings
+# Keys are C++ symbols from ModTuning.h
+GUARDRAILS = {
+    # Used as denominator in world/physics conversion math
+    "kPixelsPerMeter": {
+        "type": "double",
+        "expr_template": "std::max(static_cast<float>({value}), 1.0f)",
+    },
+    # Used as denominator in screen-shake timing and interpolation loops
+    "kScreenShakeIntervals": {
+        "type": "int64_t",
+        "expr_template": "std::max(static_cast<int>({value}), 1)",
+    },
+    # Used as denominator for impact-noise alpha
+    "kImpactNoiseFadeSeconds": {
+        "type": "double",
+        "expr_template": "std::max(static_cast<float>({value}), 0.0001f)",
+    },
+}
+
 # Key naming
 
 
@@ -260,6 +280,7 @@ def build_binder(header_path: pathlib.Path, binder_entries: list) -> str:
         "",
         "#include <Geode/loader/Mod.hpp>",
         "#include <Geode/loader/SettingV3.hpp>",
+        "#include <algorithm>",
         '#include "ModSettings.h"',
         '#include "ModTuning.h"',
         "",
@@ -283,6 +304,8 @@ def build_binder(header_path: pathlib.Path, binder_entries: list) -> str:
         qual = f"{ns}::{symbol}" if ns else symbol
         cpp_type = entry["cpp_type"]
 
+        guard = GUARDRAILS.get(symbol)
+
         if cpp_type == "bool":
             seed = f'mod->getSettingValue<bool>("{key}")'
             setting_type = "bool"
@@ -298,6 +321,12 @@ def build_binder(header_path: pathlib.Path, binder_entries: list) -> str:
             setting_type = "double"
             cb_sig = "double v"
             assign = f"static_cast<{cpp_type}>(v)"
+
+        if guard:
+            setting_type = guard["type"]
+            cb_sig = f"{setting_type} v"
+            assign = guard["expr_template"].format(value="v")
+            seed = guard["expr_template"].format(value=seed)
 
         lines.append(f"    {qual} = {seed};")
         lines.append(
