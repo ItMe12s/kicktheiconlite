@@ -30,7 +30,7 @@ struct ImpactNoiseState {
 
 struct StarBurstState {
     cocos2d::CCNode* layer = nullptr;
-    std::array<cocos2d::CCSprite*, kStarBurstCount> sprites{};
+    std::array<cocos2d::CCSprite*, kStarBurstSpriteSlots> sprites{};
     int phaseIndex = -1;
 };
 

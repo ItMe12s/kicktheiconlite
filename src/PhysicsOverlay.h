@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/loader/Event.hpp>
 
 #include <array>

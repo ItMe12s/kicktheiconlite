@@ -31,6 +31,10 @@
 		"geode.node-ids": ">=v1.20.0"
 	},
 	"settings": {
+		"title-player-visual-namespace-0": {
+			"type": "title",
+			"name": "Player visual namespace"
+		},
 		"player-visual-max-world-bounds-tree-depth": {
 			"type": "int",
 			"name": "Player Visual Max World Bounds Tree Depth",
@@ -66,6 +70,10 @@
 			"name": "Player Visual Player Visual Local Z Order",
 			"default": 0
 		},
+		"title-overlay-and-input-ordering-0": {
+			"type": "title",
+			"name": "Overlay and input ordering"
+		},
 		"physics-overlay-z-order": {
 			"type": "int",
 			"name": "Physics Overlay Z Order",
@@ -94,21 +102,6 @@
 			"type": "int",
 			"name": "Player Root Z Order",
 			"default": 1
-		},
-		"fixed-physics-dt": {
-			"type": "float",
-			"name": "Fixed Physics Dt",
-			"default": 0.008333333333333333
-		},
-		"max-physics-substeps": {
-			"type": "int",
-			"name": "Max Physics Substeps",
-			"default": 16
-		},
-		"max-simulation-frame-dt": {
-			"type": "float",
-			"name": "Max Simulation Frame Dt",
-			"default": 0.03333333333333333
 		},
 		"min-speed-for-inverse": {
 			"type": "float",
@@ -206,16 +199,6 @@
 			"type": "float",
 			"name": "Impact Hitstop Seconds",
 			"default": 0.15
-		},
-		"impact-flash-total-seconds": {
-			"type": "float",
-			"name": "Impact Flash Total Seconds",
-			"default": 0.15
-		},
-		"impact-flash-phase-seconds": {
-			"type": "float",
-			"name": "Impact Flash Phase Seconds",
-			"default": 0.05
 		},
 		"impact-flash-cooldown-seconds": {
 			"type": "float",
@@ -328,11 +311,6 @@
 		"title-star-burst-composition-0": {
 			"type": "title",
 			"name": "Star burst composition"
-		},
-		"star-burst-count": {
-			"type": "int",
-			"name": "Star Burst Count",
-			"default": 5
 		},
 		"big-star-count": {
 			"type": "int",
@@ -584,16 +562,6 @@
 			"name": "Debug Label Margin Y",
 			"default": 4.0
 		},
-		"debug-label-z-order": {
-			"type": "int",
-			"name": "Debug Label Z Order",
-			"default": 6767
-		},
-		"debug-label-update-hz": {
-			"type": "float",
-			"name": "Debug Label Update Hz",
-			"default": 20.0
-		},
 		"debug-label-font-scale": {
 			"type": "float",
 			"name": "Debug Label Font Scale",
@@ -656,16 +624,6 @@
 		"title-fake-menu-shard-simulation-two-triangles-per-grid-cell-0": {
 			"type": "title",
 			"name": "Fake menu shard simulation (two triangles per grid cell)"
-		},
-		"menu-shard-rows": {
-			"type": "int",
-			"name": "Menu Shard Rows",
-			"default": 4
-		},
-		"menu-shard-cols": {
-			"type": "int",
-			"name": "Menu Shard Cols",
-			"default": 6
 		},
 		"menu-shard-launch-speed-min-px": {
 			"type": "float",
@@ -850,16 +808,6 @@
 			"type": "title",
 			"name": "Click and gestures"
 		},
-		"click-window-sec": {
-			"type": "float",
-			"name": "Click Window Sec",
-			"default": 0.5
-		},
-		"double-tap-min-commit-delay-sec": {
-			"type": "float",
-			"name": "Double Tap Min Commit Delay Sec",
-			"default": 0.15
-		},
 		"pending-double-action-tag": {
 			"type": "int",
 			"name": "Pending Double Action Tag",
@@ -931,11 +879,6 @@
 		"title-box2d-lite-polygon-vertices-0": {
 			"type": "title",
 			"name": "Box2D-Lite polygon vertices"
-		},
-		"b2-max-polygon-vertices": {
-			"type": "int",
-			"name": "B2 Max Polygon Vertices",
-			"default": 16
 		},
 		"b2-restitution-in-speed-threshold": {
 			"type": "float",

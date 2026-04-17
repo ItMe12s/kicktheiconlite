@@ -5,30 +5,35 @@
 
 // App-wide tuning (single header), box2d-lite collision/restitution/vertex cap
 // included here for one place to edit, see kB2* symbols
+//
+// SPLIT: constexpr = compile-time-required (array sizes, static_asserts, derived)
+//        inline    = runtime-tunable via Geode settings (seeded by ModSettings.cpp)
 
 namespace player_visual {
 
-constexpr int kMaxWorldBoundsTreeDepth = 64;
-constexpr float kMinVisualWidthPx = 1.0f;
-constexpr float kPlayerTargetSizeFraction = 0.125f;
-constexpr int kMinPlayerFrameId = 1;
+// Player visual namespace
 
-constexpr float kPlayerRootAnchorXFrac = 0.5f;
-constexpr float kPlayerRootAnchorYFrac = 0.5f;
-constexpr int kPlayerVisualLocalZOrder = 0;
+inline int kMaxWorldBoundsTreeDepth = 64;
+inline float kMinVisualWidthPx = 1.0f;
+inline float kPlayerTargetSizeFraction = 0.125f;
+inline int kMinPlayerFrameId = 1;
+
+inline float kPlayerRootAnchorXFrac = 0.5f;
+inline float kPlayerRootAnchorYFrac = 0.5f;
+inline int kPlayerVisualLocalZOrder = 0;
 
 } // namespace player_visual
 
-// Overlay/input ordering
+// Overlay and input ordering
 
-constexpr int kPhysicsOverlayZOrder = 1000;
-constexpr int kPhysicsOverlayTouchPriority = -6767;
-constexpr int kPhysicsOverlaySchedulerPriority = 0;
-constexpr int kHitProxyLocalZOrder = 6767; // Invisible touch target for ClickTracker
+inline int kPhysicsOverlayZOrder = 1000;
+inline int kPhysicsOverlayTouchPriority = -6767;
+inline int kPhysicsOverlaySchedulerPriority = 0;
+inline int kHitProxyLocalZOrder = 6767; // Invisible touch target for ClickTracker
 
 // Simulation and math
 
-constexpr int kPlayerRootZOrder = 1;
+inline int kPlayerRootZOrder = 1;
 constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
 static_assert(kFixedPhysicsDt > 0.0f);
 constexpr int kMaxPhysicsSubsteps = 16;
@@ -40,199 +45,200 @@ static_assert(kPhysicsAccumulatorCap > 0.0f);
 // One scheduler frame may add at most one capped step worth into the bucket (worst hitch still bounded)
 static_assert(kMaxSimulationFrameDt <= kPhysicsAccumulatorCap);
 constexpr float kRadToDeg = 180.0f / std::numbers::pi_v<float>;
-constexpr float kMinSpeedForInverse = 1e-6f;
-constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
+inline float kMinSpeedForInverse = 1e-6f;
+inline float kGrabRadiusFraction = 2.0f / 3.0f;
 
 // Global render layering
 
-constexpr int kImpactFlashBackdropZOrder = -3;
-constexpr int kFireAuraZOrder = -1;
-constexpr int kStarBurstZOrder = 0;
-constexpr int kUnifiedWorldCaptureZOrder = 1;
-constexpr int kUnifiedBlurCompositeZOrder = 2;
-constexpr int kImpactNoiseZOrder = 3;
-constexpr int kGlobalStartBurstZOrder = 4;
-constexpr int kPhysicsMenuZOrder = 5;
-constexpr int kLayerTrailZOrderOffset = -1;
-constexpr int kLayerWorldZOrderOffset = 0;
-constexpr int kLayerUiZOrderOffset = 2;
+inline int kImpactFlashBackdropZOrder = -3;
+inline int kFireAuraZOrder = -1;
+inline int kStarBurstZOrder = 0;
+inline int kUnifiedWorldCaptureZOrder = 1;
+inline int kUnifiedBlurCompositeZOrder = 2;
+inline int kImpactNoiseZOrder = 3;
+inline int kGlobalStartBurstZOrder = 4;
+inline int kPhysicsMenuZOrder = 5;
+inline int kLayerTrailZOrderOffset = -1;
+inline int kLayerWorldZOrderOffset = 0;
+inline int kLayerUiZOrderOffset = 2;
 
 // Impact response toggles
 
-constexpr bool kEnablePlayerImpactTrail = true;
-constexpr bool kEnablePlayerImpactFlashStack = true;
-constexpr bool kEnablePanelImpactShake = true;
+inline bool kEnablePlayerImpactTrail = true;
+inline bool kEnablePlayerImpactFlashStack = true;
+inline bool kEnablePanelImpactShake = true;
 
 // Impact timing and phase
 
-constexpr float kImpactHitstopSeconds = 0.15f;
+inline float kImpactHitstopSeconds = 0.15f;
 constexpr float kImpactFlashTotalSeconds = 0.15f;
 constexpr float kImpactFlashPhaseSeconds = 0.05f;
-constexpr float kImpactFlashCooldownSeconds = 0.4f;
-constexpr int kImpactFlashInvertPhaseEndPhaseCount = 2;
+inline float kImpactFlashCooldownSeconds = 0.4f;
+inline int kImpactFlashInvertPhaseEndPhaseCount = 2;
 constexpr int kStarBurstMaxPhaseIndex =
     static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
 
 // Screen shake
 
-constexpr float kPlayerImpactMinFlashSpeed = 1600.0f;
-constexpr float kPlayerImpactMinShakeSpeed = 300.0f;
-constexpr float kPlayerImpactShakeDuration = 0.25f;
-constexpr float kPlayerImpactShakeSpeedToStrength = 0.005f;
-constexpr float kPlayerImpactMaxShakeStrength = 6.7f;
-constexpr float kPanelImpactMinShakeSpeed = 220.0f;
-constexpr float kPanelImpactShakeDuration = 0.18f;
-constexpr float kPanelImpactShakeSpeedToStrength = 0.0035f;
-constexpr float kPanelImpactMaxShakeStrength = 3.0f;
-constexpr float kPanelShatterMinImpactSpeed = 2200.0f;
-constexpr int kScreenShakeIntervals = 10;
-constexpr float kScreenShakeSampleMin = -1.0f;
-constexpr float kScreenShakeSampleMax = 1.0f;
-constexpr float kScreenShakeCooldownExtraSeconds = 0.1f;
+inline float kPlayerImpactMinFlashSpeed = 1600.0f;
+inline float kPlayerImpactMinShakeSpeed = 300.0f;
+inline float kPlayerImpactShakeDuration = 0.25f;
+inline float kPlayerImpactShakeSpeedToStrength = 0.005f;
+inline float kPlayerImpactMaxShakeStrength = 6.7f;
+inline float kPanelImpactMinShakeSpeed = 220.0f;
+inline float kPanelImpactShakeDuration = 0.18f;
+inline float kPanelImpactShakeSpeedToStrength = 0.0035f;
+inline float kPanelImpactMaxShakeStrength = 3.0f;
+inline float kPanelShatterMinImpactSpeed = 2200.0f;
+inline int kScreenShakeIntervals = 10;
+inline float kScreenShakeSampleMin = -1.0f;
+inline float kScreenShakeSampleMax = 1.0f;
+inline float kScreenShakeCooldownExtraSeconds = 0.1f;
 
 // Impact noise pass
 
-constexpr float kImpactNoiseFadeSeconds = 1.75f;
-constexpr float kImpactNoiseStackedImpactTimeSkip = 73.0f;
+inline float kImpactNoiseFadeSeconds = 1.75f;
+inline float kImpactNoiseStackedImpactTimeSkip = 73.0f;
 // Shader runs at (width * scale) x (height * scale) composite sprite samples that rt
 // true = GL_NEAREST, false = GL_LINEAR, Call it pixel art and not shit resolution ofc ;)
-constexpr bool kImpactNoiseCompositeNearestFilter = true;
-constexpr float kImpactNoiseRenderScale = 0.1f;
+inline bool kImpactNoiseCompositeNearestFilter = true;
+inline float kImpactNoiseRenderScale = 0.1f;
 
 // Star burst composition
 
-constexpr int kStarBurstCount = 5;
-constexpr int kBigStarCount = 2;
-constexpr int kSmallStarCount = 3;
-constexpr float kBigStarRadiusMin = 0.05f;
-constexpr float kBigStarRadiusMax = 0.3f;
-constexpr float kSmallStarRadiusMin = 0.2f;
-constexpr float kSmallStarRadiusMax = 0.6f;
-constexpr float kBigStarScreenFrac = 0.9f;
-constexpr float kSmallStarScreenFrac = 0.2f;
-constexpr float kStarScaleVariance = 0.15f;
+constexpr int kStarBurstSpriteSlots = 5;
+inline int kStarBurstCount = kStarBurstSpriteSlots;
+inline int kBigStarCount = 2;
+inline int kSmallStarCount = 3;
+inline float kBigStarRadiusMin = 0.05f;
+inline float kBigStarRadiusMax = 0.3f;
+inline float kSmallStarRadiusMin = 0.2f;
+inline float kSmallStarRadiusMax = 0.6f;
+inline float kBigStarScreenFrac = 0.9f;
+inline float kSmallStarScreenFrac = 0.2f;
+inline float kStarScaleVariance = 0.15f;
 
 // Sandevistan trail
 
-constexpr float kSandevistanEndSpeedPx = 200.0f;
-constexpr float kSandevistanSpawnIntervalSec = 0.04f;
-constexpr float kSandevistanGhostFadeSec = 0.4f;
-constexpr int kSandevistanGhostStartOpacity = 128;
-constexpr int kSandevistanMaxConcurrentGhosts = 24;
-constexpr int kSandevistanTrailLayerZOrder = 0;
-constexpr int kSandevistanTrailHueOrangeR = 255;
-constexpr int kSandevistanTrailHueOrangeG = 175;
-constexpr int kSandevistanTrailHueOrangeB = 55;
-constexpr int kSandevistanTrailHuePurpleR = 185;
-constexpr int kSandevistanTrailHuePurpleG = 95;
-constexpr int kSandevistanTrailHuePurpleB = 255;
-constexpr int kSandevistanTrailHueCyanR = 80;
-constexpr int kSandevistanTrailHueCyanG = 230;
-constexpr int kSandevistanTrailHueCyanB = 255;
+inline float kSandevistanEndSpeedPx = 200.0f;
+inline float kSandevistanSpawnIntervalSec = 0.04f;
+inline float kSandevistanGhostFadeSec = 0.4f;
+inline int kSandevistanGhostStartOpacity = 128;
+inline int kSandevistanMaxConcurrentGhosts = 24;
+inline int kSandevistanTrailLayerZOrder = 0;
+inline int kSandevistanTrailHueOrangeR = 255;
+inline int kSandevistanTrailHueOrangeG = 175;
+inline int kSandevistanTrailHueOrangeB = 55;
+inline int kSandevistanTrailHuePurpleR = 185;
+inline int kSandevistanTrailHuePurpleG = 95;
+inline int kSandevistanTrailHuePurpleB = 255;
+inline int kSandevistanTrailHueCyanR = 80;
+inline int kSandevistanTrailHueCyanG = 230;
+inline int kSandevistanTrailHueCyanB = 255;
 
 // Fire aura intensity
 
-constexpr float kMinFireAuraSpeedPx = 600.0f;
-constexpr float kMaxFireAuraSpeedPx = 2800.0f;
-constexpr float kFireAuraDiameterScale = 2.25f;
-constexpr float kFireAuraVelocityToShader = 0.002f;
+inline float kMinFireAuraSpeedPx = 600.0f;
+inline float kMaxFireAuraSpeedPx = 2800.0f;
+inline float kFireAuraDiameterScale = 2.25f;
+inline float kFireAuraVelocityToShader = 0.002f;
 
 // FireAuraSprite default uniforms
 
-constexpr float kFireAuraDefaultPrimaryR = 1.0f;
-constexpr float kFireAuraDefaultPrimaryG = 0.9f;
-constexpr float kFireAuraDefaultPrimaryB = 0.5f;
-constexpr float kFireAuraDefaultSecondaryR = 0.32f;
-constexpr float kFireAuraDefaultSecondaryG = 0.02f;
-constexpr float kFireAuraDefaultSecondaryB = 0.0f;
+inline float kFireAuraDefaultPrimaryR = 1.0f;
+inline float kFireAuraDefaultPrimaryG = 0.9f;
+inline float kFireAuraDefaultPrimaryB = 0.5f;
+inline float kFireAuraDefaultSecondaryR = 0.32f;
+inline float kFireAuraDefaultSecondaryG = 0.02f;
+inline float kFireAuraDefaultSecondaryB = 0.0f;
 
 // Object motion blur
 
-constexpr float kPlayerMinBlurSpeedPx = 120.0f;
-constexpr float kPlayerMaxBlurSpeedPx = 3200.0f;
-constexpr float kPlayerBlurUvSpread = 0.035f;
-constexpr int kPlayerBlurStepDivisor = 6;
-constexpr bool kPlayerKeepBaseVisible = true;
-constexpr float kMenuMinBlurSpeedPx = 180.0f;
-constexpr float kMenuMaxBlurSpeedPx = 1800.0f;
-constexpr float kMenuBlurUvSpread = 0.01f;
-constexpr int kMenuBlurStepDivisor = 4;
-constexpr bool kMenuKeepBaseVisible = false;
+inline float kPlayerMinBlurSpeedPx = 120.0f;
+inline float kPlayerMaxBlurSpeedPx = 3200.0f;
+inline float kPlayerBlurUvSpread = 0.035f;
+inline int kPlayerBlurStepDivisor = 6;
+inline bool kPlayerKeepBaseVisible = true;
+inline float kMenuMinBlurSpeedPx = 180.0f;
+inline float kMenuMaxBlurSpeedPx = 1800.0f;
+inline float kMenuBlurUvSpread = 0.01f;
+inline int kMenuBlurStepDivisor = 4;
+inline bool kMenuKeepBaseVisible = false;
 
 // Debug overlay
 
-constexpr float kDebugLabelMarginX = 4.0f;
-constexpr float kDebugLabelMarginY = 4.0f;
+inline float kDebugLabelMarginX = 4.0f;
+inline float kDebugLabelMarginY = 4.0f;
 constexpr int kDebugLabelZOrder = 6767;
 constexpr int kDebugLabelBackgroundZOrder = kDebugLabelZOrder - 1;
 constexpr float kDebugLabelUpdateHz = 20.0f;
 constexpr float kDebugLabelUpdateInterval = 1.0f / kDebugLabelUpdateHz;
-constexpr float kDebugLabelFontScale = 0.5f;
-constexpr float kDebugLabelBoxPadX = 1.0f;
-constexpr float kDebugLabelBoxPadY = 0.0f;
-constexpr float kDebugLabelBoxColorR = 0.0f;
-constexpr float kDebugLabelBoxColorG = 0.0f;
-constexpr float kDebugLabelBoxColorB = 0.0f;
-constexpr float kDebugLabelBoxAlpha = 0.35f;
+inline float kDebugLabelFontScale = 0.5f;
+inline float kDebugLabelBoxPadX = 1.0f;
+inline float kDebugLabelBoxPadY = 0.0f;
+inline float kDebugLabelBoxColorR = 0.0f;
+inline float kDebugLabelBoxColorG = 0.0f;
+inline float kDebugLabelBoxColorB = 0.0f;
+inline float kDebugLabelBoxAlpha = 0.35f;
 
 // Physics menu panel defaults
 
-constexpr float kPanelDefaultWFrac = 0.35f;
-constexpr float kPanelDefaultHFrac = 0.25f;
-constexpr float kPanelDefaultXFrac = 0.5f;
-constexpr float kPanelDefaultYFrac = 0.7f;
+inline float kPanelDefaultWFrac = 0.35f;
+inline float kPanelDefaultHFrac = 0.25f;
+inline float kPanelDefaultXFrac = 0.5f;
+inline float kPanelDefaultYFrac = 0.7f;
 
 // Fake menu shard simulation (two triangles per grid cell)
 
 constexpr int kMenuShardRows = 4;
 constexpr int kMenuShardCols = 6;
 constexpr int kMenuShardTrianglesTotal = kMenuShardRows * kMenuShardCols * 2;
-constexpr float kMenuShardLaunchSpeedMinPx = 167.0f;
-constexpr float kMenuShardLaunchSpeedMaxPx = 567.0f;
-constexpr float kMenuShardExtraImpactVelocityScale = 0.35f;
-constexpr float kMenuShardAngularVelocityMin = 6.7f;
-constexpr float kMenuShardAngularVelocityMax = 67.0f;
-constexpr float kMenuShardLinearDampingPerSecond = 2.25f;
-constexpr float kMenuShardAngularDampingPerSecond = 3.75f;
-constexpr float kMenuShardHoldSeconds = 12.0f;
-constexpr float kMenuShardFadeSeconds = 3.0f;
+inline float kMenuShardLaunchSpeedMinPx = 167.0f;
+inline float kMenuShardLaunchSpeedMaxPx = 567.0f;
+inline float kMenuShardExtraImpactVelocityScale = 0.35f;
+inline float kMenuShardAngularVelocityMin = 6.7f;
+inline float kMenuShardAngularVelocityMax = 67.0f;
+inline float kMenuShardLinearDampingPerSecond = 2.25f;
+inline float kMenuShardAngularDampingPerSecond = 3.75f;
+inline float kMenuShardHoldSeconds = 12.0f;
+inline float kMenuShardFadeSeconds = 3.0f;
 
 // World physics
 
-constexpr float kPixelsPerMeter = 50.0f;
+inline float kPixelsPerMeter = 50.0f;
 
-constexpr float kEarthGravity = 9.8f;
-constexpr float kGravityScale = 1.75f;
-constexpr int kWorldIterations = 10;
+inline float kEarthGravity = 9.8f;
+inline float kGravityScale = 1.75f;
+inline int kWorldIterations = 10;
 
-constexpr float kWallHalfThickness = 0.5f;
-constexpr float kWallLengthPadding = 4.0f;
-constexpr float kWallThickness = 1.0f;
-constexpr float kArenaCenterFrac = 0.5f;
+inline float kWallHalfThickness = 0.5f;
+inline float kWallLengthPadding = 4.0f;
+inline float kWallThickness = 1.0f;
+inline float kArenaCenterFrac = 0.5f;
 
-constexpr float kPlayerDensity = 1.0f;
-constexpr float kPlayerInitialXFrac = 0.25f;
-constexpr float kPlayerInitialYFrac = 0.25f;
+inline float kPlayerDensity = 1.0f;
+inline float kPlayerInitialXFrac = 0.25f;
+inline float kPlayerInitialYFrac = 0.25f;
 
-constexpr float kPlayerInitialVelX = 5.0f;
-constexpr float kPlayerInitialVelY = 10.0f;
-constexpr float kPlayerInitialAngularVel = 30.0f;
-constexpr float kPlayerFriction = 0.4f;
+inline float kPlayerInitialVelX = 5.0f;
+inline float kPlayerInitialVelY = 10.0f;
+inline float kPlayerInitialAngularVel = 30.0f;
+inline float kPlayerFriction = 0.4f;
 
-constexpr float kDragSpring = 200.0f;
-constexpr float kDragDamping = 10.0f;
-constexpr float kDragAngularDamping = 0.2f;
-constexpr float kDefaultDragTargetXFrac = 0.5f;
-constexpr float kDefaultDragTargetYFrac = 0.5f;
+inline float kDragSpring = 200.0f;
+inline float kDragDamping = 10.0f;
+inline float kDragAngularDamping = 0.2f;
+inline float kDefaultDragTargetXFrac = 0.5f;
+inline float kDefaultDragTargetYFrac = 0.5f;
 
-constexpr float kPanelDragSpring = 170.0f;
-constexpr float kPanelDragDamping = 15.0f;
-constexpr float kPanelDragAngularDamping = 0.3f;
+inline float kPanelDragSpring = 170.0f;
+inline float kPanelDragDamping = 15.0f;
+inline float kPanelDragAngularDamping = 0.3f;
 
-constexpr float kOutsideBarrierSlack = 1.2f;
+inline float kOutsideBarrierSlack = 1.2f;
 
-constexpr float kPanelDensity = 1.25f;
-constexpr float kPanelFriction = 0.6f;
+inline float kPanelDensity = 1.25f;
+inline float kPanelFriction = 0.6f;
 
 // Click and gestures
 
@@ -243,30 +249,30 @@ constexpr double kDoubleTapMinCommitDelaySec = 0.15;
 constexpr double kDoubleClickScheduledDelaySec =
     std::max(kDoubleTapMinCommitDelaySec, kClickWindowSec);
 
-constexpr int kPendingDoubleActionTag = 0x434C4B44; // Means CLKD, deferred double click
+inline int kPendingDoubleActionTag = 0x434C4B44; // Means CLKD, deferred double click
 
 // Input began vs ended tracking slop
 
-constexpr float kTapSlopPx = 12.0f;
-constexpr float kTrackResidualSlopPx = 20.0f;
-constexpr float kMaxFingerForTrackTapPx = 48.0f;
-constexpr double kMaxTapGestureSec = 0.24;
+inline float kTapSlopPx = 12.0f;
+inline float kTrackResidualSlopPx = 20.0f;
+inline float kMaxFingerForTrackTapPx = 48.0f;
+inline double kMaxTapGestureSec = 0.24;
 
 // Physics menu UI chrome
 
-constexpr float kPhysicsMenuButtonSpacingPx = 8.0f;
-constexpr float kPhysicsMenuButtonScale = 0.55f;
-constexpr float kPhysicsMenuTitleLabelScale = 0.5f;
-constexpr float kPhysicsMenuTitleTopInset = 14.0f;
-constexpr float kPhysicsMenuMenuYFrac = 0.45f;
-constexpr float kPhysicsMenuPopupOpacity = 192.0f;
+inline float kPhysicsMenuButtonSpacingPx = 8.0f;
+inline float kPhysicsMenuButtonScale = 0.55f;
+inline float kPhysicsMenuTitleLabelScale = 0.5f;
+inline float kPhysicsMenuTitleTopInset = 14.0f;
+inline float kPhysicsMenuMenuYFrac = 0.45f;
+inline float kPhysicsMenuPopupOpacity = 192.0f;
 
-constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
+inline int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
 
 // Box2D-Lite polygon vertices
 
 constexpr int kB2MaxPolygonVertices = 16;
-constexpr float kB2RestitutionInSpeedThreshold = 3.0f;
-constexpr float kB2RestitutionCoefficient = 0.67f;
-constexpr float kB2CollideReferenceEdgeRelativeTol = 0.98f;
-constexpr float kB2CollideReferenceEdgeAbsoluteTol = 0.001f;
+inline float kB2RestitutionInSpeedThreshold = 3.0f;
+inline float kB2RestitutionCoefficient = 0.67f;
+inline float kB2CollideReferenceEdgeRelativeTol = 0.98f;
+inline float kB2CollideReferenceEdgeAbsoluteTol = 0.001f;

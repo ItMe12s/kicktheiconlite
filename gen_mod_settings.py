@@ -1,4 +1,4 @@
-"""Generate mod.json settings block from src/ModTuning.h constexpr values."""
+"""Generate mod.json settings block and src/ModSettings.cpp from src/ModTuning.h constexpr values."""
 
 import argparse
 import json
@@ -7,19 +7,32 @@ import pathlib
 import re
 import sys
 
+# Compile-time-required constants: stay constexpr, excluded from mod.json and binder
+SKIP_SYMBOLS = {
+    "kFixedPhysicsDt",  # static_assert + kPhysicsAccumulatorCap
+    "kMaxPhysicsSubsteps",  # static_assert + kPhysicsAccumulatorCap
+    "kMaxSimulationFrameDt",  # static_assert
+    "kImpactFlashTotalSeconds",  # kStarBurstMaxPhaseIndex
+    "kImpactFlashPhaseSeconds",  # kStarBurstMaxPhaseIndex
+    "kStarBurstSpriteSlots",  # fixed star burst slot count
+    "kDebugLabelZOrder",  # kDebugLabelBackgroundZOrder
+    "kDebugLabelUpdateHz",  # kDebugLabelUpdateInterval
+    "kMenuShardRows",  # kMenuShardTrianglesTotal (std::array size)
+    "kMenuShardCols",  # kMenuShardTrianglesTotal (std::array size)
+    "kClickWindowSec",  # kDoubleClickScheduledDelaySec
+    "kDoubleTapMinCommitDelaySec",  # kDoubleClickScheduledDelaySec
+    "kB2MaxPolygonVertices",  # Body struct layout
+}
+
 # Key naming
 
 
 def symbol_to_key(name: str, ns_prefix: str = "") -> str:
     """Convert C++ symbol like kPlayerFriction → player-friction."""
-    # Strip leading k if followed by uppercase
     if name.startswith("k") and len(name) > 1 and name[1].isupper():
         name = name[1:]
-    # Split uppercase-run boundaries: ABCDef → ABC-Def
     result = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", name)
-    # Split camelCase boundaries: aB → a-B
     result = re.sub(r"([a-z\d])([A-Z])", r"\1-\2", result)
-    # Only split digit→alpha (e.g. 2Max → 2-Max); keep alpha→digit (B2 stays b2)
     result = re.sub(r"(\d)([A-Za-z])", r"\1-\2", result)
     result = result.lower().replace("_", "-")
     result = re.sub(r"-+", "-", result).strip("-")
@@ -37,22 +50,14 @@ def key_to_name(key: str) -> str:
 
 
 def is_pure_literal(rhs: str) -> bool:
-    """
-    Return True if rhs contains only numeric/bool literals and arithmetic operators.
-    Any identifier (other than true/false) disqualifies it.
-    """
     s = rhs.strip()
     if s in ("true", "false"):
         return True
-    # Strip C++ numeric type suffixes after digits/hex digits
     s_norm = re.sub(r"(?<=[0-9a-fA-F])([fFlLuU]+)(?=[^a-zA-Z0-9_]|$)", "", s)
-    # Erase numeric literals so their letter components (x in 0x, e in 1e-6) don't
-    # get matched as identifiers. Order: hex first, then scientific, then plain float/int
     s_erased = re.sub(r"0[xX][0-9a-fA-F]+", " ", s_norm)
     s_erased = re.sub(r"(?<![a-zA-Z0-9_])\d+\.?\d*[eE][+-]?\d+", " ", s_erased)
     s_erased = re.sub(r"(?<![a-zA-Z0-9_])\.\d+", " ", s_erased)
     s_erased = re.sub(r"(?<![a-zA-Z0-9_])\d+\.?\d*", " ", s_erased)
-    # Any remaining letter sequences must be bool keywords only
     for tok in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", s_erased):
         if tok not in ("true", "false"):
             return False
@@ -66,10 +71,8 @@ def parse_literal(rhs: str, cpp_type: str):
         return True
     if s == "false":
         return False
-    # Strip all C++ numeric suffixes so Python eval can handle it
     s = re.sub(r"(?<=[\d.eE])([fFlLuU]+)(?=[^a-zA-Z]|$)", "", s)
     try:
-        # eval is safe here: is_pure_literal already confirmed no identifiers
         val = eval(s)  # noqa: S307
         if cpp_type in ("float", "double"):
             return float(val)
@@ -81,7 +84,7 @@ def parse_literal(rhs: str, cpp_type: str):
 # Header parser
 
 CONSTEXPR_RE = re.compile(
-    r"^\s*constexpr\s+(bool|int|float|double)\s+(\w+)\s*=\s*(.+?)\s*;"
+    r"^\s*(?:constexpr|inline)\s+(bool|int|float|double)\s+(\w+)\s*=\s*(.+?)\s*;"
 )
 SECTION_RE = re.compile(r"^//\s+([A-Z][^/\n]{0,100}?)\s*$")
 NAMESPACE_OPEN_RE = re.compile(r"^\s*namespace\s+(\w+)\s*\{")
@@ -93,7 +96,8 @@ def parse_header(path: pathlib.Path):
     """
     Yield entries in source order:
       {'kind': 'title',   'name': str}
-      {'kind': 'setting', 'key': str, 'type': str, 'default': value, 'description': str|None}
+      {'kind': 'setting', 'key': str, 'type': str, 'cpp_type': str,
+       'default': value, 'symbol': str, 'namespace': str|None}
       {'kind': 'skip',    'symbol': str, 'reason': str}
     Raises ValueError on key collision.
     """
@@ -101,27 +105,24 @@ def parse_header(path: pathlib.Path):
     current_section: str | None = None
     section_emitted = False
     seen_keys: dict[str, str] = {}
-    prev_blank = True  # treat file start as blank
+    prev_blank = True
 
     lines = path.read_text(encoding="utf-8").splitlines()
     for line in lines:
         is_blank = not line.strip()
 
-        # Namespace open
         m = NAMESPACE_OPEN_RE.match(line)
         if m:
             namespace_stack.append(m.group(1))
             prev_blank = False
             continue
 
-        # Namespace close (best-effort: only pops if stack non-empty)
         if NAMESPACE_CLOSE_RE.match(line) and namespace_stack:
             if "namespace" in line:
                 namespace_stack.pop()
             prev_blank = False
             continue
 
-        # Skip static_assert
         if STATIC_ASSERT_RE.match(line):
             prev_blank = False
             continue
@@ -130,7 +131,6 @@ def parse_header(path: pathlib.Path):
             prev_blank = True
             continue
 
-        # Section comment: standalone // line preceded by a blank line
         m = SECTION_RE.match(line)
         if m and not CONSTEXPR_RE.match(line) and prev_blank:
             current_section = m.group(1).strip()
@@ -140,14 +140,20 @@ def parse_header(path: pathlib.Path):
 
         prev_blank = False
 
-        # Constexpr
         m = CONSTEXPR_RE.match(line)
         if not m:
             continue
 
         cpp_type, symbol, rhs_raw = m.group(1), m.group(2), m.group(3)
 
-        # Separate RHS from inline comment; capture comment as description
+        if symbol in SKIP_SYMBOLS:
+            yield {
+                "kind": "skip",
+                "symbol": symbol,
+                "reason": "pinned compile-time constant",
+            }
+            continue
+
         description: str | None = None
         rhs = rhs_raw
         ci = rhs.find("//")
@@ -164,7 +170,6 @@ def parse_header(path: pathlib.Path):
             yield {"kind": "skip", "symbol": symbol, "reason": f"parse failed: {rhs}"}
             continue
 
-        # Build key with namespace prefix
         ns_prefix = namespace_stack[-1].replace("_", "-") if namespace_stack else ""
         key = symbol_to_key(symbol, ns_prefix)
 
@@ -174,7 +179,6 @@ def parse_header(path: pathlib.Path):
             )
         seen_keys[key] = symbol
 
-        # Emit pending section title on first entry of the section
         if current_section and not section_emitted:
             yield {"kind": "title", "name": current_section}
             section_emitted = True
@@ -183,20 +187,26 @@ def parse_header(path: pathlib.Path):
             "kind": "setting",
             "key": key,
             "type": "float" if cpp_type == "double" else cpp_type,
+            "cpp_type": cpp_type,
             "default": value,
+            "symbol": symbol,
+            "namespace": namespace_stack[-1] if namespace_stack else None,
         }
         if description:
             entry["description"] = description
         yield entry
 
 
-# Build settings dict
+# Build settings dict and binder entries
 
 
-def build_settings(header: pathlib.Path) -> tuple[dict, list]:
+def build_settings(header: pathlib.Path) -> tuple[dict, list, list]:
+    """Returns (settings_dict, skipped_list, binder_entries)."""
     settings: dict = {}
     skipped: list = []
+    binder_entries: list = []
     title_counter: dict[str, int] = {}
+    pending_title: dict | None = None
 
     for entry in parse_header(header):
         kind = entry["kind"]
@@ -210,6 +220,7 @@ def build_settings(header: pathlib.Path) -> tuple[dict, list]:
             title_counter[slug] = n + 1
             tkey = f"title-{slug}-{n}"
             settings[tkey] = {"type": "title", "name": entry["name"]}
+            pending_title = {"kind": "title", "name": entry["name"]}
 
         elif kind == "setting":
             s: dict = {
@@ -221,24 +232,110 @@ def build_settings(header: pathlib.Path) -> tuple[dict, list]:
                 s["description"] = entry["description"]
             settings[entry["key"]] = s
 
-    return settings, skipped
+            if pending_title is not None:
+                binder_entries.append(pending_title)
+                pending_title = None
+            binder_entries.append(
+                {
+                    "kind": "setting",
+                    "key": entry["key"],
+                    "type": entry["type"],
+                    "cpp_type": entry["cpp_type"],
+                    "symbol": entry["symbol"],
+                    "namespace": entry.get("namespace"),
+                }
+            )
+
+    return settings, skipped, binder_entries
+
+
+# C++ binder emitter
+
+
+def build_binder(header_path: pathlib.Path, binder_entries: list) -> str:
+    """Generate ModSettings.cpp content from binder entries."""
+    lines = [
+        "// @@GENERATED do not edit! Regenerate: python gen_mod_settings.py --bind-cpp src/ModSettings.cpp",
+        f"// Source: {header_path}",
+        "",
+        "#include <Geode/loader/Mod.hpp>",
+        "#include <Geode/loader/SettingV3.hpp>",
+        '#include "ModSettings.h"',
+        '#include "ModTuning.h"',
+        "",
+        "using namespace geode;",
+        "",
+        "namespace mod_settings {",
+        "",
+        "void bindAll() {",
+        "    auto* mod = Mod::get();",
+    ]
+
+    for entry in binder_entries:
+        if entry["kind"] == "title":
+            lines.append("")
+            lines.append(f"    // {entry['name']}")
+            continue
+
+        key = entry["key"]
+        symbol = entry["symbol"]
+        ns = entry.get("namespace")
+        qual = f"{ns}::{symbol}" if ns else symbol
+        cpp_type = entry["cpp_type"]
+
+        if cpp_type == "bool":
+            seed = f'mod->getSettingValue<bool>("{key}")'
+            setting_type = "bool"
+            cb_sig = "bool v"
+            assign = "v"
+        elif cpp_type == "int":
+            seed = f'static_cast<int>(mod->getSettingValue<int64_t>("{key}"))'
+            setting_type = "int64_t"
+            cb_sig = "int64_t v"
+            assign = "static_cast<int>(v)"
+        else:  # float or double
+            seed = f'static_cast<{cpp_type}>(mod->getSettingValue<double>("{key}"))'
+            setting_type = "double"
+            cb_sig = "double v"
+            assign = f"static_cast<{cpp_type}>(v)"
+
+        lines.append(f"    {qual} = {seed};")
+        lines.append(
+            f'    listenForSettingChanges<{setting_type}>("{key}", []({cb_sig}) {{ {qual} = {assign}; }});'
+        )
+
+    lines.extend(
+        [
+            "}",
+            "",
+            "} // namespace mod_settings",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="Generate mod.json settings from ModTuning.h constexpr values."
+        description="Generate mod.json settings and optional ModSettings.cpp binder from ModTuning.h."
     )
     ap.add_argument("--header", default="src/ModTuning.h", type=pathlib.Path)
     ap.add_argument("--mod-json", default="mod.json", type=pathlib.Path)
     ap.add_argument(
+        "--bind-cpp",
+        type=pathlib.Path,
+        metavar="PATH",
+        help="Also emit a ModSettings.cpp binder at this path",
+    )
+    ap.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print generated settings to stdout; do not modify mod.json",
+        help="Print generated settings to stdout; do not modify files",
     )
     ap.add_argument(
         "--print-skipped",
         action="store_true",
-        help="List computed constants that were skipped",
+        help="List skipped constants (computed or pinned compile-time)",
     )
     args = ap.parse_args()
 
@@ -247,13 +344,13 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        settings, skipped = build_settings(args.header)
+        settings, skipped, binder_entries = build_settings(args.header)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
     if args.print_skipped:
-        print(f"\nSkipped ({len(skipped)} computed constants):")
+        print(f"\nSkipped ({len(skipped)} constants):")
         for s in skipped:
             print(f"  {s['symbol']}: {s['reason']}")
         print()
@@ -262,6 +359,7 @@ def main() -> None:
         print(json.dumps(settings, indent="\t", ensure_ascii=False))
         return
 
+    # Write mod.json
     if not args.mod_json.exists():
         print(f"ERROR: mod.json not found: {args.mod_json}", file=sys.stderr)
         sys.exit(1)
@@ -278,12 +376,22 @@ def main() -> None:
         if tmp.exists():
             tmp.unlink(missing_ok=True)
 
-    print(f"Wrote {len(settings)} settings entries to {args.mod_json}")
+    setting_count = sum(1 for v in settings.values() if v.get("type") != "title")
+    print(f"Wrote {setting_count} settings entries to {args.mod_json}")
     if skipped:
-        print(
-            f"  ({len(skipped)} computed constants skipped"
-            f" — run --print-skipped to list)"
-        )
+        print(f"  ({len(skipped)} constants skipped — run --print-skipped to list)")
+
+    # Write binder
+    if args.bind_cpp:
+        cpp_content = build_binder(args.header, binder_entries)
+        tmp_cpp = args.bind_cpp.with_suffix(".tmp")
+        try:
+            tmp_cpp.write_text(cpp_content, encoding="utf-8")
+            os.replace(tmp_cpp, args.bind_cpp)
+        finally:
+            if tmp_cpp.exists():
+                tmp_cpp.unlink(missing_ok=True)
+        print(f"Wrote binder to {args.bind_cpp}")
 
 
 if __name__ == "__main__":

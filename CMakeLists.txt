@@ -12,6 +12,7 @@ project(frickyou VERSION 1.0.0)
 
 set(SOURCES
   src/main.cpp
+  src/ModSettings.cpp
   src/OverlayRendering.cpp
   src/physics-overlay/PhysicsOverlay.cpp
   src/physics-overlay/PhysicsOverlayTouch.cpp

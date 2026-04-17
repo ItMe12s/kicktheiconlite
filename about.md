@@ -12,6 +12,7 @@
 - Extra features and easter eggs that you can discover
 - Deep configuration
   - (Default settings are recommended for the best experience)
+  - (Some settings requires restarting the game to see changes)
 
 ## How to play
 
@@ -22,8 +23,9 @@
 ## Events that can happen
 
 - **Soggy Invasion**
-- **The Crossing**
-- **[REDACTED]**
+- **The Crossing** (WIP)
+- **Black Blizzard** (WIP)
+- **[REDACTED]** (WIP)
 - ... and more to come in the future!
 
 ### Cool techical stuff
@@ -32,3 +34,4 @@
 - Custom double/triple clicks event detection
 - GLSL shaders with a custom rendering pipeline
 - 3D assets were made in Blender
+- Auto-generated config file
