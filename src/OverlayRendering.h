@@ -5,13 +5,17 @@
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
 #include <array>
+#include <string>
+#include <vector>
 
 #include "ModTuning.h"
 #include "PhysicsWorld.h"
+#include "extras/GlyphTextRendering.h"
 
 namespace cocos2d {
 class CCSprite;
 class CCRenderTexture;
+class CCSpriteFrame;
 }
 
 namespace overlay_rendering {
@@ -227,5 +231,25 @@ struct ImpactNoiseRefreshArgs {
 };
 
 void refreshImpactNoise(ImpactNoiseRefreshArgs const& args);
+
+using GlyphTextAlign = extras::glyph_text::TextAlign;
+using GlyphUnsupportedPolicy = extras::glyph_text::UnsupportedPolicy;
+using GlyphWrapMode = extras::glyph_text::WrapMode;
+using GlyphTextOptions = extras::glyph_text::TextOptions;
+using GlyphLayoutGlyph = extras::glyph_text::LayoutGlyph;
+using GlyphLayoutLine = extras::glyph_text::LayoutLine;
+using GlyphLayoutResult = extras::glyph_text::LayoutResult;
+
+// Returns glyph placements and bounds, No nodes/textures are created
+GlyphLayoutResult layoutGlyphText(std::string const& text, GlyphTextOptions const& options = {});
+
+// Returns autoreleased sprite nodes, one per laid out glyph
+std::vector<cocos2d::CCSprite*> buildGlyphTextSprites(std::string const& text, GlyphTextOptions const& options = {});
+
+// Returns an autoreleased render texture containing the full composed text
+cocos2d::CCRenderTexture* buildGlyphTextTexture(std::string const& text, GlyphTextOptions const& options = {});
+
+// Returns an autoreleased sprite built from the composed text texture
+cocos2d::CCSprite* buildGlyphTextSprite(std::string const& text, GlyphTextOptions const& options = {});
 
 } // namespace overlay_rendering

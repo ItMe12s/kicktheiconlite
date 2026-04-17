@@ -23,6 +23,7 @@ set(SOURCES
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
   src/RuntimeRestart.cpp
+  src/extras/GlyphTextRendering.cpp
   src/vfx/ImpactFlash.cpp
   src/vfx/ImpactNoise.cpp
   src/vfx/ObjectMotionBlurPipeline.cpp
