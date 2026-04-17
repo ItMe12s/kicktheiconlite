@@ -20,12 +20,14 @@ constexpr int kPlayerVisualLocalZOrder = 0;
 } // namespace player_visual
 
 // Overlay/input ordering
+
 constexpr int kPhysicsOverlayZOrder = 1000;
 constexpr int kPhysicsOverlayTouchPriority = -6767;
 constexpr int kPhysicsOverlaySchedulerPriority = 0;
 constexpr int kHitProxyLocalZOrder = 6767; // Invisible touch target for ClickTracker
 
 // Simulation and math
+
 constexpr int kPlayerRootZOrder = 1;
 constexpr float kFixedPhysicsDt = 1.0f / 120.0f;
 static_assert(kFixedPhysicsDt > 0.0f);
@@ -42,6 +44,7 @@ constexpr float kMinSpeedForInverse = 1e-6f;
 constexpr float kGrabRadiusFraction = 2.0f / 3.0f;
 
 // Global render layering
+
 constexpr int kImpactFlashBackdropZOrder = -3;
 constexpr int kFireAuraZOrder = -1;
 constexpr int kStarBurstZOrder = 0;
@@ -55,11 +58,13 @@ constexpr int kLayerWorldZOrderOffset = 0;
 constexpr int kLayerUiZOrderOffset = 2;
 
 // Impact response toggles
+
 constexpr bool kEnablePlayerImpactTrail = true;
 constexpr bool kEnablePlayerImpactFlashStack = true;
 constexpr bool kEnablePanelImpactShake = true;
 
 // Impact timing and phase
+
 constexpr float kImpactHitstopSeconds = 0.15f;
 constexpr float kImpactFlashTotalSeconds = 0.15f;
 constexpr float kImpactFlashPhaseSeconds = 0.05f;
@@ -69,6 +74,7 @@ constexpr int kStarBurstMaxPhaseIndex =
     static_cast<int>(kImpactFlashTotalSeconds / kImpactFlashPhaseSeconds) - 1;
 
 // Screen shake
+
 constexpr float kPlayerImpactMinFlashSpeed = 1600.0f;
 constexpr float kPlayerImpactMinShakeSpeed = 300.0f;
 constexpr float kPlayerImpactShakeDuration = 0.25f;
@@ -85,6 +91,7 @@ constexpr float kScreenShakeSampleMax = 1.0f;
 constexpr float kScreenShakeCooldownExtraSeconds = 0.1f;
 
 // Impact noise pass
+
 constexpr float kImpactNoiseFadeSeconds = 1.75f;
 constexpr float kImpactNoiseStackedImpactTimeSkip = 73.0f;
 // Shader runs at (width * scale) x (height * scale) composite sprite samples that rt
@@ -93,6 +100,7 @@ constexpr bool kImpactNoiseCompositeNearestFilter = true;
 constexpr float kImpactNoiseRenderScale = 0.1f;
 
 // Star burst composition
+
 constexpr int kStarBurstCount = 5;
 constexpr int kBigStarCount = 2;
 constexpr int kSmallStarCount = 3;
@@ -105,6 +113,7 @@ constexpr float kSmallStarScreenFrac = 0.2f;
 constexpr float kStarScaleVariance = 0.15f;
 
 // Sandevistan trail
+
 constexpr float kSandevistanEndSpeedPx = 200.0f;
 constexpr float kSandevistanSpawnIntervalSec = 0.04f;
 constexpr float kSandevistanGhostFadeSec = 0.4f;
@@ -121,12 +130,15 @@ constexpr int kSandevistanTrailHueCyanR = 80;
 constexpr int kSandevistanTrailHueCyanG = 230;
 constexpr int kSandevistanTrailHueCyanB = 255;
 
-// Fire aura intensity (shader input scaling)
+// Fire aura intensity
+
 constexpr float kMinFireAuraSpeedPx = 600.0f;
 constexpr float kMaxFireAuraSpeedPx = 2800.0f;
 constexpr float kFireAuraDiameterScale = 2.25f;
 constexpr float kFireAuraVelocityToShader = 0.002f;
-// FireAuraSprite default uniforms (RGB 0..1 before setFireColors)
+
+// FireAuraSprite default uniforms
+
 constexpr float kFireAuraDefaultPrimaryR = 1.0f;
 constexpr float kFireAuraDefaultPrimaryG = 0.9f;
 constexpr float kFireAuraDefaultPrimaryB = 0.5f;
@@ -134,7 +146,8 @@ constexpr float kFireAuraDefaultSecondaryR = 0.32f;
 constexpr float kFireAuraDefaultSecondaryG = 0.02f;
 constexpr float kFireAuraDefaultSecondaryB = 0.0f;
 
-// Object motion blur tuning
+// Object motion blur
+
 constexpr float kPlayerMinBlurSpeedPx = 120.0f;
 constexpr float kPlayerMaxBlurSpeedPx = 3200.0f;
 constexpr float kPlayerBlurUvSpread = 0.035f;
@@ -147,6 +160,7 @@ constexpr int kMenuBlurStepDivisor = 4;
 constexpr bool kMenuKeepBaseVisible = false;
 
 // Debug overlay
+
 constexpr float kDebugLabelMarginX = 4.0f;
 constexpr float kDebugLabelMarginY = 4.0f;
 constexpr int kDebugLabelZOrder = 6767;
@@ -162,12 +176,14 @@ constexpr float kDebugLabelBoxColorB = 0.0f;
 constexpr float kDebugLabelBoxAlpha = 0.35f;
 
 // Physics menu panel defaults
+
 constexpr float kPanelDefaultWFrac = 0.35f;
 constexpr float kPanelDefaultHFrac = 0.25f;
 constexpr float kPanelDefaultXFrac = 0.5f;
 constexpr float kPanelDefaultYFrac = 0.7f;
 
 // Fake menu shard simulation (two triangles per grid cell)
+
 constexpr int kMenuShardRows = 4;
 constexpr int kMenuShardCols = 6;
 constexpr int kMenuShardTrianglesTotal = kMenuShardRows * kMenuShardCols * 2;
@@ -181,7 +197,8 @@ constexpr float kMenuShardAngularDampingPerSecond = 3.75f;
 constexpr float kMenuShardHoldSeconds = 12.0f;
 constexpr float kMenuShardFadeSeconds = 3.0f;
 
-// Physics world (box2d-lite integration)
+// World physics
+
 constexpr float kPixelsPerMeter = 50.0f;
 
 constexpr float kEarthGravity = 9.8f;
@@ -217,7 +234,8 @@ constexpr float kOutsideBarrierSlack = 1.2f;
 constexpr float kPanelDensity = 1.25f;
 constexpr float kPanelFriction = 0.6f;
 
-// Click / gesture (ClickTracker)
+// Click and gestures
+
 constexpr double kClickWindowSec = 0.5;
 // Minimum delay before scheduling a double-commit, actual schedule uses kDoubleClickScheduledDelaySec
 constexpr double kDoubleTapMinCommitDelaySec = 0.15;
@@ -227,15 +245,15 @@ constexpr double kDoubleClickScheduledDelaySec =
 
 constexpr int kPendingDoubleActionTag = 0x434C4B44; // Means CLKD, deferred double click
 
-// Began vs Ended
+// Input began vs ended tracking slop
+
 constexpr float kTapSlopPx = 12.0f;
-// When the icon moves, the finger often moves with it
 constexpr float kTrackResidualSlopPx = 20.0f;
-// Residual path is only for short gestures, long drags exceed this even if residual is small
 constexpr float kMaxFingerForTrackTapPx = 48.0f;
 constexpr double kMaxTapGestureSec = 0.24;
 
-// Physics menu UI chrome (PhysicsMenu::build)
+// Physics menu UI chrome
+
 constexpr float kPhysicsMenuButtonSpacingPx = 8.0f;
 constexpr float kPhysicsMenuButtonScale = 0.55f;
 constexpr float kPhysicsMenuTitleLabelScale = 0.5f;
@@ -243,10 +261,10 @@ constexpr float kPhysicsMenuTitleTopInset = 14.0f;
 constexpr float kPhysicsMenuMenuYFrac = 0.45f;
 constexpr float kPhysicsMenuPopupOpacity = 192.0f;
 
-// OverlayRendering: CCAction tag for screen shake sequences
 constexpr int kScreenShakeActionTag = 0x6B53484B; // "kSHK"
 
-// box2d-lite
+// Box2D-Lite polygon vertices
+
 constexpr int kB2MaxPolygonVertices = 16;
 constexpr float kB2RestitutionInSpeedThreshold = 3.0f;
 constexpr float kB2RestitutionCoefficient = 0.67f;

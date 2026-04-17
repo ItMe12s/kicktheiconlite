@@ -29,5 +29,933 @@
 	},
 	"dependencies": {
 		"geode.node-ids": ">=v1.20.0"
+	},
+	"settings": {
+		"player-visual-max-world-bounds-tree-depth": {
+			"type": "int",
+			"name": "Player Visual Max World Bounds Tree Depth",
+			"default": 64
+		},
+		"player-visual-min-visual-width-px": {
+			"type": "float",
+			"name": "Player Visual Min Visual Width Px",
+			"default": 1.0
+		},
+		"player-visual-player-target-size-fraction": {
+			"type": "float",
+			"name": "Player Visual Player Target Size Fraction",
+			"default": 0.125
+		},
+		"player-visual-min-player-frame-id": {
+			"type": "int",
+			"name": "Player Visual Min Player Frame Id",
+			"default": 1
+		},
+		"player-visual-player-root-anchor-x-frac": {
+			"type": "float",
+			"name": "Player Visual Player Root Anchor X Frac",
+			"default": 0.5
+		},
+		"player-visual-player-root-anchor-y-frac": {
+			"type": "float",
+			"name": "Player Visual Player Root Anchor Y Frac",
+			"default": 0.5
+		},
+		"player-visual-player-visual-local-z-order": {
+			"type": "int",
+			"name": "Player Visual Player Visual Local Z Order",
+			"default": 0
+		},
+		"physics-overlay-z-order": {
+			"type": "int",
+			"name": "Physics Overlay Z Order",
+			"default": 1000
+		},
+		"physics-overlay-touch-priority": {
+			"type": "int",
+			"name": "Physics Overlay Touch Priority",
+			"default": -6767
+		},
+		"physics-overlay-scheduler-priority": {
+			"type": "int",
+			"name": "Physics Overlay Scheduler Priority",
+			"default": 0
+		},
+		"hit-proxy-local-z-order": {
+			"type": "int",
+			"name": "Hit Proxy Local Z Order",
+			"default": 6767
+		},
+		"title-simulation-and-math-0": {
+			"type": "title",
+			"name": "Simulation and math"
+		},
+		"player-root-z-order": {
+			"type": "int",
+			"name": "Player Root Z Order",
+			"default": 1
+		},
+		"fixed-physics-dt": {
+			"type": "float",
+			"name": "Fixed Physics Dt",
+			"default": 0.008333333333333333
+		},
+		"max-physics-substeps": {
+			"type": "int",
+			"name": "Max Physics Substeps",
+			"default": 16
+		},
+		"max-simulation-frame-dt": {
+			"type": "float",
+			"name": "Max Simulation Frame Dt",
+			"default": 0.03333333333333333
+		},
+		"min-speed-for-inverse": {
+			"type": "float",
+			"name": "Min Speed For Inverse",
+			"default": 1e-06
+		},
+		"grab-radius-fraction": {
+			"type": "float",
+			"name": "Grab Radius Fraction",
+			"default": 0.6666666666666666
+		},
+		"title-global-render-layering-0": {
+			"type": "title",
+			"name": "Global render layering"
+		},
+		"impact-flash-backdrop-z-order": {
+			"type": "int",
+			"name": "Impact Flash Backdrop Z Order",
+			"default": -3
+		},
+		"fire-aura-z-order": {
+			"type": "int",
+			"name": "Fire Aura Z Order",
+			"default": -1
+		},
+		"star-burst-z-order": {
+			"type": "int",
+			"name": "Star Burst Z Order",
+			"default": 0
+		},
+		"unified-world-capture-z-order": {
+			"type": "int",
+			"name": "Unified World Capture Z Order",
+			"default": 1
+		},
+		"unified-blur-composite-z-order": {
+			"type": "int",
+			"name": "Unified Blur Composite Z Order",
+			"default": 2
+		},
+		"impact-noise-z-order": {
+			"type": "int",
+			"name": "Impact Noise Z Order",
+			"default": 3
+		},
+		"global-start-burst-z-order": {
+			"type": "int",
+			"name": "Global Start Burst Z Order",
+			"default": 4
+		},
+		"physics-menu-z-order": {
+			"type": "int",
+			"name": "Physics Menu Z Order",
+			"default": 5
+		},
+		"layer-trail-z-order-offset": {
+			"type": "int",
+			"name": "Layer Trail Z Order Offset",
+			"default": -1
+		},
+		"layer-world-z-order-offset": {
+			"type": "int",
+			"name": "Layer World Z Order Offset",
+			"default": 0
+		},
+		"layer-ui-z-order-offset": {
+			"type": "int",
+			"name": "Layer Ui Z Order Offset",
+			"default": 2
+		},
+		"title-impact-response-toggles-0": {
+			"type": "title",
+			"name": "Impact response toggles"
+		},
+		"enable-player-impact-trail": {
+			"type": "bool",
+			"name": "Enable Player Impact Trail",
+			"default": true
+		},
+		"enable-player-impact-flash-stack": {
+			"type": "bool",
+			"name": "Enable Player Impact Flash Stack",
+			"default": true
+		},
+		"enable-panel-impact-shake": {
+			"type": "bool",
+			"name": "Enable Panel Impact Shake",
+			"default": true
+		},
+		"title-impact-timing-and-phase-0": {
+			"type": "title",
+			"name": "Impact timing and phase"
+		},
+		"impact-hitstop-seconds": {
+			"type": "float",
+			"name": "Impact Hitstop Seconds",
+			"default": 0.15
+		},
+		"impact-flash-total-seconds": {
+			"type": "float",
+			"name": "Impact Flash Total Seconds",
+			"default": 0.15
+		},
+		"impact-flash-phase-seconds": {
+			"type": "float",
+			"name": "Impact Flash Phase Seconds",
+			"default": 0.05
+		},
+		"impact-flash-cooldown-seconds": {
+			"type": "float",
+			"name": "Impact Flash Cooldown Seconds",
+			"default": 0.4
+		},
+		"impact-flash-invert-phase-end-phase-count": {
+			"type": "int",
+			"name": "Impact Flash Invert Phase End Phase Count",
+			"default": 2
+		},
+		"title-screen-shake-0": {
+			"type": "title",
+			"name": "Screen shake"
+		},
+		"player-impact-min-flash-speed": {
+			"type": "float",
+			"name": "Player Impact Min Flash Speed",
+			"default": 1600.0
+		},
+		"player-impact-min-shake-speed": {
+			"type": "float",
+			"name": "Player Impact Min Shake Speed",
+			"default": 300.0
+		},
+		"player-impact-shake-duration": {
+			"type": "float",
+			"name": "Player Impact Shake Duration",
+			"default": 0.25
+		},
+		"player-impact-shake-speed-to-strength": {
+			"type": "float",
+			"name": "Player Impact Shake Speed To Strength",
+			"default": 0.005
+		},
+		"player-impact-max-shake-strength": {
+			"type": "float",
+			"name": "Player Impact Max Shake Strength",
+			"default": 6.7
+		},
+		"panel-impact-min-shake-speed": {
+			"type": "float",
+			"name": "Panel Impact Min Shake Speed",
+			"default": 220.0
+		},
+		"panel-impact-shake-duration": {
+			"type": "float",
+			"name": "Panel Impact Shake Duration",
+			"default": 0.18
+		},
+		"panel-impact-shake-speed-to-strength": {
+			"type": "float",
+			"name": "Panel Impact Shake Speed To Strength",
+			"default": 0.0035
+		},
+		"panel-impact-max-shake-strength": {
+			"type": "float",
+			"name": "Panel Impact Max Shake Strength",
+			"default": 3.0
+		},
+		"panel-shatter-min-impact-speed": {
+			"type": "float",
+			"name": "Panel Shatter Min Impact Speed",
+			"default": 2200.0
+		},
+		"screen-shake-intervals": {
+			"type": "int",
+			"name": "Screen Shake Intervals",
+			"default": 10
+		},
+		"screen-shake-sample-min": {
+			"type": "float",
+			"name": "Screen Shake Sample Min",
+			"default": -1.0
+		},
+		"screen-shake-sample-max": {
+			"type": "float",
+			"name": "Screen Shake Sample Max",
+			"default": 1.0
+		},
+		"screen-shake-cooldown-extra-seconds": {
+			"type": "float",
+			"name": "Screen Shake Cooldown Extra Seconds",
+			"default": 0.1
+		},
+		"title-impact-noise-pass-0": {
+			"type": "title",
+			"name": "Impact noise pass"
+		},
+		"impact-noise-fade-seconds": {
+			"type": "float",
+			"name": "Impact Noise Fade Seconds",
+			"default": 1.75
+		},
+		"impact-noise-stacked-impact-time-skip": {
+			"type": "float",
+			"name": "Impact Noise Stacked Impact Time Skip",
+			"default": 73.0
+		},
+		"impact-noise-composite-nearest-filter": {
+			"type": "bool",
+			"name": "Impact Noise Composite Nearest Filter",
+			"default": true
+		},
+		"impact-noise-render-scale": {
+			"type": "float",
+			"name": "Impact Noise Render Scale",
+			"default": 0.1
+		},
+		"title-star-burst-composition-0": {
+			"type": "title",
+			"name": "Star burst composition"
+		},
+		"star-burst-count": {
+			"type": "int",
+			"name": "Star Burst Count",
+			"default": 5
+		},
+		"big-star-count": {
+			"type": "int",
+			"name": "Big Star Count",
+			"default": 2
+		},
+		"small-star-count": {
+			"type": "int",
+			"name": "Small Star Count",
+			"default": 3
+		},
+		"big-star-radius-min": {
+			"type": "float",
+			"name": "Big Star Radius Min",
+			"default": 0.05
+		},
+		"big-star-radius-max": {
+			"type": "float",
+			"name": "Big Star Radius Max",
+			"default": 0.3
+		},
+		"small-star-radius-min": {
+			"type": "float",
+			"name": "Small Star Radius Min",
+			"default": 0.2
+		},
+		"small-star-radius-max": {
+			"type": "float",
+			"name": "Small Star Radius Max",
+			"default": 0.6
+		},
+		"big-star-screen-frac": {
+			"type": "float",
+			"name": "Big Star Screen Frac",
+			"default": 0.9
+		},
+		"small-star-screen-frac": {
+			"type": "float",
+			"name": "Small Star Screen Frac",
+			"default": 0.2
+		},
+		"star-scale-variance": {
+			"type": "float",
+			"name": "Star Scale Variance",
+			"default": 0.15
+		},
+		"title-sandevistan-trail-0": {
+			"type": "title",
+			"name": "Sandevistan trail"
+		},
+		"sandevistan-end-speed-px": {
+			"type": "float",
+			"name": "Sandevistan End Speed Px",
+			"default": 200.0
+		},
+		"sandevistan-spawn-interval-sec": {
+			"type": "float",
+			"name": "Sandevistan Spawn Interval Sec",
+			"default": 0.04
+		},
+		"sandevistan-ghost-fade-sec": {
+			"type": "float",
+			"name": "Sandevistan Ghost Fade Sec",
+			"default": 0.4
+		},
+		"sandevistan-ghost-start-opacity": {
+			"type": "int",
+			"name": "Sandevistan Ghost Start Opacity",
+			"default": 128
+		},
+		"sandevistan-max-concurrent-ghosts": {
+			"type": "int",
+			"name": "Sandevistan Max Concurrent Ghosts",
+			"default": 24
+		},
+		"sandevistan-trail-layer-z-order": {
+			"type": "int",
+			"name": "Sandevistan Trail Layer Z Order",
+			"default": 0
+		},
+		"sandevistan-trail-hue-orange-r": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Orange R",
+			"default": 255
+		},
+		"sandevistan-trail-hue-orange-g": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Orange G",
+			"default": 175
+		},
+		"sandevistan-trail-hue-orange-b": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Orange B",
+			"default": 55
+		},
+		"sandevistan-trail-hue-purple-r": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Purple R",
+			"default": 185
+		},
+		"sandevistan-trail-hue-purple-g": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Purple G",
+			"default": 95
+		},
+		"sandevistan-trail-hue-purple-b": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Purple B",
+			"default": 255
+		},
+		"sandevistan-trail-hue-cyan-r": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Cyan R",
+			"default": 80
+		},
+		"sandevistan-trail-hue-cyan-g": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Cyan G",
+			"default": 230
+		},
+		"sandevistan-trail-hue-cyan-b": {
+			"type": "int",
+			"name": "Sandevistan Trail Hue Cyan B",
+			"default": 255
+		},
+		"title-fire-aura-intensity-0": {
+			"type": "title",
+			"name": "Fire aura intensity"
+		},
+		"min-fire-aura-speed-px": {
+			"type": "float",
+			"name": "Min Fire Aura Speed Px",
+			"default": 600.0
+		},
+		"max-fire-aura-speed-px": {
+			"type": "float",
+			"name": "Max Fire Aura Speed Px",
+			"default": 2800.0
+		},
+		"fire-aura-diameter-scale": {
+			"type": "float",
+			"name": "Fire Aura Diameter Scale",
+			"default": 2.25
+		},
+		"fire-aura-velocity-to-shader": {
+			"type": "float",
+			"name": "Fire Aura Velocity To Shader",
+			"default": 0.002
+		},
+		"title-fireaurasprite-default-uniforms-0": {
+			"type": "title",
+			"name": "FireAuraSprite default uniforms"
+		},
+		"fire-aura-default-primary-r": {
+			"type": "float",
+			"name": "Fire Aura Default Primary R",
+			"default": 1.0
+		},
+		"fire-aura-default-primary-g": {
+			"type": "float",
+			"name": "Fire Aura Default Primary G",
+			"default": 0.9
+		},
+		"fire-aura-default-primary-b": {
+			"type": "float",
+			"name": "Fire Aura Default Primary B",
+			"default": 0.5
+		},
+		"fire-aura-default-secondary-r": {
+			"type": "float",
+			"name": "Fire Aura Default Secondary R",
+			"default": 0.32
+		},
+		"fire-aura-default-secondary-g": {
+			"type": "float",
+			"name": "Fire Aura Default Secondary G",
+			"default": 0.02
+		},
+		"fire-aura-default-secondary-b": {
+			"type": "float",
+			"name": "Fire Aura Default Secondary B",
+			"default": 0.0
+		},
+		"title-object-motion-blur-0": {
+			"type": "title",
+			"name": "Object motion blur"
+		},
+		"player-min-blur-speed-px": {
+			"type": "float",
+			"name": "Player Min Blur Speed Px",
+			"default": 120.0
+		},
+		"player-max-blur-speed-px": {
+			"type": "float",
+			"name": "Player Max Blur Speed Px",
+			"default": 3200.0
+		},
+		"player-blur-uv-spread": {
+			"type": "float",
+			"name": "Player Blur Uv Spread",
+			"default": 0.035
+		},
+		"player-blur-step-divisor": {
+			"type": "int",
+			"name": "Player Blur Step Divisor",
+			"default": 6
+		},
+		"player-keep-base-visible": {
+			"type": "bool",
+			"name": "Player Keep Base Visible",
+			"default": true
+		},
+		"menu-min-blur-speed-px": {
+			"type": "float",
+			"name": "Menu Min Blur Speed Px",
+			"default": 180.0
+		},
+		"menu-max-blur-speed-px": {
+			"type": "float",
+			"name": "Menu Max Blur Speed Px",
+			"default": 1800.0
+		},
+		"menu-blur-uv-spread": {
+			"type": "float",
+			"name": "Menu Blur Uv Spread",
+			"default": 0.01
+		},
+		"menu-blur-step-divisor": {
+			"type": "int",
+			"name": "Menu Blur Step Divisor",
+			"default": 4
+		},
+		"menu-keep-base-visible": {
+			"type": "bool",
+			"name": "Menu Keep Base Visible",
+			"default": false
+		},
+		"title-debug-overlay-0": {
+			"type": "title",
+			"name": "Debug overlay"
+		},
+		"debug-label-margin-x": {
+			"type": "float",
+			"name": "Debug Label Margin X",
+			"default": 4.0
+		},
+		"debug-label-margin-y": {
+			"type": "float",
+			"name": "Debug Label Margin Y",
+			"default": 4.0
+		},
+		"debug-label-z-order": {
+			"type": "int",
+			"name": "Debug Label Z Order",
+			"default": 6767
+		},
+		"debug-label-update-hz": {
+			"type": "float",
+			"name": "Debug Label Update Hz",
+			"default": 20.0
+		},
+		"debug-label-font-scale": {
+			"type": "float",
+			"name": "Debug Label Font Scale",
+			"default": 0.5
+		},
+		"debug-label-box-pad-x": {
+			"type": "float",
+			"name": "Debug Label Box Pad X",
+			"default": 1.0
+		},
+		"debug-label-box-pad-y": {
+			"type": "float",
+			"name": "Debug Label Box Pad Y",
+			"default": 0.0
+		},
+		"debug-label-box-color-r": {
+			"type": "float",
+			"name": "Debug Label Box Color R",
+			"default": 0.0
+		},
+		"debug-label-box-color-g": {
+			"type": "float",
+			"name": "Debug Label Box Color G",
+			"default": 0.0
+		},
+		"debug-label-box-color-b": {
+			"type": "float",
+			"name": "Debug Label Box Color B",
+			"default": 0.0
+		},
+		"debug-label-box-alpha": {
+			"type": "float",
+			"name": "Debug Label Box Alpha",
+			"default": 0.35
+		},
+		"title-physics-menu-panel-defaults-0": {
+			"type": "title",
+			"name": "Physics menu panel defaults"
+		},
+		"panel-default-w-frac": {
+			"type": "float",
+			"name": "Panel Default W Frac",
+			"default": 0.35
+		},
+		"panel-default-h-frac": {
+			"type": "float",
+			"name": "Panel Default H Frac",
+			"default": 0.25
+		},
+		"panel-default-x-frac": {
+			"type": "float",
+			"name": "Panel Default X Frac",
+			"default": 0.5
+		},
+		"panel-default-y-frac": {
+			"type": "float",
+			"name": "Panel Default Y Frac",
+			"default": 0.7
+		},
+		"title-fake-menu-shard-simulation-two-triangles-per-grid-cell-0": {
+			"type": "title",
+			"name": "Fake menu shard simulation (two triangles per grid cell)"
+		},
+		"menu-shard-rows": {
+			"type": "int",
+			"name": "Menu Shard Rows",
+			"default": 4
+		},
+		"menu-shard-cols": {
+			"type": "int",
+			"name": "Menu Shard Cols",
+			"default": 6
+		},
+		"menu-shard-launch-speed-min-px": {
+			"type": "float",
+			"name": "Menu Shard Launch Speed Min Px",
+			"default": 167.0
+		},
+		"menu-shard-launch-speed-max-px": {
+			"type": "float",
+			"name": "Menu Shard Launch Speed Max Px",
+			"default": 567.0
+		},
+		"menu-shard-extra-impact-velocity-scale": {
+			"type": "float",
+			"name": "Menu Shard Extra Impact Velocity Scale",
+			"default": 0.35
+		},
+		"menu-shard-angular-velocity-min": {
+			"type": "float",
+			"name": "Menu Shard Angular Velocity Min",
+			"default": 6.7
+		},
+		"menu-shard-angular-velocity-max": {
+			"type": "float",
+			"name": "Menu Shard Angular Velocity Max",
+			"default": 67.0
+		},
+		"menu-shard-linear-damping-per-second": {
+			"type": "float",
+			"name": "Menu Shard Linear Damping Per Second",
+			"default": 2.25
+		},
+		"menu-shard-angular-damping-per-second": {
+			"type": "float",
+			"name": "Menu Shard Angular Damping Per Second",
+			"default": 3.75
+		},
+		"menu-shard-hold-seconds": {
+			"type": "float",
+			"name": "Menu Shard Hold Seconds",
+			"default": 12.0
+		},
+		"menu-shard-fade-seconds": {
+			"type": "float",
+			"name": "Menu Shard Fade Seconds",
+			"default": 3.0
+		},
+		"title-world-physics-0": {
+			"type": "title",
+			"name": "World physics"
+		},
+		"pixels-per-meter": {
+			"type": "float",
+			"name": "Pixels Per Meter",
+			"default": 50.0
+		},
+		"earth-gravity": {
+			"type": "float",
+			"name": "Earth Gravity",
+			"default": 9.8
+		},
+		"gravity-scale": {
+			"type": "float",
+			"name": "Gravity Scale",
+			"default": 1.75
+		},
+		"world-iterations": {
+			"type": "int",
+			"name": "World Iterations",
+			"default": 10
+		},
+		"wall-half-thickness": {
+			"type": "float",
+			"name": "Wall Half Thickness",
+			"default": 0.5
+		},
+		"wall-length-padding": {
+			"type": "float",
+			"name": "Wall Length Padding",
+			"default": 4.0
+		},
+		"wall-thickness": {
+			"type": "float",
+			"name": "Wall Thickness",
+			"default": 1.0
+		},
+		"arena-center-frac": {
+			"type": "float",
+			"name": "Arena Center Frac",
+			"default": 0.5
+		},
+		"player-density": {
+			"type": "float",
+			"name": "Player Density",
+			"default": 1.0
+		},
+		"player-initial-x-frac": {
+			"type": "float",
+			"name": "Player Initial X Frac",
+			"default": 0.25
+		},
+		"player-initial-y-frac": {
+			"type": "float",
+			"name": "Player Initial Y Frac",
+			"default": 0.25
+		},
+		"player-initial-vel-x": {
+			"type": "float",
+			"name": "Player Initial Vel X",
+			"default": 5.0
+		},
+		"player-initial-vel-y": {
+			"type": "float",
+			"name": "Player Initial Vel Y",
+			"default": 10.0
+		},
+		"player-initial-angular-vel": {
+			"type": "float",
+			"name": "Player Initial Angular Vel",
+			"default": 30.0
+		},
+		"player-friction": {
+			"type": "float",
+			"name": "Player Friction",
+			"default": 0.4
+		},
+		"drag-spring": {
+			"type": "float",
+			"name": "Drag Spring",
+			"default": 200.0
+		},
+		"drag-damping": {
+			"type": "float",
+			"name": "Drag Damping",
+			"default": 10.0
+		},
+		"drag-angular-damping": {
+			"type": "float",
+			"name": "Drag Angular Damping",
+			"default": 0.2
+		},
+		"default-drag-target-x-frac": {
+			"type": "float",
+			"name": "Default Drag Target X Frac",
+			"default": 0.5
+		},
+		"default-drag-target-y-frac": {
+			"type": "float",
+			"name": "Default Drag Target Y Frac",
+			"default": 0.5
+		},
+		"panel-drag-spring": {
+			"type": "float",
+			"name": "Panel Drag Spring",
+			"default": 170.0
+		},
+		"panel-drag-damping": {
+			"type": "float",
+			"name": "Panel Drag Damping",
+			"default": 15.0
+		},
+		"panel-drag-angular-damping": {
+			"type": "float",
+			"name": "Panel Drag Angular Damping",
+			"default": 0.3
+		},
+		"outside-barrier-slack": {
+			"type": "float",
+			"name": "Outside Barrier Slack",
+			"default": 1.2
+		},
+		"panel-density": {
+			"type": "float",
+			"name": "Panel Density",
+			"default": 1.25
+		},
+		"panel-friction": {
+			"type": "float",
+			"name": "Panel Friction",
+			"default": 0.6
+		},
+		"title-click-and-gestures-0": {
+			"type": "title",
+			"name": "Click and gestures"
+		},
+		"click-window-sec": {
+			"type": "float",
+			"name": "Click Window Sec",
+			"default": 0.5
+		},
+		"double-tap-min-commit-delay-sec": {
+			"type": "float",
+			"name": "Double Tap Min Commit Delay Sec",
+			"default": 0.15
+		},
+		"pending-double-action-tag": {
+			"type": "int",
+			"name": "Pending Double Action Tag",
+			"default": 1129073476
+		},
+		"title-input-began-vs-ended-tracking-slop-0": {
+			"type": "title",
+			"name": "Input began vs ended tracking slop"
+		},
+		"tap-slop-px": {
+			"type": "float",
+			"name": "Tap Slop Px",
+			"default": 12.0
+		},
+		"track-residual-slop-px": {
+			"type": "float",
+			"name": "Track Residual Slop Px",
+			"default": 20.0
+		},
+		"max-finger-for-track-tap-px": {
+			"type": "float",
+			"name": "Max Finger For Track Tap Px",
+			"default": 48.0
+		},
+		"max-tap-gesture-sec": {
+			"type": "float",
+			"name": "Max Tap Gesture Sec",
+			"default": 0.24
+		},
+		"title-physics-menu-ui-chrome-0": {
+			"type": "title",
+			"name": "Physics menu UI chrome"
+		},
+		"physics-menu-button-spacing-px": {
+			"type": "float",
+			"name": "Physics Menu Button Spacing Px",
+			"default": 8.0
+		},
+		"physics-menu-button-scale": {
+			"type": "float",
+			"name": "Physics Menu Button Scale",
+			"default": 0.55
+		},
+		"physics-menu-title-label-scale": {
+			"type": "float",
+			"name": "Physics Menu Title Label Scale",
+			"default": 0.5
+		},
+		"physics-menu-title-top-inset": {
+			"type": "float",
+			"name": "Physics Menu Title Top Inset",
+			"default": 14.0
+		},
+		"physics-menu-menu-y-frac": {
+			"type": "float",
+			"name": "Physics Menu Menu Y Frac",
+			"default": 0.45
+		},
+		"physics-menu-popup-opacity": {
+			"type": "float",
+			"name": "Physics Menu Popup Opacity",
+			"default": 192.0
+		},
+		"screen-shake-action-tag": {
+			"type": "int",
+			"name": "Screen Shake Action Tag",
+			"default": 1800620107
+		},
+		"title-box2d-lite-polygon-vertices-0": {
+			"type": "title",
+			"name": "Box2D-Lite polygon vertices"
+		},
+		"b2-max-polygon-vertices": {
+			"type": "int",
+			"name": "B2 Max Polygon Vertices",
+			"default": 16
+		},
+		"b2-restitution-in-speed-threshold": {
+			"type": "float",
+			"name": "B2 Restitution In Speed Threshold",
+			"default": 3.0
+		},
+		"b2-restitution-coefficient": {
+			"type": "float",
+			"name": "B2 Restitution Coefficient",
+			"default": 0.67
+		},
+		"b2-collide-reference-edge-relative-tol": {
+			"type": "float",
+			"name": "B2 Collide Reference Edge Relative Tol",
+			"default": 0.98
+		},
+		"b2-collide-reference-edge-absolute-tol": {
+			"type": "float",
+			"name": "B2 Collide Reference Edge Absolute Tol",
+			"default": 0.001
+		}
 	}
 }
