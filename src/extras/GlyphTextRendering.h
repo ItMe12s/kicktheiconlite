@@ -45,7 +45,7 @@ struct TextOptions {
 struct LayoutGlyph {
     char symbol = '\0';
     std::string frameName;
-    // Non-owning pointer resolved from sprite frame cache; treat as short-lived.
+    // Non-owning pointer resolved from sprite frame cache, treat as short-lived
     cocos2d::CCSpriteFrame* frame = nullptr;
     cocos2d::CCPoint position = {0.0f, 0.0f};
     cocos2d::CCSize size = {0.0f, 0.0f};

@@ -3,7 +3,9 @@
 #include <Geode/binding/FMODAudioEngine.hpp>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/platform/CCFileUtils.h>
+#include <Geode/cocos/platform/CCGL.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
+#include <Geode/cocos/textures/CCTexture2D.h>
 #include <Geode/cocos/sprite_nodes/CCSpriteFrameCache.h>
 #include <Geode/loader/Mod.hpp>
 
@@ -19,6 +21,9 @@ using namespace geode::prelude;
 
 namespace extras::glyph_text {
 namespace {
+
+// RT default is often NEAREST -> blocky edges when compositing, padding avoids clamp eating AA fringe
+constexpr int kTextBakePaddingPx = 2;
 
 struct GlyphAtlasCache {
     bool attemptedLoad = false;
@@ -396,8 +401,9 @@ CCRenderTexture* buildTextTexture(std::string const& text, TextOptions const& op
     if (!layout.ok) {
         return nullptr;
     }
-    int const rtWidth = std::max(1, static_cast<int>(std::ceil(layout.bounds.width)));
-    int const rtHeight = std::max(1, static_cast<int>(std::ceil(layout.bounds.height)));
+    float const pad = static_cast<float>(kTextBakePaddingPx);
+    int const rtWidth = std::max(1, static_cast<int>(std::ceil(layout.bounds.width)) + 2 * kTextBakePaddingPx);
+    int const rtHeight = std::max(1, static_cast<int>(std::ceil(layout.bounds.height)) + 2 * kTextBakePaddingPx);
     auto* rt = CCRenderTexture::create(rtWidth, rtHeight, kCCTexture2DPixelFormat_RGBA8888);
     if (!rt) {
         return nullptr;
@@ -407,14 +413,27 @@ CCRenderTexture* buildTextTexture(std::string const& text, TextOptions const& op
     for (auto const& sprite : sprites) {
         minY = std::min(minY, sprite->getPositionY());
     }
-    for (auto const& sprite : sprites) {
-        sprite->setPositionY(sprite->getPositionY() - minY);
+    for (auto* sprite : sprites) {
+        sprite->setPosition({
+            sprite->getPositionX() + pad,
+            sprite->getPositionY() - minY + pad,
+        });
     }
     rt->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
     for (auto* sprite : sprites) {
         sprite->visit();
     }
     rt->end();
+    if (auto* rtSprite = rt->getSprite()) {
+        if (auto* tex = rtSprite->getTexture()) {
+            ccTexParams texParams{};
+            texParams.minFilter = GL_LINEAR;
+            texParams.magFilter = GL_LINEAR;
+            texParams.wrapS = GL_CLAMP_TO_EDGE;
+            texParams.wrapT = GL_CLAMP_TO_EDGE;
+            tex->setTexParameters(&texParams);
+        }
+    }
     return rt;
 }
 
@@ -429,6 +448,8 @@ CCSprite* buildTextSprite(std::string const& text, TextOptions const& options) {
     }
     sprite->setAnchorPoint({0.0f, 0.0f});
     sprite->setFlipY(true);
+    sprite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+    sprite->setOpacityModifyRGB(true);
     return sprite;
 }
 
