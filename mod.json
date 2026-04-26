@@ -23,7 +23,9 @@
 		"files": [
 			"src/assets/img_star1.png",
 			"src/assets/glyph_atlas.png",
-			"src/assets/glyph_atlas.plist"
+			"src/assets/glyph_atlas.plist",
+			"src/assets/soggy/soggy_atlas.png",
+			"src/assets/soggy/soggy_atlas.plist"
 		]
 	},
 	"dependencies": {
@@ -802,6 +804,50 @@
 			"type": "float",
 			"name": "Panel Friction",
 			"default": 0.6
+		},
+		"title-soggy-dynamic-object-0": {
+			"type": "title",
+			"name": "Soggy dynamic object"
+		},
+		"soggy-frame-count": {
+			"type": "int",
+			"name": "Soggy Frame Count",
+			"default": 48
+		},
+		"soggy-hitbox-size-px": {
+			"type": "float",
+			"name": "Soggy Hitbox Size Px",
+			"default": 70.0
+		},
+		"soggy-spawn-x-frac": {
+			"type": "float",
+			"name": "Soggy Spawn X Frac",
+			"default": 0.5
+		},
+		"soggy-spawn-y-frac": {
+			"type": "float",
+			"name": "Soggy Spawn Y Frac",
+			"default": 0.45
+		},
+		"soggy-density": {
+			"type": "float",
+			"name": "Soggy Density",
+			"default": 1.0
+		},
+		"soggy-friction": {
+			"type": "float",
+			"name": "Soggy Friction",
+			"default": 0.45
+		},
+		"soggy-anim-fps": {
+			"type": "float",
+			"name": "Soggy Anim Fps",
+			"default": 24.0
+		},
+		"soggy-grab-radius-fraction": {
+			"type": "float",
+			"name": "Soggy Grab Radius Fraction",
+			"default": 0.55
 		},
 		"title-click-and-gestures-0": {
 			"type": "title",

@@ -17,6 +17,7 @@
 #include "PhysicsWorld.h"
 #include "PhysicsMenu.h"
 #include "PlayerVisual.h"
+#include "objects/SoggyObject.h"
 #include "RuntimeRestart.h"
 #include "events/ClickEvents.h"
 #include "vfx/ImpactFlash.h"
@@ -455,6 +456,78 @@ void PhysicsOverlay::clearGlyphVisualTest() {
     }
 }
 
+void PhysicsOverlay::trySpawnSoggyObject() {
+    if (!m_physics) {
+        return;
+    }
+    if (m_soggyHandle >= 0) {
+        return;
+    }
+    PhysicsDynamicObjectInit init{};
+    float const hb = soggy_object::hitboxSizePx();
+    init.widthPx = hb;
+    init.heightPx = hb;
+    init.xPx = m_winSize.width * kSoggySpawnXFrac;
+    init.yPx = m_winSize.height * kSoggySpawnYFrac;
+    init.density = kSoggyDensity;
+    init.friction = kSoggyFriction;
+    int const h = m_physics->spawnDynamicObject(init);
+    if (h < 0) {
+        return;
+    }
+    cocos2d::CCSprite* spr = nullptr;
+    auto* root = soggy_object::tryCreateRoot(&spr);
+    if (!root || !spr) {
+        m_physics->destroyDynamicObject(h);
+        return;
+    }
+    m_soggyHandle = h;
+    m_soggyRoot = root;
+    m_soggySprite = spr;
+    m_soggyAnimTime = 0.0f;
+    root->setID("soggy-object-root"_spr);
+    auto* worldRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
+    if (worldRoot) {
+        worldRoot->addChild(root, kPlayerRootZOrder - 1);
+    } else {
+        this->addChild(root, kUnifiedWorldCaptureZOrder + kLayerWorldZOrderOffset);
+    }
+}
+
+void PhysicsOverlay::syncSoggyNodeFromPhysics(float alpha) {
+    if (!m_soggyRoot || !m_physics || m_soggyHandle < 0) {
+        return;
+    }
+    if (!m_physics->hasDynamicObject(m_soggyHandle)) {
+        return;
+    }
+    auto st = m_physics->getDynamicObjectRenderState(m_soggyHandle, alpha);
+    m_soggyRoot->setPosition({st.x, st.y});
+    m_soggyRoot->setRotation(-st.angle * kRadToDeg);
+}
+
+void PhysicsOverlay::updateSoggyVisual(float dt) {
+    if (!m_soggySprite) {
+        return;
+    }
+    m_soggyAnimTime += dt;
+    soggy_object::advanceAnimation(m_soggySprite, m_soggyAnimTime);
+}
+
+void PhysicsOverlay::clearSoggyObject() {
+    if (m_soggyRoot) {
+        m_soggyRoot->removeFromParentAndCleanup(true);
+        m_soggyRoot = nullptr;
+    }
+    m_soggySprite = nullptr;
+    m_soggyAnimTime = 0.0f;
+    m_soggyDragActive = false;
+    if (m_physics && m_soggyHandle >= 0) {
+        m_physics->destroyDynamicObject(m_soggyHandle);
+    }
+    m_soggyHandle = -1;
+}
+
 void PhysicsOverlay::update(float dt) {
     if (m_selfDestructRequested || runtime_restart::isRestartRequired()) {
         return;
@@ -507,6 +580,11 @@ void PhysicsOverlay::update(float dt) {
     if (m_physicsMenuVisual && m_physics->hasPanel()) {
         float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
         syncPanelNodeFromPhysics(alpha);
+    }
+    if (m_soggyHandle >= 0 && m_soggyRoot && m_physics->hasDynamicObject(m_soggyHandle)) {
+        float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
+        syncSoggyNodeFromPhysics(alpha);
+        updateSoggyVisual(dt);
     }
     updateMenuShatter(dt);
     vfx::trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
@@ -585,6 +663,7 @@ void PhysicsOverlay::onExit() {
     }
     clearMenuShatter();
     clearGlyphVisualTest();
+    clearSoggyObject();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
     if (m_trail.layer) {

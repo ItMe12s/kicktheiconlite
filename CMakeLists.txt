@@ -24,6 +24,7 @@ set(SOURCES
   src/PlayerVisual.cpp
   src/RuntimeRestart.cpp
   src/extras/GlyphTextRendering.cpp
+  src/objects/SoggyObject.cpp
   src/vfx/ImpactFlash.cpp
   src/vfx/ImpactNoise.cpp
   src/vfx/ObjectMotionBlurPipeline.cpp

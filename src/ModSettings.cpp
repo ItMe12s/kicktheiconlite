@@ -330,6 +330,24 @@ void bindAll() {
     kPanelFriction = static_cast<float>(mod->getSettingValue<double>("panel-friction"));
     listenForSettingChanges<double>("panel-friction", [](double v) { kPanelFriction = static_cast<float>(v); });
 
+    // Soggy dynamic object
+    kSoggyFrameCount = static_cast<int>(mod->getSettingValue<int64_t>("soggy-frame-count"));
+    listenForSettingChanges<int64_t>("soggy-frame-count", [](int64_t v) { kSoggyFrameCount = static_cast<int>(v); });
+    kSoggyHitboxSizePx = static_cast<float>(mod->getSettingValue<double>("soggy-hitbox-size-px"));
+    listenForSettingChanges<double>("soggy-hitbox-size-px", [](double v) { kSoggyHitboxSizePx = static_cast<float>(v); });
+    kSoggySpawnXFrac = static_cast<float>(mod->getSettingValue<double>("soggy-spawn-x-frac"));
+    listenForSettingChanges<double>("soggy-spawn-x-frac", [](double v) { kSoggySpawnXFrac = static_cast<float>(v); });
+    kSoggySpawnYFrac = static_cast<float>(mod->getSettingValue<double>("soggy-spawn-y-frac"));
+    listenForSettingChanges<double>("soggy-spawn-y-frac", [](double v) { kSoggySpawnYFrac = static_cast<float>(v); });
+    kSoggyDensity = static_cast<float>(mod->getSettingValue<double>("soggy-density"));
+    listenForSettingChanges<double>("soggy-density", [](double v) { kSoggyDensity = static_cast<float>(v); });
+    kSoggyFriction = static_cast<float>(mod->getSettingValue<double>("soggy-friction"));
+    listenForSettingChanges<double>("soggy-friction", [](double v) { kSoggyFriction = static_cast<float>(v); });
+    kSoggyAnimFps = static_cast<float>(mod->getSettingValue<double>("soggy-anim-fps"));
+    listenForSettingChanges<double>("soggy-anim-fps", [](double v) { kSoggyAnimFps = static_cast<float>(v); });
+    kSoggyGrabRadiusFraction = static_cast<float>(mod->getSettingValue<double>("soggy-grab-radius-fraction"));
+    listenForSettingChanges<double>("soggy-grab-radius-fraction", [](double v) { kSoggyGrabRadiusFraction = static_cast<float>(v); });
+
     // Click and gestures
     kPendingDoubleActionTag = static_cast<int>(mod->getSettingValue<int64_t>("pending-double-action-tag"));
     listenForSettingChanges<int64_t>("pending-double-action-tag", [](int64_t v) { kPendingDoubleActionTag = static_cast<int>(v); });

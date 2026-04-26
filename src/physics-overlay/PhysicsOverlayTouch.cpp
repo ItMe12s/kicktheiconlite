@@ -12,6 +12,7 @@
 #include "PhysicsWorld.h"
 #include "PhysicsMenu.h"
 #include "PlayerVisual.h"
+#include "objects/SoggyObject.h"
 #include "events/ClickEvents.h"
 #include "vfx/ObjectMotionBlurPipeline.h"
 #include "vfx/StarBurst.h"
@@ -188,7 +189,7 @@ void PhysicsOverlay::tryOpenPhysicsMenu() {
     float const y = m_winSize.height * kPanelDefaultYFrac;
 
     auto panel = std::make_unique<PhysicsMenu>();
-    if (!panel->build(w, h)) {
+    if (!panel->build(w, h, [this] { this->trySpawnSoggyObject(); })) {
         return;
     }
     if (auto* root = panel->getRoot()) {
@@ -243,11 +244,45 @@ void PhysicsOverlay::syncPanelNodeFromPhysics(float alpha) {
     root->setRotation(-st.angle * kRadToDeg);
 }
 
+void PhysicsOverlay::endSoggyGrab() {
+    if (!m_soggyDragActive) {
+        return;
+    }
+    m_soggyDragActive = false;
+    if (m_physics && m_soggyHandle >= 0) {
+        m_physics->setDynamicObjectDragging(m_soggyHandle, false);
+    }
+}
+
+bool PhysicsOverlay::tryBeginSoggyGrab(CCPoint const& locationInNode) {
+    if (!m_physics || m_soggyHandle < 0) {
+        return false;
+    }
+    if (!m_physics->hasDynamicObject(m_soggyHandle)) {
+        return false;
+    }
+    PhysicsState const st = m_physics->getDynamicObjectState(m_soggyHandle);
+    float const dx = locationInNode.x - st.x;
+    float const dy = locationInNode.y - st.y;
+    float const distSq = dx * dx + dy * dy;
+    float const grabR =
+        soggy_object::visualSpanPx(m_soggyRoot) * kSoggyGrabRadiusFraction;
+    if (distSq > grabR * grabR) {
+        return false;
+    }
+    m_physics->setDynamicObjectDragGrabOffsetPixels(m_soggyHandle, dx, dy);
+    m_physics->setDynamicObjectDragTargetPixels(m_soggyHandle, locationInNode.x, locationInNode.y);
+    m_physics->setDynamicObjectDragging(m_soggyHandle, true);
+    m_soggyDragActive = true;
+    return true;
+}
+
 void PhysicsOverlay::endTouchInteraction() {
     if (m_panelDragActive && m_physics) {
         m_physics->setPanelDragging(false);
         m_panelDragActive = false;
     }
+    endSoggyGrab();
     endGrab();
 }
 
@@ -258,6 +293,10 @@ bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     }
     CCPoint const p = this->convertTouchToNodeSpace(touch);
     if (m_physicsMenuVisual && m_physics->hasPanel() && tryBeginPanelGrab(p)) {
+        events::ClickTracker::get()->onTouchBegan(touch);
+        return true;
+    }
+    if (tryBeginSoggyGrab(p)) {
         events::ClickTracker::get()->onTouchBegan(touch);
         return true;
     }
@@ -274,6 +313,10 @@ void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
     CCPoint const p = this->convertTouchToNodeSpace(touch);
     if (m_panelDragActive) {
         m_physics->setPanelDragTargetPixels(p.x, p.y);
+        return;
+    }
+    if (m_soggyDragActive && m_soggyHandle >= 0) {
+        m_physics->setDynamicObjectDragTargetPixels(m_soggyHandle, p.x, p.y);
         return;
     }
     if (!m_grabActive) {

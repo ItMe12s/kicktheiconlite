@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace cocos2d {
 class CCNode;
 }
@@ -16,7 +18,7 @@ public:
     PhysicsMenu(PhysicsMenu const&) = delete;
     PhysicsMenu& operator=(PhysicsMenu const&) = delete;
 
-    bool build(float width, float height);
+    bool build(float width, float height, std::function<void()>&& onSoggyPressed = {});
     cocos2d::CCNode* getRoot() const { return m_root; }
     float getWidth() const { return m_width; }
     float getHeight() const { return m_height; }

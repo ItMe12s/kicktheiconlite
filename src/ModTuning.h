@@ -240,6 +240,18 @@ inline float kOutsideBarrierSlack = 1.2f;
 inline float kPanelDensity = 1.25f;
 inline float kPanelFriction = 0.6f;
 
+// Soggy dynamic object
+
+inline int kSoggyFrameCount = 48;
+// Physics box and on-screen sprite: same size (atlas is scaled to fit this max span)
+inline float kSoggyHitboxSizePx = 70.0f;
+inline float kSoggySpawnXFrac = 0.5f;
+inline float kSoggySpawnYFrac = 0.45f;
+inline float kSoggyDensity = 1.0f;
+inline float kSoggyFriction = 0.45f;
+inline float kSoggyAnimFps = 24.0f;
+inline float kSoggyGrabRadiusFraction = 0.55f;
+
 // Click and gestures
 
 constexpr double kClickWindowSec = 0.5;

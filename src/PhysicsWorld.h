@@ -38,6 +38,19 @@ struct PhysicsShatterBodyInit {
     float angularDampingPerSecond = 0.0f;
 };
 
+struct PhysicsDynamicObjectInit {
+    float widthPx = 0.0f;
+    float heightPx = 0.0f;
+    float xPx = 0.0f;
+    float yPx = 0.0f;
+    float angleRad = 0.0f;
+    float velocityXPx = 0.0f;
+    float velocityYPx = 0.0f;
+    float angularVelocityRad = 0.0f;
+    float density = 1.0f;
+    float friction = 0.4f;
+};
+
 class PhysicsWorld {
 public:
     PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH);
@@ -73,6 +86,18 @@ public:
     bool getShatterBodyState(int handle, PhysicsState& out) const;
     void clearShatterBodies();
     int getShatterBodyCount() const;
+
+    int spawnDynamicObject(PhysicsDynamicObjectInit const& init);
+    void destroyDynamicObject(int handle);
+    bool hasDynamicObject(int handle) const;
+    void clearAllDynamicObjects();
+    PhysicsState getDynamicObjectState(int handle) const;
+    PhysicsState getDynamicObjectRenderState(int handle, float alpha) const;
+    PhysicsVelocity getDynamicObjectVelocityPixels(int handle) const;
+    void setDynamicObjectDragging(int handle, bool on);
+    void setDynamicObjectDragTargetPixels(int handle, float x, float y);
+    void setDynamicObjectDragGrabOffsetPixels(int handle, float offsetX, float offsetY);
+    int dynamicObjectCount() const;
 
 private:
     void clampPlayerToScreenBorder();

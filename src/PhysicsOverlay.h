@@ -80,6 +80,12 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     std::vector<cocos2d::CCPoint> m_glyphDemoWobbleBasePositions;
     float m_glyphDemoTime = 0.0f;
 
+    int m_soggyHandle = -1;
+    cocos2d::CCNode* m_soggyRoot = nullptr;
+    cocos2d::CCSprite* m_soggySprite = nullptr;
+    float m_soggyAnimTime = 0.0f;
+    bool m_soggyDragActive = false;
+
     geode::ListenerHandle m_doubleClickListener{};
     geode::ListenerHandle m_tripleClickListener{};
 
@@ -127,6 +133,12 @@ private:
     void initGlyphVisualTest();
     void updateGlyphVisualTest(float dt);
     void clearGlyphVisualTest();
+    void trySpawnSoggyObject();
+    void syncSoggyNodeFromPhysics(float alpha);
+    void updateSoggyVisual(float dt);
+    bool tryBeginSoggyGrab(cocos2d::CCPoint const& locationInNode);
+    void endSoggyGrab();
+    void clearSoggyObject();
     void updateDebugOverlayText(float dt);
     std::vector<std::string> const& splitDebugLinesInto(std::string const& text);
 };

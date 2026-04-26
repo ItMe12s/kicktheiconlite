@@ -3,6 +3,7 @@
 #include "ModTuning.h"
 
 #include <Geode/Geode.hpp>
+#include <functional>
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/cocos/extensions/GUI/CCControlExtension/CCScale9Sprite.h>
 
@@ -16,7 +17,7 @@ PhysicsMenu::~PhysicsMenu() {
     }
 }
 
-bool PhysicsMenu::build(float width, float height) {
+bool PhysicsMenu::build(float width, float height, std::function<void()>&& onSoggyPressed) {
     if (m_root) {
         return false;
     }
@@ -62,40 +63,31 @@ bool PhysicsMenu::build(float width, float height) {
     }
 
     auto* menu = CCMenu::create();
-    if (menu) {
-        menu->ignoreAnchorPointForPosition(false);
-        menu->setContentSize({width, height});
-        menu->setAnchorPoint({0.5f, 0.5f});
-        menu->setPosition({hw, hh});
-
-        auto* btnA = CCMenuItemExt::createSpriteExtra(
-            ButtonSprite::create("Aa123", "goldFont.fnt", "GJ_button_01.png", kPhysicsMenuButtonScale),
-            [](CCMenuItemSpriteExtra*) {
-                log::info("physics menu: button A pressed");
-            }
-        );
-        auto* btnB = CCMenuItemExt::createSpriteExtra(
-            ButtonSprite::create("Bb456", "goldFont.fnt", "GJ_button_01.png", kPhysicsMenuButtonScale),
-            [](CCMenuItemSpriteExtra*) {
-                log::info("physics menu: button B pressed");
-            }
-        );
-
-        if (btnA && btnB) {
-            float const wA = btnA->getScaledContentSize().width;
-            float const wB = btnB->getScaledContentSize().width;
-            float const totalW = wA + kPhysicsMenuButtonSpacingPx + wB;
-            float const xStart = (width - totalW) * 0.5f;
-            float const y = height * kPhysicsMenuMenuYFrac;
-
-            btnA->setPosition({xStart + wA * 0.5f, y});
-            btnB->setPosition({xStart + wA + kPhysicsMenuButtonSpacingPx + wB * 0.5f, y});
-            menu->addChild(btnA);
-            menu->addChild(btnB);
-        }
-
-        root->addChild(menu, 3);
+    if (!menu) {
+        root->removeFromParentAndCleanup(true);
+        return false;
     }
+    menu->ignoreAnchorPointForPosition(false);
+    menu->setContentSize({width, height});
+    menu->setAnchorPoint({0.5f, 0.5f});
+    menu->setPosition({hw, hh});
+
+    auto* btnSoggy = CCMenuItemExt::createSpriteExtra(
+        ButtonSprite::create("Soggy", "goldFont.fnt", "GJ_button_01.png", kPhysicsMenuButtonScale),
+        [soggy = std::move(onSoggyPressed)](CCMenuItemSpriteExtra*) mutable {
+            if (soggy) {
+                soggy();
+            }
+        }
+    );
+
+    if (btnSoggy) {
+        float const y = height * kPhysicsMenuMenuYFrac;
+        btnSoggy->setPosition({width * 0.5f, y});
+        menu->addChild(btnSoggy);
+    }
+
+    root->addChild(menu, 3);
 
     m_root = root;
     return true;
