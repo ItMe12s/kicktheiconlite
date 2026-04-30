@@ -121,6 +121,7 @@ inline float kPlayerBlurUvSpread = 0.035f;
 inline int kPlayerBlurStepDivisor = 6;
 inline bool kPlayerKeepBaseVisible = true;
 
+inline bool kDebugLabelEnabled = false;
 inline float kDebugLabelMarginX = 4.0f;
 inline float kDebugLabelMarginY = 4.0f;
 constexpr int kDebugLabelZOrder = 6767;

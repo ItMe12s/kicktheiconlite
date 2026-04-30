@@ -52,6 +52,14 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
         return;
     }
 
+    m_debugLabel->setVisible(kDebugLabelEnabled);
+    if (m_debugLabelBackground) {
+        m_debugLabelBackground->setVisible(kDebugLabelEnabled);
+    }
+    if (!kDebugLabelEnabled) {
+        return;
+    }
+
     float const sampleMs = intervalSec * 1000.0f;
     float const sampleHz = intervalSec > 0.00001f ? (1.0f / intervalSec) : 0.0f;
     float const accumulatorRatio = std::clamp(m_physicsAccumulator / kFixedPhysicsDt, 0.0f, 1.0f);

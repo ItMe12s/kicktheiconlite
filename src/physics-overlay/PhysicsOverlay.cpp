@@ -117,6 +117,7 @@ bool PhysicsOverlay::init() {
         if (m_debugLabelBackground) {
             m_debugLabelBackground->setID("debug-overlay-line-backgrounds"_spr);
             m_debugLabelBackground->setPosition({0.0f, 0.0f});
+            m_debugLabelBackground->setVisible(kDebugLabelEnabled);
             uiRoot->addChild(m_debugLabelBackground, kDebugLabelBackgroundZOrder);
 
             m_debugLabelBackgroundTexture = CCRenderTexture::create(1, 1);
@@ -133,6 +134,7 @@ bool PhysicsOverlay::init() {
             m_debugLabel->setAnchorPoint({0.0f, 1.0f});
             m_debugLabel->setScale(kDebugLabelFontScale);
             m_debugLabel->setPosition({baseX, baseY});
+            m_debugLabel->setVisible(kDebugLabelEnabled);
             uiRoot->addChild(m_debugLabel, kDebugLabelZOrder);
         }
 

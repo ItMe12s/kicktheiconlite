@@ -30,6 +30,5 @@ I'm a solo dev so I'm taking my time here.
 
 ## Technical notes
 
-- Modified Box2D-Lite for physics
-- GLSL shaders embedded via CMake for overlay rendering
-- `mod.json` settings generated from `ModTuning.h`
+- This mod uses a modified Box2D-Lite for physics.
+- `mod.json` settings are auto-generated.

@@ -173,6 +173,8 @@ void bindAll() {
     listenForSettingChanges<int64_t>("player-blur-step-divisor", [](int64_t v) { kPlayerBlurStepDivisor = static_cast<int>(v); });
     kPlayerKeepBaseVisible = mod->getSettingValue<bool>("player-keep-base-visible");
     listenForSettingChanges<bool>("player-keep-base-visible", [](bool v) { kPlayerKeepBaseVisible = v; });
+    kDebugLabelEnabled = mod->getSettingValue<bool>("debug-label-enabled");
+    listenForSettingChanges<bool>("debug-label-enabled", [](bool v) { kDebugLabelEnabled = v; });
     kDebugLabelMarginX = static_cast<float>(mod->getSettingValue<double>("debug-label-margin-x"));
     listenForSettingChanges<double>("debug-label-margin-x", [](double v) { kDebugLabelMarginX = static_cast<float>(v); });
     kDebugLabelMarginY = static_cast<float>(mod->getSettingValue<double>("debug-label-margin-y"));

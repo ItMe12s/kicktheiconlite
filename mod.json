@@ -428,6 +428,11 @@
 			"name": "Player Keep Base Visible",
 			"default": true
 		},
+		"debug-label-enabled": {
+			"type": "bool",
+			"name": "Debug Label Enabled",
+			"default": false
+		},
 		"debug-label-margin-x": {
 			"type": "float",
 			"name": "Debug Label Margin X",
