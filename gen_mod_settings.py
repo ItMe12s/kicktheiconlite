@@ -9,6 +9,8 @@ import sys
 
 # Compile-time-required constants: stay constexpr, excluded from mod.json and binder
 SKIP_SYMBOLS = {
+    "kHideModOverlayOffsetX",
+    "kHideModOverlayOffsetY",
     "kFixedPhysicsDt",  # static_assert + kPhysicsAccumulatorCap
     "kMaxPhysicsSubsteps",  # static_assert + kPhysicsAccumulatorCap
     "kMaxSimulationFrameDt",  # static_assert
@@ -18,6 +20,11 @@ SKIP_SYMBOLS = {
     "kDebugLabelZOrder",  # kDebugLabelBackgroundZOrder
     "kDebugLabelUpdateHz",  # kDebugLabelUpdateInterval
     "kB2MaxPolygonVertices",  # Body struct layout
+}
+
+# Optional Geode "description" for settings keys
+SETTING_DESCRIPTIONS = {
+    "hide-mod-overlay": "Hides overlay far off-screen and freezes physics. The mod is still loaded, not a full disable.",
 }
 
 # Runtime safety clamps for values loaded from mod settings
@@ -246,6 +253,8 @@ def build_settings(header: pathlib.Path) -> tuple[dict, list, list]:
             }
             if entry.get("description"):
                 s["description"] = entry["description"]
+            elif entry["key"] in SETTING_DESCRIPTIONS:
+                s["description"] = SETTING_DESCRIPTIONS[entry["key"]]
             settings[entry["key"]] = s
 
             if pending_title is not None:

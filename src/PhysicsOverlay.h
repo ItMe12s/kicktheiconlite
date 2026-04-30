@@ -67,6 +67,7 @@ public:
     void onEnter() override;
     void onExit() override;
     void beginFullscreenSelfDestruct();
+    void applyHideModOverlayFromTuning();
 
     bool ccTouchBegan(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;
     void ccTouchMoved(cocos2d::CCTouch* touch, cocos2d::CCEvent* event) override;

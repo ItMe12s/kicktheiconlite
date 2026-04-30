@@ -17,6 +17,7 @@
 #include "PhysicsWorld.h"
 #include "PlayerVisual.h"
 #include "RuntimeRestart.h"
+#include "ModTuning.h"
 #include "vfx/ImpactFlash.h"
 #include "vfx/ImpactNoise.h"
 #include "vfx/ObjectMotionBlurPipeline.h"
@@ -57,6 +58,21 @@ cocos2d::CCNode* overlayLayerRoot(
 
 PhysicsOverlay::PhysicsOverlay() = default;
 PhysicsOverlay::~PhysicsOverlay() = default;
+
+void PhysicsOverlay::applyHideModOverlayFromTuning() {
+    if (m_selfDestructRequested || runtime_restart::isRestartRequired()) {
+        return;
+    }
+    if (kHideModOverlay) {
+        endTouchInteraction();
+        this->setPosition({kHideModOverlayOffsetX, kHideModOverlayOffsetY});
+        this->setTouchEnabled(false);
+    } else {
+        this->setPosition({0.0f, 0.0f});
+        this->setTouchEnabled(true);
+        handleTouchPriorityWith(this, kPhysicsOverlayTouchPriority, true);
+    }
+}
 
 bool PhysicsOverlay::init() {
     if (!CCLayer::init()) {
@@ -338,6 +354,10 @@ void PhysicsOverlay::update(float dt) {
         return;
     }
 
+    if (kHideModOverlay) {
+        return;
+    }
+
     decrementCooldowns(dt);
     tryBuildVisualIfNeeded();
     stepPhysicsUnlessHitstop(dt);
@@ -385,6 +405,7 @@ void PhysicsOverlay::update(float dt) {
 void PhysicsOverlay::onEnter() {
     CCLayer::onEnter();
     handleTouchPriorityWith(this, kPhysicsOverlayTouchPriority, true);
+    applyHideModOverlayFromTuning();
 }
 
 void PhysicsOverlay::beginFullscreenSelfDestruct() {

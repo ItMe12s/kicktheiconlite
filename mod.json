@@ -12,7 +12,8 @@
 	"developer": "imes",
 	"description": "Lite version of Kick the Icon mod",
 	"links": {
-		"community": "https://discord.gg/E8f6D6XqbW"
+		"community": "https://discord.gg/E8f6D6XqbW",
+		"source": "https://github.com/ItMe12s/kicktheiconlite"
 	},
 	"tags": [
 		"offline",
@@ -28,6 +29,20 @@
 		"geode.node-ids": ">=v1.20.0"
 	},
 	"settings": {
+		"title-important-0": {
+			"type": "title",
+			"name": "Important"
+		},
+		"hide-mod-overlay": {
+			"type": "bool",
+			"name": "Hide Mod Overlay",
+			"default": false,
+			"description": "Hides overlay far off-screen and freezes physics. The mod is still loaded, not a full disable."
+		},
+		"title-player-visual-0": {
+			"type": "title",
+			"name": "Player Visual"
+		},
 		"player-visual-max-world-bounds-tree-depth": {
 			"type": "int",
 			"name": "Player Visual Max World Bounds Tree Depth",
@@ -63,6 +78,10 @@
 			"name": "Player Visual Player Visual Local Z Order",
 			"default": 0
 		},
+		"title-physics-overlay-0": {
+			"type": "title",
+			"name": "Physics Overlay"
+		},
 		"physics-overlay-z-order": {
 			"type": "int",
 			"name": "Physics Overlay Z Order",
@@ -78,6 +97,10 @@
 			"name": "Physics Overlay Scheduler Priority",
 			"default": 0
 		},
+		"title-player-root-0": {
+			"type": "title",
+			"name": "Player Root"
+		},
 		"player-root-z-order": {
 			"type": "int",
 			"name": "Player Root Z Order",
@@ -92,6 +115,10 @@
 			"type": "float",
 			"name": "Grab Radius Fraction",
 			"default": 0.6666666666666666
+		},
+		"title-vfx-z-orders-0": {
+			"type": "title",
+			"name": "VFX Z Orders"
 		},
 		"impact-flash-backdrop-z-order": {
 			"type": "int",
@@ -143,6 +170,10 @@
 			"name": "Layer Ui Z Order Offset",
 			"default": 2
 		},
+		"title-vfx-toggles-0": {
+			"type": "title",
+			"name": "VFX Toggles"
+		},
 		"enable-player-impact-trail": {
 			"type": "bool",
 			"name": "Enable Player Impact Trail",
@@ -152,6 +183,10 @@
 			"type": "bool",
 			"name": "Enable Player Impact Flash Stack",
 			"default": true
+		},
+		"title-impact-flash-0": {
+			"type": "title",
+			"name": "Impact Flash"
 		},
 		"impact-hitstop-seconds": {
 			"type": "float",
@@ -167,6 +202,10 @@
 			"type": "int",
 			"name": "Impact Flash Invert Phase End Phase Count",
 			"default": 2
+		},
+		"title-player-impact-0": {
+			"type": "title",
+			"name": "Player Impact"
 		},
 		"player-impact-min-flash-speed": {
 			"type": "float",
@@ -193,6 +232,10 @@
 			"name": "Player Impact Max Shake Strength",
 			"default": 6.7
 		},
+		"title-screen-shake-0": {
+			"type": "title",
+			"name": "Screen Shake"
+		},
 		"screen-shake-intervals": {
 			"type": "int",
 			"name": "Screen Shake Intervals",
@@ -213,6 +256,10 @@
 			"name": "Screen Shake Cooldown Extra Seconds",
 			"default": 0.1
 		},
+		"title-impact-noise-0": {
+			"type": "title",
+			"name": "Impact Noise"
+		},
 		"impact-noise-fade-seconds": {
 			"type": "float",
 			"name": "Impact Noise Fade Seconds",
@@ -232,6 +279,10 @@
 			"type": "float",
 			"name": "Impact Noise Render Scale",
 			"default": 0.1
+		},
+		"title-star-burst-0": {
+			"type": "title",
+			"name": "Star Burst"
 		},
 		"big-star-count": {
 			"type": "int",
@@ -277,6 +328,10 @@
 			"type": "float",
 			"name": "Star Scale Variance",
 			"default": 0.15
+		},
+		"title-sandevistan-0": {
+			"type": "title",
+			"name": "Sandevistan"
 		},
 		"sandevistan-end-speed-px": {
 			"type": "float",
@@ -353,6 +408,10 @@
 			"name": "Sandevistan Trail Hue Cyan B",
 			"default": 255
 		},
+		"title-fire-aura-0": {
+			"type": "title",
+			"name": "Fire Aura"
+		},
 		"min-fire-aura-speed-px": {
 			"type": "float",
 			"name": "Min Fire Aura Speed Px",
@@ -403,6 +462,10 @@
 			"name": "Fire Aura Default Secondary B",
 			"default": 0.0
 		},
+		"title-player-motion-blur-0": {
+			"type": "title",
+			"name": "Player Motion Blur"
+		},
 		"player-min-blur-speed-px": {
 			"type": "float",
 			"name": "Player Min Blur Speed Px",
@@ -427,6 +490,10 @@
 			"type": "bool",
 			"name": "Player Keep Base Visible",
 			"default": true
+		},
+		"title-debug-label-0": {
+			"type": "title",
+			"name": "Debug Label"
 		},
 		"debug-label-enabled": {
 			"type": "bool",
@@ -478,6 +545,10 @@
 			"name": "Debug Label Box Alpha",
 			"default": 0.35
 		},
+		"title-physics-world-0": {
+			"type": "title",
+			"name": "Physics World"
+		},
 		"pixels-per-meter": {
 			"type": "float",
 			"name": "Pixels Per Meter",
@@ -518,6 +589,10 @@
 			"name": "Arena Center Frac",
 			"default": 0.5
 		},
+		"title-player-0": {
+			"type": "title",
+			"name": "Player"
+		},
 		"player-density": {
 			"type": "float",
 			"name": "Player Density",
@@ -532,6 +607,10 @@
 			"type": "float",
 			"name": "Player Initial Y Frac",
 			"default": 0.25
+		},
+		"title-player-initial-0": {
+			"type": "title",
+			"name": "Player Initial"
 		},
 		"player-initial-vel-x": {
 			"type": "float",
@@ -548,6 +627,10 @@
 			"name": "Player Initial Angular Vel",
 			"default": 30.0
 		},
+		"title-player-physics-0": {
+			"type": "title",
+			"name": "Player Physics"
+		},
 		"player-friction": {
 			"type": "float",
 			"name": "Player Friction",
@@ -556,7 +639,7 @@
 		"drag-spring": {
 			"type": "float",
 			"name": "Drag Spring",
-			"default": 200.0
+			"default": 220.0
 		},
 		"drag-damping": {
 			"type": "float",
@@ -578,25 +661,45 @@
 			"name": "Default Drag Target Y Frac",
 			"default": 0.5
 		},
+		"title-outside-barrier-slack-0": {
+			"type": "title",
+			"name": "Outside Barrier Slack"
+		},
 		"outside-barrier-slack": {
 			"type": "float",
 			"name": "Outside Barrier Slack",
 			"default": 1.2
+		},
+		"title-screen-shake-action-tag-0": {
+			"type": "title",
+			"name": "Screen Shake Action Tag"
 		},
 		"screen-shake-action-tag": {
 			"type": "int",
 			"name": "Screen Shake Action Tag",
 			"default": 1800620107
 		},
+		"title-b2-restitution-in-speed-threshold-0": {
+			"type": "title",
+			"name": "B2 Restitution In Speed Threshold"
+		},
 		"b2-restitution-in-speed-threshold": {
 			"type": "float",
 			"name": "B2 Restitution In Speed Threshold",
 			"default": 3.0
 		},
+		"title-b2-restitution-coefficient-0": {
+			"type": "title",
+			"name": "B2 Restitution Coefficient"
+		},
 		"b2-restitution-coefficient": {
 			"type": "float",
 			"name": "B2 Restitution Coefficient",
 			"default": 0.67
+		},
+		"title-b2-collide-reference-edge-relative-tol-0": {
+			"type": "title",
+			"name": "B2 Collide Reference Edge Relative Tol"
 		},
 		"b2-collide-reference-edge-relative-tol": {
 			"type": "float",

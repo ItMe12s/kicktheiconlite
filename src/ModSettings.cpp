@@ -13,6 +13,12 @@ namespace mod_settings {
 
 void bindAll() {
     auto* mod = Mod::get();
+
+    // Important
+    kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
+    listenForSettingChanges<bool>("hide-mod-overlay", [](bool v) { kHideModOverlay = v; });
+
+    // Player Visual
     player_visual::kMaxWorldBoundsTreeDepth = static_cast<int>(mod->getSettingValue<int64_t>("player-visual-max-world-bounds-tree-depth"));
     listenForSettingChanges<int64_t>("player-visual-max-world-bounds-tree-depth", [](int64_t v) { player_visual::kMaxWorldBoundsTreeDepth = static_cast<int>(v); });
     player_visual::kMinVisualWidthPx = static_cast<float>(mod->getSettingValue<double>("player-visual-min-visual-width-px"));
@@ -27,18 +33,24 @@ void bindAll() {
     listenForSettingChanges<double>("player-visual-player-root-anchor-y-frac", [](double v) { player_visual::kPlayerRootAnchorYFrac = static_cast<float>(v); });
     player_visual::kPlayerVisualLocalZOrder = static_cast<int>(mod->getSettingValue<int64_t>("player-visual-player-visual-local-z-order"));
     listenForSettingChanges<int64_t>("player-visual-player-visual-local-z-order", [](int64_t v) { player_visual::kPlayerVisualLocalZOrder = static_cast<int>(v); });
+
+    // Physics Overlay
     kPhysicsOverlayZOrder = static_cast<int>(mod->getSettingValue<int64_t>("physics-overlay-z-order"));
     listenForSettingChanges<int64_t>("physics-overlay-z-order", [](int64_t v) { kPhysicsOverlayZOrder = static_cast<int>(v); });
     kPhysicsOverlayTouchPriority = static_cast<int>(mod->getSettingValue<int64_t>("physics-overlay-touch-priority"));
     listenForSettingChanges<int64_t>("physics-overlay-touch-priority", [](int64_t v) { kPhysicsOverlayTouchPriority = static_cast<int>(v); });
     kPhysicsOverlaySchedulerPriority = static_cast<int>(mod->getSettingValue<int64_t>("physics-overlay-scheduler-priority"));
     listenForSettingChanges<int64_t>("physics-overlay-scheduler-priority", [](int64_t v) { kPhysicsOverlaySchedulerPriority = static_cast<int>(v); });
+
+    // Player Root
     kPlayerRootZOrder = static_cast<int>(mod->getSettingValue<int64_t>("player-root-z-order"));
     listenForSettingChanges<int64_t>("player-root-z-order", [](int64_t v) { kPlayerRootZOrder = static_cast<int>(v); });
     kMinSpeedForInverse = static_cast<float>(mod->getSettingValue<double>("min-speed-for-inverse"));
     listenForSettingChanges<double>("min-speed-for-inverse", [](double v) { kMinSpeedForInverse = static_cast<float>(v); });
     kGrabRadiusFraction = static_cast<float>(mod->getSettingValue<double>("grab-radius-fraction"));
     listenForSettingChanges<double>("grab-radius-fraction", [](double v) { kGrabRadiusFraction = static_cast<float>(v); });
+
+    // VFX Z Orders
     kImpactFlashBackdropZOrder = static_cast<int>(mod->getSettingValue<int64_t>("impact-flash-backdrop-z-order"));
     listenForSettingChanges<int64_t>("impact-flash-backdrop-z-order", [](int64_t v) { kImpactFlashBackdropZOrder = static_cast<int>(v); });
     kFireAuraZOrder = static_cast<int>(mod->getSettingValue<int64_t>("fire-aura-z-order"));
@@ -59,16 +71,22 @@ void bindAll() {
     listenForSettingChanges<int64_t>("layer-world-z-order-offset", [](int64_t v) { kLayerWorldZOrderOffset = static_cast<int>(v); });
     kLayerUiZOrderOffset = static_cast<int>(mod->getSettingValue<int64_t>("layer-ui-z-order-offset"));
     listenForSettingChanges<int64_t>("layer-ui-z-order-offset", [](int64_t v) { kLayerUiZOrderOffset = static_cast<int>(v); });
+
+    // VFX Toggles
     kEnablePlayerImpactTrail = mod->getSettingValue<bool>("enable-player-impact-trail");
     listenForSettingChanges<bool>("enable-player-impact-trail", [](bool v) { kEnablePlayerImpactTrail = v; });
     kEnablePlayerImpactFlashStack = mod->getSettingValue<bool>("enable-player-impact-flash-stack");
     listenForSettingChanges<bool>("enable-player-impact-flash-stack", [](bool v) { kEnablePlayerImpactFlashStack = v; });
+
+    // Impact Flash
     kImpactHitstopSeconds = static_cast<float>(mod->getSettingValue<double>("impact-hitstop-seconds"));
     listenForSettingChanges<double>("impact-hitstop-seconds", [](double v) { kImpactHitstopSeconds = static_cast<float>(v); });
     kImpactFlashCooldownSeconds = static_cast<float>(mod->getSettingValue<double>("impact-flash-cooldown-seconds"));
     listenForSettingChanges<double>("impact-flash-cooldown-seconds", [](double v) { kImpactFlashCooldownSeconds = static_cast<float>(v); });
     kImpactFlashInvertPhaseEndPhaseCount = static_cast<int>(mod->getSettingValue<int64_t>("impact-flash-invert-phase-end-phase-count"));
     listenForSettingChanges<int64_t>("impact-flash-invert-phase-end-phase-count", [](int64_t v) { kImpactFlashInvertPhaseEndPhaseCount = static_cast<int>(v); });
+
+    // Player Impact
     kPlayerImpactMinFlashSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-flash-speed"));
     listenForSettingChanges<double>("player-impact-min-flash-speed", [](double v) { kPlayerImpactMinFlashSpeed = static_cast<float>(v); });
     kPlayerImpactMinShakeSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-shake-speed"));
@@ -79,6 +97,8 @@ void bindAll() {
     listenForSettingChanges<double>("player-impact-shake-speed-to-strength", [](double v) { kPlayerImpactShakeSpeedToStrength = static_cast<float>(v); });
     kPlayerImpactMaxShakeStrength = static_cast<float>(mod->getSettingValue<double>("player-impact-max-shake-strength"));
     listenForSettingChanges<double>("player-impact-max-shake-strength", [](double v) { kPlayerImpactMaxShakeStrength = static_cast<float>(v); });
+
+    // Screen Shake
     kScreenShakeIntervals = std::max(static_cast<int>(static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-intervals"))), 1);
     listenForSettingChanges<int64_t>("screen-shake-intervals", [](int64_t v) { kScreenShakeIntervals = std::max(static_cast<int>(v), 1); });
     kScreenShakeSampleMin = static_cast<float>(mod->getSettingValue<double>("screen-shake-sample-min"));
@@ -87,6 +107,8 @@ void bindAll() {
     listenForSettingChanges<double>("screen-shake-sample-max", [](double v) { kScreenShakeSampleMax = static_cast<float>(v); });
     kScreenShakeCooldownExtraSeconds = static_cast<float>(mod->getSettingValue<double>("screen-shake-cooldown-extra-seconds"));
     listenForSettingChanges<double>("screen-shake-cooldown-extra-seconds", [](double v) { kScreenShakeCooldownExtraSeconds = static_cast<float>(v); });
+
+    // Impact Noise
     kImpactNoiseFadeSeconds = std::max(static_cast<float>(static_cast<float>(mod->getSettingValue<double>("impact-noise-fade-seconds"))), 0.0001f);
     listenForSettingChanges<double>("impact-noise-fade-seconds", [](double v) { kImpactNoiseFadeSeconds = std::max(static_cast<float>(v), 0.0001f); });
     kImpactNoiseStackedImpactTimeSkip = static_cast<float>(mod->getSettingValue<double>("impact-noise-stacked-impact-time-skip"));
@@ -95,6 +117,8 @@ void bindAll() {
     listenForSettingChanges<bool>("impact-noise-composite-nearest-filter", [](bool v) { kImpactNoiseCompositeNearestFilter = v; });
     kImpactNoiseRenderScale = static_cast<float>(mod->getSettingValue<double>("impact-noise-render-scale"));
     listenForSettingChanges<double>("impact-noise-render-scale", [](double v) { kImpactNoiseRenderScale = static_cast<float>(v); });
+
+    // Star Burst
     kBigStarCount = static_cast<int>(mod->getSettingValue<int64_t>("big-star-count"));
     listenForSettingChanges<int64_t>("big-star-count", [](int64_t v) { kBigStarCount = static_cast<int>(v); });
     kSmallStarCount = static_cast<int>(mod->getSettingValue<int64_t>("small-star-count"));
@@ -113,6 +137,8 @@ void bindAll() {
     listenForSettingChanges<double>("small-star-screen-frac", [](double v) { kSmallStarScreenFrac = static_cast<float>(v); });
     kStarScaleVariance = static_cast<float>(mod->getSettingValue<double>("star-scale-variance"));
     listenForSettingChanges<double>("star-scale-variance", [](double v) { kStarScaleVariance = static_cast<float>(v); });
+
+    // Sandevistan
     kSandevistanEndSpeedPx = static_cast<float>(mod->getSettingValue<double>("sandevistan-end-speed-px"));
     listenForSettingChanges<double>("sandevistan-end-speed-px", [](double v) { kSandevistanEndSpeedPx = static_cast<float>(v); });
     kSandevistanSpawnIntervalSec = static_cast<float>(mod->getSettingValue<double>("sandevistan-spawn-interval-sec"));
@@ -143,6 +169,8 @@ void bindAll() {
     listenForSettingChanges<int64_t>("sandevistan-trail-hue-cyan-g", [](int64_t v) { kSandevistanTrailHueCyanG = static_cast<int>(v); });
     kSandevistanTrailHueCyanB = static_cast<int>(mod->getSettingValue<int64_t>("sandevistan-trail-hue-cyan-b"));
     listenForSettingChanges<int64_t>("sandevistan-trail-hue-cyan-b", [](int64_t v) { kSandevistanTrailHueCyanB = static_cast<int>(v); });
+
+    // Fire Aura
     kMinFireAuraSpeedPx = static_cast<float>(mod->getSettingValue<double>("min-fire-aura-speed-px"));
     listenForSettingChanges<double>("min-fire-aura-speed-px", [](double v) { kMinFireAuraSpeedPx = static_cast<float>(v); });
     kMaxFireAuraSpeedPx = static_cast<float>(mod->getSettingValue<double>("max-fire-aura-speed-px"));
@@ -163,6 +191,8 @@ void bindAll() {
     listenForSettingChanges<double>("fire-aura-default-secondary-g", [](double v) { kFireAuraDefaultSecondaryG = static_cast<float>(v); });
     kFireAuraDefaultSecondaryB = static_cast<float>(mod->getSettingValue<double>("fire-aura-default-secondary-b"));
     listenForSettingChanges<double>("fire-aura-default-secondary-b", [](double v) { kFireAuraDefaultSecondaryB = static_cast<float>(v); });
+
+    // Player Motion Blur
     kPlayerMinBlurSpeedPx = static_cast<float>(mod->getSettingValue<double>("player-min-blur-speed-px"));
     listenForSettingChanges<double>("player-min-blur-speed-px", [](double v) { kPlayerMinBlurSpeedPx = static_cast<float>(v); });
     kPlayerMaxBlurSpeedPx = static_cast<float>(mod->getSettingValue<double>("player-max-blur-speed-px"));
@@ -173,6 +203,8 @@ void bindAll() {
     listenForSettingChanges<int64_t>("player-blur-step-divisor", [](int64_t v) { kPlayerBlurStepDivisor = static_cast<int>(v); });
     kPlayerKeepBaseVisible = mod->getSettingValue<bool>("player-keep-base-visible");
     listenForSettingChanges<bool>("player-keep-base-visible", [](bool v) { kPlayerKeepBaseVisible = v; });
+
+    // Debug Label
     kDebugLabelEnabled = mod->getSettingValue<bool>("debug-label-enabled");
     listenForSettingChanges<bool>("debug-label-enabled", [](bool v) { kDebugLabelEnabled = v; });
     kDebugLabelMarginX = static_cast<float>(mod->getSettingValue<double>("debug-label-margin-x"));
@@ -193,6 +225,8 @@ void bindAll() {
     listenForSettingChanges<double>("debug-label-box-color-b", [](double v) { kDebugLabelBoxColorB = static_cast<float>(v); });
     kDebugLabelBoxAlpha = static_cast<float>(mod->getSettingValue<double>("debug-label-box-alpha"));
     listenForSettingChanges<double>("debug-label-box-alpha", [](double v) { kDebugLabelBoxAlpha = static_cast<float>(v); });
+
+    // Physics World
     kPixelsPerMeter = std::max(static_cast<float>(static_cast<float>(mod->getSettingValue<double>("pixels-per-meter"))), 1.0f);
     listenForSettingChanges<double>("pixels-per-meter", [](double v) { kPixelsPerMeter = std::max(static_cast<float>(v), 1.0f); });
     kEarthGravity = static_cast<float>(mod->getSettingValue<double>("earth-gravity"));
@@ -209,18 +243,24 @@ void bindAll() {
     listenForSettingChanges<double>("wall-thickness", [](double v) { kWallThickness = static_cast<float>(v); });
     kArenaCenterFrac = static_cast<float>(mod->getSettingValue<double>("arena-center-frac"));
     listenForSettingChanges<double>("arena-center-frac", [](double v) { kArenaCenterFrac = static_cast<float>(v); });
+
+    // Player
     kPlayerDensity = static_cast<float>(mod->getSettingValue<double>("player-density"));
     listenForSettingChanges<double>("player-density", [](double v) { kPlayerDensity = static_cast<float>(v); });
     kPlayerInitialXFrac = static_cast<float>(mod->getSettingValue<double>("player-initial-x-frac"));
     listenForSettingChanges<double>("player-initial-x-frac", [](double v) { kPlayerInitialXFrac = static_cast<float>(v); });
     kPlayerInitialYFrac = static_cast<float>(mod->getSettingValue<double>("player-initial-y-frac"));
     listenForSettingChanges<double>("player-initial-y-frac", [](double v) { kPlayerInitialYFrac = static_cast<float>(v); });
+
+    // Player Initial
     kPlayerInitialVelX = static_cast<float>(mod->getSettingValue<double>("player-initial-vel-x"));
     listenForSettingChanges<double>("player-initial-vel-x", [](double v) { kPlayerInitialVelX = static_cast<float>(v); });
     kPlayerInitialVelY = static_cast<float>(mod->getSettingValue<double>("player-initial-vel-y"));
     listenForSettingChanges<double>("player-initial-vel-y", [](double v) { kPlayerInitialVelY = static_cast<float>(v); });
     kPlayerInitialAngularVel = static_cast<float>(mod->getSettingValue<double>("player-initial-angular-vel"));
     listenForSettingChanges<double>("player-initial-angular-vel", [](double v) { kPlayerInitialAngularVel = static_cast<float>(v); });
+
+    // Player Physics
     kPlayerFriction = static_cast<float>(mod->getSettingValue<double>("player-friction"));
     listenForSettingChanges<double>("player-friction", [](double v) { kPlayerFriction = static_cast<float>(v); });
     kDragSpring = static_cast<float>(mod->getSettingValue<double>("drag-spring"));
@@ -233,14 +273,24 @@ void bindAll() {
     listenForSettingChanges<double>("default-drag-target-x-frac", [](double v) { kDefaultDragTargetXFrac = static_cast<float>(v); });
     kDefaultDragTargetYFrac = static_cast<float>(mod->getSettingValue<double>("default-drag-target-y-frac"));
     listenForSettingChanges<double>("default-drag-target-y-frac", [](double v) { kDefaultDragTargetYFrac = static_cast<float>(v); });
+
+    // Outside Barrier Slack
     kOutsideBarrierSlack = static_cast<float>(mod->getSettingValue<double>("outside-barrier-slack"));
     listenForSettingChanges<double>("outside-barrier-slack", [](double v) { kOutsideBarrierSlack = static_cast<float>(v); });
+
+    // Screen Shake Action Tag
     kScreenShakeActionTag = static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-action-tag"));
     listenForSettingChanges<int64_t>("screen-shake-action-tag", [](int64_t v) { kScreenShakeActionTag = static_cast<int>(v); });
+
+    // B2 Restitution In Speed Threshold
     kB2RestitutionInSpeedThreshold = static_cast<float>(mod->getSettingValue<double>("b2-restitution-in-speed-threshold"));
     listenForSettingChanges<double>("b2-restitution-in-speed-threshold", [](double v) { kB2RestitutionInSpeedThreshold = static_cast<float>(v); });
+
+    // B2 Restitution Coefficient
     kB2RestitutionCoefficient = static_cast<float>(mod->getSettingValue<double>("b2-restitution-coefficient"));
     listenForSettingChanges<double>("b2-restitution-coefficient", [](double v) { kB2RestitutionCoefficient = static_cast<float>(v); });
+
+    // B2 Collide Reference Edge Relative Tol
     kB2CollideReferenceEdgeRelativeTol = static_cast<float>(mod->getSettingValue<double>("b2-collide-reference-edge-relative-tol"));
     listenForSettingChanges<double>("b2-collide-reference-edge-relative-tol", [](double v) { kB2CollideReferenceEdgeRelativeTol = static_cast<float>(v); });
     kB2CollideReferenceEdgeAbsoluteTol = static_cast<float>(mod->getSettingValue<double>("b2-collide-reference-edge-absolute-tol"));

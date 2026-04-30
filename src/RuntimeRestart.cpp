@@ -7,6 +7,8 @@
 #include <Geode/modify/CCEGLView.hpp>
 #endif
 
+#include <Geode/loader/SettingV3.hpp>
+
 #include <atomic>
 #include <string>
 
@@ -55,6 +57,22 @@ void installPhysicsOverlay() {
         overlay->setZOrder(kPhysicsOverlayZOrder);
         OverlayManager::get()->addChild(overlay);
     });
+}
+
+void syncHideModOverlayFromSettings() {
+    queueInMainThread([] {
+        if (auto* mod = Mod::get()) {
+            kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
+        }
+        if (auto* overlay = g_overlay.load(std::memory_order_relaxed)) {
+            overlay->applyHideModOverlayFromTuning();
+        }
+    });
+}
+
+void bindHideModOverlaySync() {
+    listenForSettingChanges<bool>("hide-mod-overlay", [](bool) { syncHideModOverlayFromSettings(); });
+    syncHideModOverlayFromSettings();
 }
 
 void registerPhysicsOverlay(PhysicsOverlay* overlay) {
