@@ -2,7 +2,6 @@
 #include "OverlayShaders.h"
 #include "ModTuning.h"
 #include "PhysicsWorld.h"
-#include "extras/GlyphTextRendering.h"
 
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/cocos/cocoa/CCArray.h>
@@ -60,7 +59,6 @@ CCTexture2D* createOneByOneWhiteTexture() {
 int objectCompositeOrder(MotionBlurObjectId id) {
     switch (id) {
         case MotionBlurObjectId::Player: return 0;
-        case MotionBlurObjectId::PhysicsMenu: return 1;
         default: return 0;
     }
 }
@@ -72,44 +70,6 @@ void resetObjectVisualState(MotionBlurObjectCapture& object) {
     if (object.blurSprite) {
         object.blurSprite->setVisible(false);
     }
-}
-
-bool runGlyphApiSanityChecks() {
-    GlyphTextOptions options;
-    options.unsupportedPolicy = GlyphUnsupportedPolicy::ReplaceWithFallback;
-    auto sanity = layoutGlyphText("A?~", options);
-    if (!sanity.ok || sanity.glyphs.size() != 3) {
-        if (!sanity.ok) {
-            log::warn("Glyph text API sanity check failed: {}", sanity.error);
-        } else {
-            log::warn(
-                "Glyph text API sanity check failed: expected 3 supported glyphs, got {}",
-                sanity.glyphs.size()
-            );
-        }
-        return false;
-    }
-    options.unsupportedPolicy = GlyphUnsupportedPolicy::Skip;
-    auto skipCase = layoutGlyphText("A a", options);
-    if (!skipCase.ok || skipCase.glyphs.empty()) {
-        log::warn("Glyph text API sanity check failed: skip mode produced no glyphs");
-        return false;
-    }
-    auto* tex = buildGlyphTextTexture("TEST", {});
-    if (!tex) {
-        log::warn("Glyph text API sanity check failed: buildGlyphTextTexture returned null");
-        return false;
-    }
-    return true;
-}
-
-void runGlyphApiSanityChecksOnce() {
-    static bool didRun = false;
-    if (didRun) {
-        return;
-    }
-    didRun = true;
-    (void)runGlyphApiSanityChecks();
 }
 
 } // namespace
@@ -295,25 +255,6 @@ CCGLProgram* createFireAuraProgram(
     *outColorPrimary = p->getUniformLocationForName("u_colorPrimary");
     *outColorSecondary = p->getUniformLocationForName("u_colorSecondary");
     return p;
-}
-
-GlyphLayoutResult layoutGlyphText(std::string const& text, GlyphTextOptions const& options) {
-    return extras::glyph_text::layoutText(text, options);
-}
-
-std::vector<CCSprite*> buildGlyphTextSprites(std::string const& text, GlyphTextOptions const& options) {
-    runGlyphApiSanityChecksOnce();
-    return extras::glyph_text::buildTextSprites(text, options);
-}
-
-CCRenderTexture* buildGlyphTextTexture(std::string const& text, GlyphTextOptions const& options) {
-    runGlyphApiSanityChecksOnce();
-    return extras::glyph_text::buildTextTexture(text, options);
-}
-
-CCSprite* buildGlyphTextSprite(std::string const& text, GlyphTextOptions const& options) {
-    runGlyphApiSanityChecksOnce();
-    return extras::glyph_text::buildTextSprite(text, options);
 }
 
 ObjectMotionBlurAttachResult attachObjectMotionBlur(

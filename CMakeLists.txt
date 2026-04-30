@@ -8,7 +8,7 @@ else()
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(frickyou VERSION 1.0.0)
+project(kicktheiconlite VERSION 1.0.0)
 
 set(SOURCES
   src/main.cpp
@@ -16,21 +16,15 @@ set(SOURCES
   src/OverlayRendering.cpp
   src/physics-overlay/PhysicsOverlay.cpp
   src/physics-overlay/PhysicsOverlayTouch.cpp
-  src/physics-overlay/PhysicsOverlayShatter.cpp
-  src/physics-overlay/MenuShatterTriangleNode.cpp
   src/physics-overlay/PhysicsOverlayDebug.cpp
-  src/PhysicsMenu.cpp
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
   src/RuntimeRestart.cpp
-  src/extras/GlyphTextRendering.cpp
-  src/objects/SoggyObject.cpp
   src/vfx/ImpactFlash.cpp
   src/vfx/ImpactNoise.cpp
   src/vfx/ObjectMotionBlurPipeline.cpp
   src/vfx/SandevistanTrail.cpp
   src/vfx/StarBurst.cpp
-  src/events/ClickEvents.cpp
   src/box2d-lite/Arbiter.cpp
   src/box2d-lite/Body.cpp
   src/box2d-lite/Collide.cpp

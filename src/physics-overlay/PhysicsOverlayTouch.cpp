@@ -1,19 +1,11 @@
 #include "PhysicsOverlay.h"
 
-#include <Geode/Enums.hpp>
-#include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
-#include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/utils/cocos.hpp>
-
-#include <cmath>
 
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
-#include "PhysicsMenu.h"
 #include "PlayerVisual.h"
-#include "objects/SoggyObject.h"
-#include "events/ClickEvents.h"
 #include "vfx/ObjectMotionBlurPipeline.h"
 #include "vfx/StarBurst.h"
 
@@ -47,41 +39,29 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     cocos2d::CCSize const blurCaptureSize = m_winSize;
+    std::array<overlay_rendering::MotionBlurObjectSeed, overlay_rendering::kMotionBlurObjectCount> seeds{};
+    seeds[0] = overlay_rendering::MotionBlurObjectSeed{
+        .id = overlay_rendering::MotionBlurObjectId::Player,
+        .sourceRoot = pr.root,
+        .enabled = true,
+        .tuning = {
+            .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
+            .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
+            .blurUvSpread = kPlayerBlurUvSpread,
+            .blurStepDivisor = kPlayerBlurStepDivisor,
+            .keepBaseVisible = kPlayerKeepBaseVisible,
+            .alwaysCaptureWhenEnabled = false,
+        },
+    };
+
     if (!vfx::object_motion_blur::attach(
-        m_objectBlur,
-        this,
-        blurCaptureSize,
-        m_winSize,
-        kUnifiedBlurCompositeZOrder,
-        {
-            overlay_rendering::MotionBlurObjectSeed {
-                .id = overlay_rendering::MotionBlurObjectId::Player,
-                .sourceRoot = pr.root,
-                .enabled = true,
-                .tuning = {
-                    .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
-                    .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
-                    .blurUvSpread = kPlayerBlurUvSpread,
-                    .blurStepDivisor = kPlayerBlurStepDivisor,
-                    .keepBaseVisible = kPlayerKeepBaseVisible,
-                    .alwaysCaptureWhenEnabled = false,
-                },
-            },
-            overlay_rendering::MotionBlurObjectSeed {
-                .id = overlay_rendering::MotionBlurObjectId::PhysicsMenu,
-                .sourceRoot = nullptr,
-                .enabled = false,
-                .tuning = {
-                    .minBlurSpeedPx = kMenuMinBlurSpeedPx,
-                    .maxBlurSpeedPx = kMenuMaxBlurSpeedPx,
-                    .blurUvSpread = kMenuBlurUvSpread,
-                    .blurStepDivisor = kMenuBlurStepDivisor,
-                    .keepBaseVisible = kMenuKeepBaseVisible,
-                    .alwaysCaptureWhenEnabled = false,
-                },
-            },
-        }
-    )) {
+            m_objectBlur,
+            this,
+            blurCaptureSize,
+            m_winSize,
+            kUnifiedBlurCompositeZOrder,
+            seeds
+        )) {
         pr.root->removeFromParentAndCleanup(true);
         return;
     }
@@ -105,33 +85,6 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     vfx::star_burst::createSprites(m_starBurst);
-
-    // Always-visible invisible sprite so hit tests work when SimplePlayer is hidden (like motion blur)
-    // ClickTracker::untrack(hitProxy) before destruction (see onExit / teardown paths)
-    if (auto* hitProxy = CCSprite::create("img_star1.png"_spr)) {
-        hitProxy->setID(std::string(GEODE_MOD_ID) + "/player-hit-proxy");
-        hitProxy->setPosition({0.f, 0.f});
-        hitProxy->setOpacity(0);
-        hitProxy->setVisible(true);
-        m_playerRoot->addChild(hitProxy, kHitProxyLocalZOrder);
-        m_hitProxy = hitProxy;
-        events::ClickTracker::get()->track(m_hitProxy, m_targetSize * kGrabRadiusFraction);
-    }
-
-    m_doubleClickListener = events::DoubleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
-        if (sprite != m_hitProxy) {
-            return false;
-        }
-        log::info("double clicked the icon");
-        return false;
-    });
-    m_tripleClickListener = events::TripleClickEvent().listen([this](cocos2d::CCSprite* sprite, cocos2d::CCTouch*) {
-        if (sprite != m_hitProxy) {
-            return false;
-        }
-        tryOpenPhysicsMenu();
-        return false;
-    });
 
     m_visualBuilt = true;
 }
@@ -174,115 +127,7 @@ void PhysicsOverlay::endGrab() {
     }
 }
 
-void PhysicsOverlay::tryOpenPhysicsMenu() {
-    if (!m_physics) {
-        return;
-    }
-    if (m_physicsMenuVisual) {
-        return;
-    }
-    clearMenuShatter();
-
-    float const w = m_winSize.width * kPanelDefaultWFrac;
-    float const h = m_winSize.height * kPanelDefaultHFrac;
-    float const x = m_winSize.width * kPanelDefaultXFrac;
-    float const y = m_winSize.height * kPanelDefaultYFrac;
-
-    auto panel = std::make_unique<PhysicsMenu>();
-    if (!panel->build(w, h, [this] { this->trySpawnSoggyObject(); })) {
-        return;
-    }
-    if (auto* root = panel->getRoot()) {
-        auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
-        if (uiLayerRoot) {
-            uiLayerRoot->addChild(root, kPhysicsMenuZOrder);
-        } else {
-            log::warn("world capture root missing; physics menu will bypass blur capture");
-            this->addChild(root, kPhysicsMenuZOrder);
-        }
-        auto& menuCapture =
-            m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
-        menuCapture.sourceRoot = root;
-        menuCapture.enabled = true;
-    }
-    m_physics->spawnPanel(w, h, x, y);
-    m_physicsMenuVisual = std::move(panel);
-    log::info("physics menu spawned");
-}
-
-bool PhysicsOverlay::tryBeginPanelGrab(CCPoint const& locationInNode) {
-    if (!m_physicsMenuVisual || !m_physics || !m_physics->hasPanel()) {
-        return false;
-    }
-    PhysicsState const st = m_physics->getPanelState();
-    float const dx = locationInNode.x - st.x;
-    float const dy = locationInNode.y - st.y;
-    float const c = std::cos(st.angle);
-    float const s = std::sin(st.angle);
-    float const localX = c * dx + s * dy;
-    float const localY = -s * dx + c * dy;
-    if (!m_physicsMenuVisual->containsLocalPoint(localX, localY)) {
-        return false;
-    }
-    m_physics->setPanelDragGrabOffsetPixels(dx, dy);
-    m_physics->setPanelDragTargetPixels(locationInNode.x, locationInNode.y);
-    m_physics->setPanelDragging(true);
-    m_panelDragActive = true;
-    return true;
-}
-
-void PhysicsOverlay::syncPanelNodeFromPhysics(float alpha) {
-    if (!m_physicsMenuVisual || !m_physics || !m_physics->hasPanel()) {
-        return;
-    }
-    auto* root = m_physicsMenuVisual->getRoot();
-    if (!root) {
-        return;
-    }
-    PhysicsState const st = m_physics->getPanelRenderState(alpha);
-    root->setPosition({st.x, st.y});
-    root->setRotation(-st.angle * kRadToDeg);
-}
-
-void PhysicsOverlay::endSoggyGrab() {
-    if (!m_soggyDragActive) {
-        return;
-    }
-    m_soggyDragActive = false;
-    if (m_physics && m_soggyHandle >= 0) {
-        m_physics->setDynamicObjectDragging(m_soggyHandle, false);
-    }
-}
-
-bool PhysicsOverlay::tryBeginSoggyGrab(CCPoint const& locationInNode) {
-    if (!m_physics || m_soggyHandle < 0) {
-        return false;
-    }
-    if (!m_physics->hasDynamicObject(m_soggyHandle)) {
-        return false;
-    }
-    PhysicsState const st = m_physics->getDynamicObjectState(m_soggyHandle);
-    float const dx = locationInNode.x - st.x;
-    float const dy = locationInNode.y - st.y;
-    float const distSq = dx * dx + dy * dy;
-    float const grabR =
-        soggy_object::visualSpanPx(m_soggyRoot) * kSoggyGrabRadiusFraction;
-    if (distSq > grabR * grabR) {
-        return false;
-    }
-    m_physics->setDynamicObjectDragGrabOffsetPixels(m_soggyHandle, dx, dy);
-    m_physics->setDynamicObjectDragTargetPixels(m_soggyHandle, locationInNode.x, locationInNode.y);
-    m_physics->setDynamicObjectDragging(m_soggyHandle, true);
-    m_soggyDragActive = true;
-    return true;
-}
-
 void PhysicsOverlay::endTouchInteraction() {
-    if (m_panelDragActive && m_physics) {
-        m_physics->setPanelDragging(false);
-        m_panelDragActive = false;
-    }
-    endSoggyGrab();
     endGrab();
 }
 
@@ -292,17 +137,7 @@ bool PhysicsOverlay::ccTouchBegan(CCTouch* touch, CCEvent* event) {
         return false;
     }
     CCPoint const p = this->convertTouchToNodeSpace(touch);
-    if (m_physicsMenuVisual && m_physics->hasPanel() && tryBeginPanelGrab(p)) {
-        events::ClickTracker::get()->onTouchBegan(touch);
-        return true;
-    }
-    if (tryBeginSoggyGrab(p)) {
-        events::ClickTracker::get()->onTouchBegan(touch);
-        return true;
-    }
-    bool const clickHit = events::ClickTracker::get()->onTouchBegan(touch);
-    bool const grabbed = tryBeginGrab(p);
-    return clickHit || grabbed;
+    return tryBeginGrab(p);
 }
 
 void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
@@ -311,14 +146,6 @@ void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
         return;
     }
     CCPoint const p = this->convertTouchToNodeSpace(touch);
-    if (m_panelDragActive) {
-        m_physics->setPanelDragTargetPixels(p.x, p.y);
-        return;
-    }
-    if (m_soggyDragActive && m_soggyHandle >= 0) {
-        m_physics->setDynamicObjectDragTargetPixels(m_soggyHandle, p.x, p.y);
-        return;
-    }
     if (!m_grabActive) {
         return;
     }
@@ -326,13 +153,13 @@ void PhysicsOverlay::ccTouchMoved(CCTouch* touch, CCEvent* event) {
 }
 
 void PhysicsOverlay::ccTouchEnded(CCTouch* touch, CCEvent* event) {
+    (void)touch;
     (void)event;
-    events::ClickTracker::get()->onTouchEnded(touch);
     endTouchInteraction();
 }
 
 void PhysicsOverlay::ccTouchCancelled(CCTouch* touch, CCEvent* event) {
+    (void)touch;
     (void)event;
-    events::ClickTracker::get()->onTouchCancelled(touch);
     endTouchInteraction();
 }

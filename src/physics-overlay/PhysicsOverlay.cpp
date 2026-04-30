@@ -15,11 +15,8 @@
 
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
-#include "PhysicsMenu.h"
 #include "PlayerVisual.h"
-#include "objects/SoggyObject.h"
 #include "RuntimeRestart.h"
-#include "events/ClickEvents.h"
 #include "vfx/ImpactFlash.h"
 #include "vfx/ImpactNoise.h"
 #include "vfx/ObjectMotionBlurPipeline.h"
@@ -29,17 +26,6 @@
 using namespace geode::prelude;
 
 namespace {
-constexpr char kGlyphDemoStaticText[] = "Lorem ipsum dolor sit amet,";
-constexpr char kGlyphDemoWobbleText[] = "consectetur adipiscing elit,";
-constexpr float kGlyphDemoStaticScale = 0.35f;
-constexpr float kGlyphDemoWobbleScale = 0.35f;
-constexpr float kGlyphDemoLetterSpacing = -7.0f;
-constexpr float kGlyphDemoLineGap = 50.0f;
-constexpr float kGlyphDemoWobbleAmpX = 5.0f;
-constexpr float kGlyphDemoWobbleAmpY = 7.0f;
-constexpr float kGlyphDemoWobbleFreqX = 3.2f;
-constexpr float kGlyphDemoWobbleFreqY = 4.5f;
-constexpr float kGlyphDemoWobblePhaseStep = 0.45f;
 
 inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
@@ -121,16 +107,6 @@ bool PhysicsOverlay::init() {
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
     auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
-    m_menuShatter.root = CCNode::create();
-    if (m_menuShatter.root) {
-        m_menuShatter.root->setID("menu-shatter-root"_spr);
-        m_menuShatter.root->setPosition({0.0f, 0.0f});
-        if (uiLayerRoot) {
-            uiLayerRoot->addChild(m_menuShatter.root, kPhysicsMenuZOrder);
-        } else {
-            this->addChild(m_menuShatter.root, kPhysicsMenuZOrder);
-        }
-    }
 
     auto* uiRoot = uiLayerRoot;
     if (uiRoot) {
@@ -224,8 +200,6 @@ bool PhysicsOverlay::init() {
         }
     }
 
-    initGlyphVisualTest();
-
     setID("physics-overlay"_spr);
 
     this->setTouchEnabled(true);
@@ -257,7 +231,6 @@ void PhysicsOverlay::tryBuildVisualIfNeeded() {
 void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
     m_lastPhysicsSubsteps = 0;
     m_lastPlayerImpact = {};
-    m_lastPanelImpact = {};
 
     if (m_impactFlash.hitstopRemaining > 0.0f) {
         m_impactFlash.hitstopRemaining -= dt;
@@ -316,29 +289,6 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
             }
         }
 
-        auto const panelImpact = m_physics->consumePanelImpactAny();
-        mergeImpactSnapshot(m_lastPanelImpact, panelImpact);
-        if (
-            kEnablePanelImpactShake
-            && panelImpact.triggered
-            && panelImpact.impactSpeedPx >= kPanelImpactMinShakeSpeed
-        ) {
-            float const strength = std::min(
-                kPanelImpactMaxShakeStrength,
-                panelImpact.impactSpeedPx * kPanelImpactShakeSpeedToStrength
-            );
-            overlay_rendering::globalScreenShake(kPanelImpactShakeDuration, strength);
-        }
-        if (
-            panelImpact.triggered
-            && panelImpact.impactSpeedPx >= kPanelShatterMinImpactSpeed
-            && !m_menuShatter.active
-            && m_physicsMenuVisual
-            && m_physics->hasPanel()
-        ) {
-            beginMenuShatter(panelImpact.impactSpeedPx);
-        }
-
         m_physicsAccumulator -= kFixedPhysicsDt;
         ++substepCount;
         m_lastPhysicsSubsteps = substepCount;
@@ -359,175 +309,6 @@ void PhysicsOverlay::syncPlayerNodeFromPhysics() {
     }
 }
 
-void PhysicsOverlay::initGlyphVisualTest() {
-    clearGlyphVisualTest();
-
-    auto* uiRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
-    if (!uiRoot) {
-        return;
-    }
-
-    m_glyphDemoRoot = CCNode::create();
-    if (!m_glyphDemoRoot) {
-        return;
-    }
-    m_glyphDemoRoot->setID("glyph-visual-test-root"_spr);
-    m_glyphDemoRoot->setPosition({0.0f, 0.0f});
-    uiRoot->addChild(m_glyphDemoRoot, kDebugLabelZOrder + 1);
-
-    overlay_rendering::GlyphTextOptions staticOptions{};
-    staticOptions.scale = kGlyphDemoStaticScale;
-    staticOptions.letterSpacing = kGlyphDemoLetterSpacing;
-    staticOptions.align = overlay_rendering::GlyphTextAlign::Center;
-    auto* staticLine = overlay_rendering::buildGlyphTextSprite(kGlyphDemoStaticText, staticOptions);
-    if (staticLine) {
-        staticLine->setID("glyph-visual-test-static-line"_spr);
-        staticLine->setAnchorPoint({0.5f, 0.5f});
-        staticLine->setPosition({m_winSize.width * 0.5f, m_winSize.height * 0.5f});
-        m_glyphDemoRoot->addChild(staticLine);
-        m_glyphDemoStaticLine = staticLine;
-    }
-
-    overlay_rendering::GlyphTextOptions wobbleOptions{};
-    wobbleOptions.scale = kGlyphDemoWobbleScale;
-    wobbleOptions.letterSpacing = kGlyphDemoLetterSpacing;
-    wobbleOptions.align = overlay_rendering::GlyphTextAlign::Left;
-    auto wobbleSprites = overlay_rendering::buildGlyphTextSprites(kGlyphDemoWobbleText, wobbleOptions);
-    if (wobbleSprites.empty()) {
-        return;
-    }
-
-    auto const wobbleLayout = overlay_rendering::layoutGlyphText(kGlyphDemoWobbleText, wobbleOptions);
-    if (!wobbleLayout.ok || wobbleLayout.glyphs.empty()) {
-        return;
-    }
-
-    float const baselineX = (m_winSize.width - wobbleLayout.bounds.width) * 0.5f;
-    float const baselineY = (m_winSize.height * 0.5f) - kGlyphDemoLineGap;
-    size_t const glyphCount = std::min(wobbleSprites.size(), wobbleLayout.glyphs.size());
-    m_glyphDemoWobbleSprites.reserve(glyphCount);
-    m_glyphDemoWobbleBasePositions.reserve(glyphCount);
-    for (size_t idx = 0; idx < glyphCount; ++idx) {
-        auto* sprite = wobbleSprites[idx];
-        if (!sprite) {
-            continue;
-        }
-        auto const& glyph = wobbleLayout.glyphs[idx];
-        CCPoint const basePosition = {
-            baselineX + glyph.position.x,
-            baselineY + glyph.position.y,
-        };
-        sprite->setID("glyph-visual-test-wobble-glyph"_spr);
-        sprite->setPosition(basePosition);
-        m_glyphDemoRoot->addChild(sprite);
-        m_glyphDemoWobbleSprites.push_back(sprite);
-        m_glyphDemoWobbleBasePositions.push_back(basePosition);
-    }
-}
-
-void PhysicsOverlay::updateGlyphVisualTest(float dt) {
-    if (m_glyphDemoWobbleSprites.empty()) {
-        return;
-    }
-
-    m_glyphDemoTime += dt;
-    size_t const glyphCount = std::min(m_glyphDemoWobbleSprites.size(), m_glyphDemoWobbleBasePositions.size());
-    for (size_t idx = 0; idx < glyphCount; ++idx) {
-        auto* sprite = m_glyphDemoWobbleSprites[idx];
-        if (!sprite) {
-            continue;
-        }
-        CCPoint const base = m_glyphDemoWobbleBasePositions[idx];
-        float const phase = static_cast<float>(idx) * kGlyphDemoWobblePhaseStep;
-        float const wobbleX = std::sin(m_glyphDemoTime * kGlyphDemoWobbleFreqX + phase) * kGlyphDemoWobbleAmpX;
-        float const wobbleY = std::cos(m_glyphDemoTime * kGlyphDemoWobbleFreqY + phase) * kGlyphDemoWobbleAmpY;
-        sprite->setPosition({base.x + wobbleX, base.y + wobbleY});
-    }
-}
-
-void PhysicsOverlay::clearGlyphVisualTest() {
-    m_glyphDemoWobbleSprites.clear();
-    m_glyphDemoWobbleBasePositions.clear();
-    m_glyphDemoStaticLine = nullptr;
-    m_glyphDemoTime = 0.0f;
-    if (m_glyphDemoRoot) {
-        m_glyphDemoRoot->removeFromParentAndCleanup(true);
-        m_glyphDemoRoot = nullptr;
-    }
-}
-
-void PhysicsOverlay::trySpawnSoggyObject() {
-    if (!m_physics) {
-        return;
-    }
-    if (m_soggyHandle >= 0) {
-        return;
-    }
-    PhysicsDynamicObjectInit init{};
-    float const hb = soggy_object::hitboxSizePx();
-    init.widthPx = hb;
-    init.heightPx = hb;
-    init.xPx = m_winSize.width * kSoggySpawnXFrac;
-    init.yPx = m_winSize.height * kSoggySpawnYFrac;
-    init.density = kSoggyDensity;
-    init.friction = kSoggyFriction;
-    int const h = m_physics->spawnDynamicObject(init);
-    if (h < 0) {
-        return;
-    }
-    cocos2d::CCSprite* spr = nullptr;
-    auto* root = soggy_object::tryCreateRoot(&spr);
-    if (!root || !spr) {
-        m_physics->destroyDynamicObject(h);
-        return;
-    }
-    m_soggyHandle = h;
-    m_soggyRoot = root;
-    m_soggySprite = spr;
-    m_soggyAnimTime = 0.0f;
-    root->setID("soggy-object-root"_spr);
-    auto* worldRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
-    if (worldRoot) {
-        worldRoot->addChild(root, kPlayerRootZOrder - 1);
-    } else {
-        this->addChild(root, kUnifiedWorldCaptureZOrder + kLayerWorldZOrderOffset);
-    }
-}
-
-void PhysicsOverlay::syncSoggyNodeFromPhysics(float alpha) {
-    if (!m_soggyRoot || !m_physics || m_soggyHandle < 0) {
-        return;
-    }
-    if (!m_physics->hasDynamicObject(m_soggyHandle)) {
-        return;
-    }
-    auto st = m_physics->getDynamicObjectRenderState(m_soggyHandle, alpha);
-    m_soggyRoot->setPosition({st.x, st.y});
-    m_soggyRoot->setRotation(-st.angle * kRadToDeg);
-}
-
-void PhysicsOverlay::updateSoggyVisual(float dt) {
-    if (!m_soggySprite) {
-        return;
-    }
-    m_soggyAnimTime += dt;
-    soggy_object::advanceAnimation(m_soggySprite, m_soggyAnimTime);
-}
-
-void PhysicsOverlay::clearSoggyObject() {
-    if (m_soggyRoot) {
-        m_soggyRoot->removeFromParentAndCleanup(true);
-        m_soggyRoot = nullptr;
-    }
-    m_soggySprite = nullptr;
-    m_soggyAnimTime = 0.0f;
-    m_soggyDragActive = false;
-    if (m_physics && m_soggyHandle >= 0) {
-        m_physics->destroyDynamicObject(m_soggyHandle);
-    }
-    m_soggyHandle = -1;
-}
-
 void PhysicsOverlay::update(float dt) {
     if (m_selfDestructRequested || runtime_restart::isRestartRequired()) {
         return;
@@ -538,9 +319,6 @@ void PhysicsOverlay::update(float dt) {
     }
     dt = std::min(dt, kMaxSimulationFrameDt);
 
-    // GL context/draw-surface invalidation detection
-    // Fullscreen toggles and some lifecycle events that recreate the GL context
-    // isOpenGLReady() is the cross-platform signal to bail out before drawing with stale handles
     if (m_glReadyCheckInitialized) {
         if (auto* view = CCDirector::get()->getOpenGLView()) {
             if (auto* protocol = typeinfo_cast<cocos2d::CCEGLViewProtocol*>(view)) {
@@ -561,7 +339,6 @@ void PhysicsOverlay::update(float dt) {
     decrementCooldowns(dt);
     tryBuildVisualIfNeeded();
     stepPhysicsUnlessHitstop(dt);
-    updateGlyphVisualTest(dt);
 
     m_debugLabelAccumulator += dt;
     if (m_debugLabelAccumulator >= kDebugLabelUpdateInterval) {
@@ -577,16 +354,6 @@ void PhysicsOverlay::update(float dt) {
     }
 
     syncPlayerNodeFromPhysics();
-    if (m_physicsMenuVisual && m_physics->hasPanel()) {
-        float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
-        syncPanelNodeFromPhysics(alpha);
-    }
-    if (m_soggyHandle >= 0 && m_soggyRoot && m_physics->hasDynamicObject(m_soggyHandle)) {
-        float const alpha = m_physicsAccumulator / kFixedPhysicsDt;
-        syncSoggyNodeFromPhysics(alpha);
-        updateSoggyVisual(dt);
-    }
-    updateMenuShatter(dt);
     vfx::trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
 
     overlay_rendering::ImpactFlashMode const flashMode = vfx::impact_flash::currentMode(m_impactFlash);
@@ -605,18 +372,6 @@ void PhysicsOverlay::update(float dt) {
     playerCapture.sourceRoot = m_playerRoot;
     playerCapture.enabled = true;
     playerCapture.velocity = m_physics->getPlayerVelocityPixels();
-
-    auto& menuCapture =
-        m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::PhysicsMenu)];
-    bool const menuAvailable = m_physicsMenuVisual && m_physics->hasPanel();
-    bool const shatterAvailable =
-        m_menuShatter.active && m_menuShatter.captureRoot && !m_menuShatter.pieces.empty();
-    menuCapture.sourceRoot = menuAvailable
-        ? m_physicsMenuVisual->getRoot()
-        : (shatterAvailable ? m_menuShatter.captureRoot : nullptr);
-    menuCapture.enabled = menuCapture.sourceRoot != nullptr;
-    menuCapture.tuning.alwaysCaptureWhenEnabled = shatterAvailable;
-    menuCapture.velocity = menuAvailable ? m_physics->getPanelVelocityPixels() : PhysicsVelocity{};
 
     vfx::object_motion_blur::refresh(m_objectBlur, flashMode);
 
@@ -654,16 +409,6 @@ void PhysicsOverlay::beginFullscreenSelfDestruct() {
 void PhysicsOverlay::onExit() {
     runtime_restart::unregisterPhysicsOverlay(this);
     endGrab();
-    if (m_hitProxy) {
-        events::ClickTracker::get()->untrack(m_hitProxy);
-        m_hitProxy = nullptr;
-    }
-    if (m_physicsMenuVisual) {
-        destroyPhysicsMenuVisual();
-    }
-    clearMenuShatter();
-    clearGlyphVisualTest();
-    clearSoggyObject();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
     m_physics.reset();
     if (m_trail.layer) {
@@ -671,11 +416,6 @@ void PhysicsOverlay::onExit() {
         m_trail.layer->removeFromParentAndCleanup(true);
         m_trail.layer = nullptr;
     }
-    if (m_menuShatter.root) {
-        m_menuShatter.root->removeFromParentAndCleanup(true);
-        m_menuShatter.root = nullptr;
-    }
-    m_menuShatter.captureRoot = nullptr;
     if (m_playerRoot) {
         m_playerRoot->removeFromParentAndCleanup(true);
         m_playerRoot = nullptr;
@@ -701,8 +441,6 @@ void PhysicsOverlay::onExit() {
         layerRoot->removeFromParentAndCleanup(true);
         layerRoot = nullptr;
     }
-    m_doubleClickListener.destroy();
-    m_tripleClickListener.destroy();
     m_player = nullptr;
     m_objectBlur.finalCompositeSprite = nullptr;
     m_fireAura.sprite = nullptr;

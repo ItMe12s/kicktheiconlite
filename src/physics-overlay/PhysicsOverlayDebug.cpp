@@ -60,14 +60,6 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
     PhysicsVelocity const playerVelocity = m_physics->getPlayerVelocityPixels();
     float const playerSpeed = m_physics->getPlayerSpeed();
 
-    bool const panelAvailable = m_physics->hasPanel();
-    PhysicsState panelState{};
-    PhysicsVelocity panelVelocity{};
-    if (panelAvailable) {
-        panelState = m_physics->getPanelState();
-        panelVelocity = m_physics->getPanelVelocityPixels();
-    }
-
     int const trailGhosts = m_trail.layer ? m_trail.layer->getChildrenCount() : 0;
 
     std::ostringstream debug;
@@ -80,21 +72,10 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
           << ") ang:" << playerState.angle
           << " vel(" << playerVelocity.vx << "," << playerVelocity.vy
           << ") speed:" << playerSpeed << "\n";
-    debug << "panel on:" << (panelAvailable ? 1 : 0);
-    if (panelAvailable) {
-        debug << " pos(" << panelState.x << "," << panelState.y
-              << ") ang:" << panelState.angle
-              << " vel(" << panelVelocity.vx << "," << panelVelocity.vy << ")";
-    }
-    debug << "\n";
     debug << "impact player trig:" << (m_lastPlayerImpact.triggered ? 1 : 0)
           << " pre:" << m_lastPlayerImpact.preSpeedPx
           << " post:" << m_lastPlayerImpact.postSpeedPx
           << " hit:" << m_lastPlayerImpact.impactSpeedPx << "\n";
-    debug << "impact panel trig:" << (m_lastPanelImpact.triggered ? 1 : 0)
-          << " pre:" << m_lastPanelImpact.preSpeedPx
-          << " post:" << m_lastPanelImpact.postSpeedPx
-          << " hit:" << m_lastPanelImpact.impactSpeedPx << "\n";
     debug << "cooldowns hitstop:" << m_impactFlash.hitstopRemaining
           << " white:" << m_impactFlash.whiteFlashRemaining
           << " flashCd:" << m_impactFlash.impactFlashCooldownRemaining
@@ -107,9 +88,7 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
     debug << "world bodies:" << m_physics->getBodyCount()
           << " joints:" << m_physics->getJointCount()
           << " arbiters:" << m_physics->getArbiterCount()
-          << " shards:" << m_physics->getShatterBodyCount()
           << " grab:" << (m_grabActive ? 1 : 0)
-          << " panelDrag:" << (m_panelDragActive ? 1 : 0)
           << " vis:" << (m_visualBuilt ? 1 : 0);
 
     std::string const text = debug.str();

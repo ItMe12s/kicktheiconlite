@@ -11,7 +11,6 @@
 #include <cmath>
 #include <memory>
 #include <numbers>
-#include <unordered_map>
 #include <vector>
 
 using namespace kti_b2l;
@@ -92,7 +91,6 @@ static void applyDragForces(
     float const ty = dragTargetY / kPixelsPerMeter;
     float const ex = tx - gpx;
     float const ey = ty - gpy;
-    // Velocity at grab point v + omega x r -> (vx - w*ry, vy + w*rx)
     float const vpx = body.velocity.x - body.angularVelocity * ry;
     float const vpy = body.velocity.y + body.angularVelocity * rx;
     float const forceX = tuning.spring * ex - tuning.damping * vpx;
@@ -100,14 +98,6 @@ static void applyDragForces(
     body.AddForce(Vec2(forceX, forceY));
     body.torque += rx * forceY - ry * forceX;
     body.torque -= tuning.angularDamping * body.angularVelocity;
-}
-
-static PhysicsState physicsStateFromBody(Body const& b) {
-    return {
-        b.position.x * kPixelsPerMeter,
-        b.position.y * kPixelsPerMeter,
-        b.rotation,
-    };
 }
 
 static void clampBodyToScreenBorder(Body& body, float worldWidthMeters, float worldHeightMeters) {
@@ -150,32 +140,12 @@ static void clampBodyToScreenBorder(Body& body, float worldWidthMeters, float wo
 }
 
 struct PhysicsWorld::Impl {
-    struct ShatterBodyTuning {
-        float linearDampingPerSecond = 0.0f;
-        float angularDampingPerSecond = 0.0f;
-    };
-
-    struct DynamicObjectEntry {
-        std::unique_ptr<Body> body;
-        PhysicsState prevRender{};
-        bool dragging = false;
-        float dragTargetX = 0.0f;
-        float dragTargetY = 0.0f;
-        float grabLocalX = 0.0f;
-        float grabLocalY = 0.0f;
-    };
-
     World world;
     Body wallBottom;
     Body wallTop;
     Body wallLeft;
     Body wallRight;
     Body player;
-    std::unique_ptr<Body> panel;
-    std::vector<std::unique_ptr<Body>> shatterBodies;
-    std::vector<ShatterBodyTuning> shatterBodyTunings;
-    std::unordered_map<int, DynamicObjectEntry> dynamicObjects;
-    int nextDynamicId = 1;
 
     Impl(float worldW, float worldH, float bodyW, float bodyH)
         : world(Vec2(0.0f, -kEarthGravity * kGravityScale), kWorldIterations)
@@ -225,11 +195,7 @@ PhysicsWorld::PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH)
     m_playerPrevRender = getPlayerState();
 }
 
-PhysicsWorld::~PhysicsWorld() {
-    clearAllDynamicObjects();
-    clearShatterBodies();
-    destroyPanel();
-}
+PhysicsWorld::~PhysicsWorld() = default;
 
 void PhysicsWorld::clampPlayerToScreenBorder() {
     float const ww = m_worldW / kPixelsPerMeter;
@@ -247,7 +213,6 @@ void PhysicsWorld::setDragGrabOffsetPixels(float offsetX, float offsetY) {
     float const wy = offsetY / kPixelsPerMeter;
     float const c = std::cos(p.rotation);
     float const s = std::sin(p.rotation);
-    // World offset (meters) -> body-local: R(-theta) * w
     m_grabLocalX = c * wx + s * wy;
     m_grabLocalY = -s * wx + c * wy;
 }
@@ -277,14 +242,6 @@ void PhysicsWorld::step(float dt) {
     }
 
     m_playerPrevRender = getPlayerState();
-    if (m_impl->panel) {
-        m_panelPrevRender = getPanelState();
-    }
-    for (auto& kv : m_impl->dynamicObjects) {
-        if (kv.second.body) {
-            kv.second.prevRender = physicsStateFromBody(*kv.second.body);
-        }
-    }
 
     if (m_dragging) {
         applyDragForces(
@@ -297,63 +254,10 @@ void PhysicsWorld::step(float dt) {
         );
     }
 
-    if (m_panelDragging && m_impl->panel) {
-        applyDragForces(
-            *m_impl->panel,
-            m_panelGrabLocalX,
-            m_panelGrabLocalY,
-            m_panelDragTargetX,
-            m_panelDragTargetY,
-            DragTuning{kPanelDragSpring, kPanelDragDamping, kPanelDragAngularDamping}
-        );
-    }
-
-    for (auto& kv : m_impl->dynamicObjects) {
-        auto& e = kv.second;
-        if (!e.body || !e.dragging) {
-            continue;
-        }
-        applyDragForces(
-            *e.body,
-            e.grabLocalX,
-            e.grabLocalY,
-            e.dragTargetX,
-            e.dragTargetY,
-            DragTuning{kPanelDragSpring, kPanelDragDamping, kPanelDragAngularDamping}
-        );
-    }
-
     m_preStepSpeedPx = bodySpeedPx(m_impl->player);
-    m_preStepPanelSpeedPx = m_impl->panel ? bodySpeedPx(*m_impl->panel) : 0.0f;
 
     m_impl->world.Step(dt);
     clampPlayerToScreenBorder();
-    clampPanelToScreenBorder();
-    float const ww = m_worldW / kPixelsPerMeter;
-    float const wh = m_worldH / kPixelsPerMeter;
-    for (auto& kv : m_impl->dynamicObjects) {
-        if (kv.second.body) {
-            clampBodyToScreenBorder(*kv.second.body, ww, wh);
-        }
-    }
-    for (auto const& shard : m_impl->shatterBodies) {
-        if (shard) {
-            clampBodyToScreenBorder(*shard, ww, wh);
-        }
-    }
-
-    float const dampingDt = std::max(0.0f, dt);
-    for (size_t i = 0; i < m_impl->shatterBodies.size(); ++i) {
-        auto const& shard = m_impl->shatterBodies[i];
-        if (!shard || i >= m_impl->shatterBodyTunings.size()) {
-            continue;
-        }
-        auto const& tuning = m_impl->shatterBodyTunings[i];
-        float const linearScale = std::max(0.0f, 1.0f - tuning.linearDampingPerSecond * dampingDt);
-        float const angularScale = std::max(0.0f, 1.0f - tuning.angularDampingPerSecond * dampingDt);
-        shard->velocity *= linearScale;
-        shard->angularVelocity *= angularScale;
-    }
 }
 
 PhysicsState PhysicsWorld::getPlayerState() const {
@@ -411,109 +315,6 @@ PhysicsImpactEvent PhysicsWorld::consumePlayerImpactAny() {
     return event;
 }
 
-PhysicsImpactEvent PhysicsWorld::consumePanelImpactAny() {
-    if (!m_impl->panel) {
-        m_wasPanelAgainstAnyBody = false;
-        return {};
-    }
-
-    Body* const panel = m_impl->panel.get();
-    bool now = false;
-    float maxRelativeSpeedPx = 0.0f;
-    for (auto const& kv : m_impl->world.arbiters) {
-        Arbiter const& arb = kv.second;
-        if (arb.numContacts <= 0) {
-            continue;
-        }
-        if (arb.body1 == panel || arb.body2 == panel) {
-            now = true;
-            Body* const other = arb.body1 == panel ? arb.body2 : arb.body1;
-            if (other) {
-                maxRelativeSpeedPx = std::max(maxRelativeSpeedPx, relativeSpeedPx(*panel, *other));
-            }
-        }
-    }
-
-    PhysicsImpactEvent event{};
-    event.triggered = now && !m_wasPanelAgainstAnyBody;
-    event.preSpeedPx = m_preStepPanelSpeedPx;
-    event.postSpeedPx = bodySpeedPx(*panel);
-    event.impactSpeedPx = std::max({m_preStepPanelSpeedPx, event.postSpeedPx, maxRelativeSpeedPx});
-    m_wasPanelAgainstAnyBody = now;
-    return event;
-}
-
-void PhysicsWorld::spawnPanel(float bodyW, float bodyH, float xPx, float yPx) {
-    if (m_impl->panel) {
-        return;
-    }
-    auto panel = std::make_unique<Body>();
-    float const bw = bodyW / kPixelsPerMeter;
-    float const bh = bodyH / kPixelsPerMeter;
-    std::vector<Vec2> const panelPoly = makeBoxPolygon(bw, bh);
-    panel->Set(panelPoly.data(), static_cast<int>(panelPoly.size()), kPanelDensity);
-    panel->position.Set(xPx / kPixelsPerMeter, yPx / kPixelsPerMeter);
-    panel->velocity.Set(0.0f, 0.0f);
-    panel->angularVelocity = 0.0f;
-    panel->friction = kPanelFriction;
-    m_impl->world.Add(panel.get());
-    m_impl->panel = std::move(panel);
-    m_panelDragging = false;
-    m_panelDragTargetX = xPx;
-    m_panelDragTargetY = yPx;
-    m_panelGrabLocalX = 0.0f;
-    m_panelGrabLocalY = 0.0f;
-    m_preStepPanelSpeedPx = 0.0f;
-    m_wasPanelAgainstAnyBody = false;
-    m_panelPrevRender = getPanelState();
-}
-
-void PhysicsWorld::destroyPanel() {
-    if (!m_impl->panel) {
-        return;
-    }
-    m_impl->world.Remove(m_impl->panel.get());
-    m_impl->panel.reset();
-    m_panelDragging = false;
-    m_preStepPanelSpeedPx = 0.0f;
-    m_wasPanelAgainstAnyBody = false;
-}
-
-bool PhysicsWorld::hasPanel() const {
-    return m_impl->panel != nullptr;
-}
-
-PhysicsState PhysicsWorld::getPanelState() const {
-    if (!m_impl->panel) {
-        return {0.0f, 0.0f, 0.0f};
-    }
-    Body const& p = *m_impl->panel;
-    return {
-        p.position.x * kPixelsPerMeter,
-        p.position.y * kPixelsPerMeter,
-        p.rotation
-    };
-}
-
-PhysicsState PhysicsWorld::getPanelRenderState(float alpha) const {
-    PhysicsState const curr = getPanelState();
-    float const a = std::clamp(alpha, 0.0f, 1.0f);
-    float const om = 1.0f - a;
-    return {
-        m_panelPrevRender.x * om + curr.x * a,
-        m_panelPrevRender.y * om + curr.y * a,
-        lerpAngleRad(m_panelPrevRender.angle, curr.angle, a),
-    };
-}
-
-PhysicsVelocity PhysicsWorld::getPanelVelocityPixels() const {
-    if (!m_impl->panel) {
-        return {0.0f, 0.0f};
-    }
-    Vec2 const& v = m_impl->panel->velocity;
-    return {v.x * kPixelsPerMeter, v.y * kPixelsPerMeter};
-}
-
 int PhysicsWorld::getBodyCount() const {
     return static_cast<int>(m_impl->world.bodies.size());
 }
@@ -524,245 +325,4 @@ int PhysicsWorld::getJointCount() const {
 
 int PhysicsWorld::getArbiterCount() const {
     return static_cast<int>(m_impl->world.arbiters.size());
-}
-
-void PhysicsWorld::setPanelDragging(bool on) {
-    m_panelDragging = on;
-}
-
-void PhysicsWorld::setPanelDragTargetPixels(float x, float y) {
-    float const maxX = m_worldW;
-    float const maxY = m_worldH;
-    if (x < 0.0f) x = 0.0f;
-    else if (x > maxX) x = maxX;
-    if (y < 0.0f) y = 0.0f;
-    else if (y > maxY) y = maxY;
-    m_panelDragTargetX = x;
-    m_panelDragTargetY = y;
-}
-
-void PhysicsWorld::setPanelDragGrabOffsetPixels(float offsetX, float offsetY) {
-    if (!m_impl->panel) {
-        m_panelGrabLocalX = 0.0f;
-        m_panelGrabLocalY = 0.0f;
-        return;
-    }
-    Body const& p = *m_impl->panel;
-    float const wx = offsetX / kPixelsPerMeter;
-    float const wy = offsetY / kPixelsPerMeter;
-    float const c = std::cos(p.rotation);
-    float const s = std::sin(p.rotation);
-    m_panelGrabLocalX = c * wx + s * wy;
-    m_panelGrabLocalY = -s * wx + c * wy;
-}
-
-int PhysicsWorld::spawnShatterBody(PhysicsShatterBodyInit const& init) {
-    auto body = std::make_unique<Body>();
-    std::vector<Vec2> shardPoly;
-    if (init.shape == PhysicsShatterBodyShape::Triangle) {
-        float const cx = init.xPx / kPixelsPerMeter;
-        float const cy = init.yPx / kPixelsPerMeter;
-        float const c = std::cos(init.angleRad);
-        float const s = std::sin(init.angleRad);
-        shardPoly.reserve(3);
-        for (int i = 0; i < 3; ++i) {
-            float const wx = init.cornerWorldPx[i][0] / kPixelsPerMeter;
-            float const wy = init.cornerWorldPx[i][1] / kPixelsPerMeter;
-            float const dx = wx - cx;
-            float const dy = wy - cy;
-            float const lx = c * dx + s * dy;
-            float const ly = -s * dx + c * dy;
-            shardPoly.push_back(Vec2(lx, ly));
-        }
-    } else {
-        shardPoly = makeBoxPolygon(
-            init.widthPx / kPixelsPerMeter,
-            init.heightPx / kPixelsPerMeter
-        );
-    }
-    body->Set(shardPoly.data(), static_cast<int>(shardPoly.size()), init.density);
-    body->position.Set(init.xPx / kPixelsPerMeter, init.yPx / kPixelsPerMeter);
-    body->rotation = init.angleRad;
-    body->velocity.Set(init.velocityXPx / kPixelsPerMeter, init.velocityYPx / kPixelsPerMeter);
-    body->angularVelocity = init.angularVelocityRad;
-    body->friction = init.friction;
-    m_impl->world.Add(body.get());
-    m_impl->shatterBodies.push_back(std::move(body));
-    m_impl->shatterBodyTunings.push_back({
-        std::max(0.0f, init.linearDampingPerSecond),
-        std::max(0.0f, init.angularDampingPerSecond),
-    });
-    return static_cast<int>(m_impl->shatterBodies.size() - 1);
-}
-
-bool PhysicsWorld::getShatterBodyState(int handle, PhysicsState& out) const {
-    if (handle < 0) {
-        return false;
-    }
-    size_t const index = static_cast<size_t>(handle);
-    if (index >= m_impl->shatterBodies.size()) {
-        return false;
-    }
-    auto const& body = m_impl->shatterBodies[index];
-    if (!body) {
-        return false;
-    }
-    out = {
-        body->position.x * kPixelsPerMeter,
-        body->position.y * kPixelsPerMeter,
-        body->rotation,
-    };
-    return true;
-}
-
-void PhysicsWorld::clearShatterBodies() {
-    for (auto& body : m_impl->shatterBodies) {
-        if (body) {
-            m_impl->world.Remove(body.get());
-            body.reset();
-        }
-    }
-    m_impl->shatterBodies.clear();
-    m_impl->shatterBodyTunings.clear();
-}
-
-int PhysicsWorld::getShatterBodyCount() const {
-    return static_cast<int>(m_impl->shatterBodies.size());
-}
-
-int PhysicsWorld::spawnDynamicObject(PhysicsDynamicObjectInit const& init) {
-    if (init.widthPx <= 0.0f || init.heightPx <= 0.0f) {
-        return -1;
-    }
-    auto body = std::make_unique<Body>();
-    float const bw = init.widthPx / kPixelsPerMeter;
-    float const bh = init.heightPx / kPixelsPerMeter;
-    std::vector<Vec2> const panelPoly = makeBoxPolygon(bw, bh);
-    body->Set(panelPoly.data(), static_cast<int>(panelPoly.size()), init.density);
-    body->position.Set(init.xPx / kPixelsPerMeter, init.yPx / kPixelsPerMeter);
-    body->rotation = init.angleRad;
-    body->velocity.Set(init.velocityXPx / kPixelsPerMeter, init.velocityYPx / kPixelsPerMeter);
-    body->angularVelocity = init.angularVelocityRad;
-    body->friction = init.friction;
-    m_impl->world.Add(body.get());
-    int const id = m_impl->nextDynamicId++;
-    PhysicsWorld::Impl::DynamicObjectEntry entry{};
-    entry.body = std::move(body);
-    if (entry.body) {
-        entry.prevRender = physicsStateFromBody(*entry.body);
-    }
-    m_impl->dynamicObjects.emplace(id, std::move(entry));
-    return id;
-}
-
-void PhysicsWorld::destroyDynamicObject(int handle) {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return;
-    }
-    m_impl->world.Remove(it->second.body.get());
-    m_impl->dynamicObjects.erase(it);
-}
-
-bool PhysicsWorld::hasDynamicObject(int handle) const {
-    auto it = m_impl->dynamicObjects.find(handle);
-    return it != m_impl->dynamicObjects.end() && it->second.body;
-}
-
-void PhysicsWorld::clearAllDynamicObjects() {
-    for (auto& kv : m_impl->dynamicObjects) {
-        if (kv.second.body) {
-            m_impl->world.Remove(kv.second.body.get());
-        }
-    }
-    m_impl->dynamicObjects.clear();
-}
-
-PhysicsState PhysicsWorld::getDynamicObjectState(int handle) const {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return {0.0f, 0.0f, 0.0f};
-    }
-    return physicsStateFromBody(*it->second.body);
-}
-
-PhysicsState PhysicsWorld::getDynamicObjectRenderState(int handle, float alpha) const {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return {0.0f, 0.0f, 0.0f};
-    }
-    PhysicsState const curr = physicsStateFromBody(*it->second.body);
-    float const a = std::clamp(alpha, 0.0f, 1.0f);
-    float const om = 1.0f - a;
-    PhysicsState const& pr = it->second.prevRender;
-    return {
-        pr.x * om + curr.x * a,
-        pr.y * om + curr.y * a,
-        lerpAngleRad(pr.angle, curr.angle, a),
-    };
-}
-
-PhysicsVelocity PhysicsWorld::getDynamicObjectVelocityPixels(int handle) const {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return {0.0f, 0.0f};
-    }
-    Vec2 const& v = it->second.body->velocity;
-    return {v.x * kPixelsPerMeter, v.y * kPixelsPerMeter};
-}
-
-void PhysicsWorld::setDynamicObjectDragging(int handle, bool on) {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return;
-    }
-    it->second.dragging = on;
-}
-
-void PhysicsWorld::setDynamicObjectDragTargetPixels(int handle, float x, float y) {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end()) {
-        return;
-    }
-    float const maxX = m_worldW;
-    float const maxY = m_worldH;
-    if (x < 0.0f) {
-        x = 0.0f;
-    } else if (x > maxX) {
-        x = maxX;
-    }
-    if (y < 0.0f) {
-        y = 0.0f;
-    } else if (y > maxY) {
-        y = maxY;
-    }
-    it->second.dragTargetX = x;
-    it->second.dragTargetY = y;
-}
-
-void PhysicsWorld::setDynamicObjectDragGrabOffsetPixels(int handle, float offsetX, float offsetY) {
-    auto it = m_impl->dynamicObjects.find(handle);
-    if (it == m_impl->dynamicObjects.end() || !it->second.body) {
-        return;
-    }
-    Body const& p = *it->second.body;
-    float const wx = offsetX / kPixelsPerMeter;
-    float const wy = offsetY / kPixelsPerMeter;
-    float const c = std::cos(p.rotation);
-    float const s = std::sin(p.rotation);
-    it->second.grabLocalX = c * wx + s * wy;
-    it->second.grabLocalY = -s * wx + c * wy;
-}
-
-int PhysicsWorld::dynamicObjectCount() const {
-    return static_cast<int>(m_impl->dynamicObjects.size());
-}
-
-void PhysicsWorld::clampPanelToScreenBorder() {
-    if (!m_impl->panel) {
-        return;
-    }
-    float const ww = m_worldW / kPixelsPerMeter;
-    float const wh = m_worldH / kPixelsPerMeter;
-    clampBodyToScreenBorder(*m_impl->panel, ww, wh);
 }

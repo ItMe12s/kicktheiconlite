@@ -17,10 +17,6 @@ SKIP_SYMBOLS = {
     "kStarBurstSpriteSlots",  # fixed star burst slot count
     "kDebugLabelZOrder",  # kDebugLabelBackgroundZOrder
     "kDebugLabelUpdateHz",  # kDebugLabelUpdateInterval
-    "kMenuShardRows",  # kMenuShardTrianglesTotal (std::array size)
-    "kMenuShardCols",  # kMenuShardTrianglesTotal (std::array size)
-    "kClickWindowSec",  # kDoubleClickScheduledDelaySec
-    "kDoubleTapMinCommitDelaySec",  # kDoubleClickScheduledDelaySec
     "kB2MaxPolygonVertices",  # Body struct layout
 }
 

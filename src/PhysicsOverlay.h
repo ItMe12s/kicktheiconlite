@@ -2,7 +2,6 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
-#include <Geode/loader/Event.hpp>
 
 #include <array>
 #include <memory>
@@ -14,42 +13,22 @@
 #include "vfx/VfxTypes.h"
 
 class SimplePlayer;
-class PhysicsMenu;
-class MenuShatterTriangleNode;
 
 namespace cocos2d {
 class CCNode;
 class CCDrawNode;
 class CCRenderTexture;
-class CCSprite;
 class CCGLProgram;
 class CCLabelBMFont;
 }
 
 class PhysicsOverlay : public cocos2d::CCLayer {
-    struct MenuShatterPiece {
-        int bodyHandle = -1;
-        MenuShatterTriangleNode* shard = nullptr;
-    };
-
-    struct MenuShatterState {
-        bool active = false;
-        float elapsed = 0.0f;
-        cocos2d::CCNode* root = nullptr;
-        cocos2d::CCNode* captureRoot = nullptr;
-        cocos2d::CCRenderTexture* snapshot = nullptr;
-        std::vector<MenuShatterPiece> pieces;
-    };
-
-    // Cocos nodes/sprites: child-of-this or autorelease from create(), released when overlay destroyed
-    // m_physics owned uniquely, Geode listeners torn down in onExit()
     std::unique_ptr<PhysicsWorld> m_physics;
     std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
     vfx::ObjectMotionBlurPipelineState m_objectBlur{};
     vfx::StarBurstState m_starBurst{};
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
-    cocos2d::CCSprite* m_hitProxy = nullptr;
     vfx::FireAuraState m_fireAura{};
     vfx::ImpactNoiseState m_impactNoise{};
     vfx::ImpactFlashState m_impactFlash{};
@@ -71,27 +50,9 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_physicsAccumulator = 0.0f;
     int m_lastPhysicsSubsteps = 0;
     PhysicsImpactEvent m_lastPlayerImpact{};
-    PhysicsImpactEvent m_lastPanelImpact{};
     vfx::SandevistanTrailState m_trail{};
     std::vector<std::string> m_debugLineScratch{};
-    cocos2d::CCNode* m_glyphDemoRoot = nullptr;
-    cocos2d::CCSprite* m_glyphDemoStaticLine = nullptr;
-    std::vector<cocos2d::CCSprite*> m_glyphDemoWobbleSprites;
-    std::vector<cocos2d::CCPoint> m_glyphDemoWobbleBasePositions;
-    float m_glyphDemoTime = 0.0f;
 
-    int m_soggyHandle = -1;
-    cocos2d::CCNode* m_soggyRoot = nullptr;
-    cocos2d::CCSprite* m_soggySprite = nullptr;
-    float m_soggyAnimTime = 0.0f;
-    bool m_soggyDragActive = false;
-
-    geode::ListenerHandle m_doubleClickListener{};
-    geode::ListenerHandle m_tripleClickListener{};
-
-    std::unique_ptr<PhysicsMenu> m_physicsMenuVisual;
-    MenuShatterState m_menuShatter{};
-    bool m_panelDragActive = false;
     bool m_selfDestructRequested = false;
     bool m_skipGraphicsCleanup = false;
     bool m_glReadyCheckInitialized = false;
@@ -116,29 +77,12 @@ private:
     void tryBuildPlayerVisual();
     bool tryBeginGrab(cocos2d::CCPoint const& locationInNode);
     void endGrab();
-
-    void tryOpenPhysicsMenu();
-    bool tryBeginPanelGrab(cocos2d::CCPoint const& locationInNode);
-    void syncPanelNodeFromPhysics(float alpha);
-    void destroyPhysicsMenuVisual();
-    bool beginMenuShatter(float impactSpeedPx);
-    void updateMenuShatter(float dt);
-    void clearMenuShatter();
     void endTouchInteraction();
 
     void decrementCooldowns(float dt);
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
     void syncPlayerNodeFromPhysics();
-    void initGlyphVisualTest();
-    void updateGlyphVisualTest(float dt);
-    void clearGlyphVisualTest();
-    void trySpawnSoggyObject();
-    void syncSoggyNodeFromPhysics(float alpha);
-    void updateSoggyVisual(float dt);
-    bool tryBeginSoggyGrab(cocos2d::CCPoint const& locationInNode);
-    void endSoggyGrab();
-    void clearSoggyObject();
     void updateDebugOverlayText(float dt);
     std::vector<std::string> const& splitDebugLinesInto(std::string const& text);
 };
