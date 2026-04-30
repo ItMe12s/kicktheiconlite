@@ -301,7 +301,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     if (!unifiedTextureRaw) {
         return out;
     }
-    rb.unifiedTexture = Ref<CCRenderTexture>::adopt(unifiedTextureRaw);
+    rb.unifiedTexture = unifiedTextureRaw;
     CCRenderTexture* unifiedTexture = rb.unifiedTexture;
 
     auto* finalComposite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
@@ -394,7 +394,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
             out.objects[static_cast<size_t>(i)] = capture;
             continue;
         }
-        capture.renderTexture = Ref<CCRenderTexture>::adopt(rt);
+        capture.renderTexture = rt;
 
         auto* objectBlur = MotionBlurSprite::create(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
         if (!objectBlur) {
@@ -713,7 +713,7 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
     CCRenderTexture* rtRaw = CCRenderTexture::create(rw, rh, kCCTexture2DPixelFormat_RGBA8888);
     Ref<CCRenderTexture> rtHold{};
     if (rtRaw) {
-        rtHold = Ref<CCRenderTexture>::adopt(rtRaw);
+        rtHold = rtRaw;
     }
     CCSprite* composite = nullptr;
     if (rtHold) {
