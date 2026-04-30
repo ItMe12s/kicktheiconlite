@@ -69,10 +69,9 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_playerRoot = pr.root;
     auto* worldRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
     if (worldRoot) {
-        m_playerRoot->retain();
+        Ref<cocos2d::CCNode> hold(m_playerRoot);
         this->removeChild(m_playerRoot, false);
         worldRoot->addChild(m_playerRoot, kPlayerRootZOrder);
-        m_playerRoot->release();
     } else {
         m_playerRoot->setZOrder(kPlayerRootZOrder);
     }
@@ -81,7 +80,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     auto const fa = overlay_rendering::attachFireAura(pr.root, m_targetSize * kFireAuraDiameterScale);
     if (fa.ok) {
         m_fireAura.sprite = fa.sprite;
-        m_fireAura.program = fa.program;
+        m_fireAura.program = Ref<CCGLProgram>::adopt(fa.program);
     }
 
     vfx::star_burst::createSprites(m_starBurst);

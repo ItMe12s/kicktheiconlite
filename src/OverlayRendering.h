@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/utils/cocos.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
@@ -142,7 +143,7 @@ struct MotionBlurObjectSeed {
 struct MotionBlurObjectCapture {
     MotionBlurObjectId id = MotionBlurObjectId::Player;
     cocos2d::CCNode* sourceRoot = nullptr;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
     MotionBlurSprite* blurSprite = nullptr;
     bool enabled = false;
     MotionBlurObjectTuning tuning = {};
@@ -154,7 +155,6 @@ struct MotionBlurObjectCapture {
 struct ObjectMotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCGLProgram* blurProgram = nullptr;
-    GLint locBlurDir = -1;
     cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
     cocos2d::CCGLProgram* colorInvertProgram = nullptr;
     cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;

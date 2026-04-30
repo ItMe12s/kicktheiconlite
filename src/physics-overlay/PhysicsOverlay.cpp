@@ -136,9 +136,8 @@ bool PhysicsOverlay::init() {
             m_debugLabelBackground->setVisible(kDebugLabelEnabled);
             uiRoot->addChild(m_debugLabelBackground, kDebugLabelBackgroundZOrder);
 
-            m_debugLabelBackgroundTexture = CCRenderTexture::create(1, 1);
-            if (m_debugLabelBackgroundTexture) {
-                m_debugLabelBackgroundTexture->retain();
+            if (CCRenderTexture* dbgRt = CCRenderTexture::create(1, 1)) {
+                m_debugLabelBackgroundTexture = dbgRt;
                 m_debugLabelBackgroundTexture->beginWithClear(1.0f, 1.0f, 1.0f, 1.0f);
                 m_debugLabelBackgroundTexture->end();
             }
@@ -200,8 +199,8 @@ bool PhysicsOverlay::init() {
     auto const noiseAttach = overlay_rendering::attachImpactNoise(this, m_winSize);
     if (noiseAttach.ok) {
         m_impactNoise.sprite = noiseAttach.sprite;
-        m_impactNoise.program = noiseAttach.program;
-        m_impactNoise.renderTexture = noiseAttach.renderTexture;
+        m_impactNoise.program = Ref<CCGLProgram>::adopt(noiseAttach.program);
+        m_impactNoise.renderTexture = Ref<CCRenderTexture>::adopt(noiseAttach.renderTexture);
         m_impactNoise.composite = noiseAttach.compositeSprite;
     }
 
@@ -420,12 +419,11 @@ void PhysicsOverlay::beginFullscreenSelfDestruct() {
     endTouchInteraction();
     this->stopAllActions();
     CCDirector::get()->getScheduler()->unscheduleUpdateForTarget(this);
-    this->retain();
-    geode::queueInMainThread([this] {
-        if (this->getParent()) {
-            this->removeFromParentAndCleanup(true);
+    Ref<PhysicsOverlay> keepAlive(this);
+    geode::queueInMainThread([keepAlive] {
+        if (keepAlive->getParent()) {
+            keepAlive->removeFromParentAndCleanup(true);
         }
-        this->release();
     });
 }
 
@@ -445,12 +443,10 @@ void PhysicsOverlay::onExit() {
     }
     m_debugLabel = nullptr;
     m_debugLabelBackground = nullptr;
-    if (m_debugLabelBackgroundTexture) {
-        if (!m_skipGraphicsCleanup) {
-            m_debugLabelBackgroundTexture->release();
-        }
-        m_debugLabelBackgroundTexture = nullptr;
+    if (m_skipGraphicsCleanup) {
+        (void)m_debugLabelBackgroundTexture.take();
     }
+    m_debugLabelBackgroundTexture = nullptr;
     m_debugLabelBackgroundSprites.clear();
     m_debugLabelMeasure = nullptr;
     if (m_starBurst.layer) {
@@ -465,41 +461,42 @@ void PhysicsOverlay::onExit() {
         layerRoot = nullptr;
     }
     m_player = nullptr;
-    m_objectBlur.finalCompositeSprite = nullptr;
     m_fireAura.sprite = nullptr;
     if (m_impactNoise.composite) {
         m_impactNoise.composite->removeFromParentAndCleanup(true);
         m_impactNoise.composite = nullptr;
     }
-    if (m_impactNoise.renderTexture) {
-        if (!m_skipGraphicsCleanup) {
-            m_impactNoise.renderTexture->release();
-        }
-        m_impactNoise.renderTexture = nullptr;
-    }
     if (m_impactNoise.sprite) {
         m_impactNoise.sprite->removeFromParentAndCleanup(true);
         m_impactNoise.sprite = nullptr;
     }
-    m_objectBlur.whiteFlashSprite = nullptr;
     m_starBurst.sprites = {};
     m_starBurst.phaseIndex = -1;
-    if (m_fireAura.program) {
-        if (!m_skipGraphicsCleanup) {
-            m_fireAura.program->release();
+    if (m_skipGraphicsCleanup) {
+        (void)m_objectBlur.finalCompositeSprite.take();
+        (void)m_objectBlur.whiteFlashSprite.take();
+        (void)m_impactNoise.renderTexture.take();
+        (void)m_fireAura.program.take();
+        (void)m_impactNoise.program.take();
+        for (auto& o : m_objectBlur.objects) {
+            (void)o.renderTexture.take();
+            o.blurSprite = nullptr;
+            o.sourceRoot = nullptr;
+            o.enabled = false;
+            o.velocity = {};
         }
-        m_fireAura.program = nullptr;
-    }
-    if (m_impactNoise.program) {
-        if (!m_skipGraphicsCleanup) {
-            m_impactNoise.program->release();
-        }
-        m_impactNoise.program = nullptr;
-    }
-    if (!m_skipGraphicsCleanup) {
-        vfx::object_motion_blur::release(m_objectBlur);
+        (void)m_objectBlur.mergeRoot.take();
+        (void)m_objectBlur.unifiedMergeTexture.take();
+        (void)m_objectBlur.blurProgram.take();
+        (void)m_objectBlur.whiteFlashProgram.take();
+        (void)m_objectBlur.colorInvertProgram.take();
     } else {
-        m_objectBlur = {};
+        m_objectBlur.finalCompositeSprite = nullptr;
+        m_objectBlur.whiteFlashSprite = nullptr;
+        m_impactNoise.renderTexture = nullptr;
+        m_fireAura.program = nullptr;
+        m_impactNoise.program = nullptr;
+        vfx::object_motion_blur::release(m_objectBlur);
     }
     CCLayer::onExit();
 }

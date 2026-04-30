@@ -5,18 +5,18 @@
 
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/cocos/cocoa/CCArray.h>
-#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCScene.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/platform/CCGL.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/cocos/textures/CCTexture2D.h>
+#include <Geode/utils/cocos.hpp>
+#include <Geode/utils/random.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <memory>
-#include <random>
 
 using namespace geode::prelude;
 
@@ -25,7 +25,7 @@ namespace overlay_rendering {
 namespace {
 
 CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
-    auto p = std::unique_ptr<CCGLProgram>(new CCGLProgram());
+    Ref<CCGLProgram> p = Ref<CCGLProgram>::adopt(new CCGLProgram());
     if (!p->initWithVertexShaderByteArray(vert, frag)) {
         return nullptr;
     }
@@ -37,7 +37,7 @@ CCGLProgram* createLinkedProgram(char const* vert, char const* frag) {
     }
     p->updateUniforms();
     p->retain();
-    return p.release();
+    return p.take();
 }
 
 CCTexture2D* createOneByOneWhiteTexture() {
@@ -56,11 +56,8 @@ CCTexture2D* createOneByOneWhiteTexture() {
     return tex.release();
 }
 
-int objectCompositeOrder(MotionBlurObjectId id) {
-    switch (id) {
-        case MotionBlurObjectId::Player: return 0;
-        default: return 0;
-    }
+int objectCompositeOrder(MotionBlurObjectId) {
+    return 0;
 }
 
 void resetObjectVisualState(MotionBlurObjectCapture& object) {
@@ -271,13 +268,13 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     }
 
     struct Rollback {
-        CCRenderTexture* unifiedTexture = nullptr;
+        Ref<CCRenderTexture> unifiedTexture{};
+        Ref<CCGLProgram> blurProgram{};
+        Ref<CCGLProgram> whiteFlashProgram{};
+        Ref<CCGLProgram> colorInvertProgram{};
         CCSprite* finalComposite = nullptr;
         CCSprite* whiteFlashSprite = nullptr;
         CCNode* mergeRoot = nullptr;
-        CCGLProgram* blurProgram = nullptr;
-        CCGLProgram* whiteFlashProgram = nullptr;
-        CCGLProgram* colorInvertProgram = nullptr;
         bool armed = true;
         ~Rollback() {
             if (!armed) {
@@ -292,32 +289,20 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
             if (finalComposite) {
                 finalComposite->removeFromParentAndCleanup(true);
             }
-            if (colorInvertProgram) {
-                colorInvertProgram->release();
-            }
-            if (whiteFlashProgram) {
-                whiteFlashProgram->release();
-            }
-            if (blurProgram) {
-                blurProgram->release();
-            }
-            if (unifiedTexture) {
-                unifiedTexture->release();
-            }
         }
         void disarm() { armed = false; }
     } rb;
 
-    auto* unifiedTexture = CCRenderTexture::create(
+    auto* unifiedTextureRaw = CCRenderTexture::create(
         static_cast<int>(std::ceil(captureSize.width)),
         static_cast<int>(std::ceil(captureSize.height)),
         kCCTexture2DPixelFormat_RGBA8888
     );
-    if (!unifiedTexture) {
+    if (!unifiedTextureRaw) {
         return out;
     }
-    unifiedTexture->retain();
-    rb.unifiedTexture = unifiedTexture;
+    rb.unifiedTexture = Ref<CCRenderTexture>::adopt(unifiedTextureRaw);
+    CCRenderTexture* unifiedTexture = rb.unifiedTexture;
 
     auto* finalComposite = CCSprite::createWithTexture(unifiedTexture->getSprite()->getTexture());
     if (!finalComposite) {
@@ -358,27 +343,29 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     rb.whiteFlashSprite = whiteFlashSprite;
 
     GLint locBlurDir = -1;
-    auto* blurProgram = createMotionBlurProgram(&locBlurDir);
-    if (!blurProgram || locBlurDir < 0) {
-        if (blurProgram) {
-            blurProgram->release();
+    auto* blurProgramRaw = createMotionBlurProgram(&locBlurDir);
+    if (!blurProgramRaw || locBlurDir < 0) {
+        if (blurProgramRaw) {
+            blurProgramRaw->release();
         }
         return out;
     }
-    rb.blurProgram = blurProgram;
+    rb.blurProgram = Ref<CCGLProgram>::adopt(blurProgramRaw);
+    CCGLProgram* blurProgram = rb.blurProgram;
 
-    auto* whiteFlashProgram = createWhiteFlashProgram();
-    if (!whiteFlashProgram) {
+    auto* whiteFlashProgramRaw = createWhiteFlashProgram();
+    if (!whiteFlashProgramRaw) {
         return out;
     }
-    rb.whiteFlashProgram = whiteFlashProgram;
+    rb.whiteFlashProgram = Ref<CCGLProgram>::adopt(whiteFlashProgramRaw);
+    CCGLProgram* whiteFlashProgram = rb.whiteFlashProgram;
     whiteFlashSprite->setShaderProgram(whiteFlashProgram);
 
-    auto* colorInvertProgram = createColorInvertProgram();
-    if (!colorInvertProgram) {
+    auto* colorInvertProgramRaw = createColorInvertProgram();
+    if (!colorInvertProgramRaw) {
         return out;
     }
-    rb.colorInvertProgram = colorInvertProgram;
+    rb.colorInvertProgram = Ref<CCGLProgram>::adopt(colorInvertProgramRaw);
 
     auto* mergeRoot = CCNode::create();
     if (!mergeRoot) {
@@ -407,12 +394,10 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
             out.objects[static_cast<size_t>(i)] = capture;
             continue;
         }
-        rt->retain();
-        capture.renderTexture = rt;
+        capture.renderTexture = Ref<CCRenderTexture>::adopt(rt);
 
         auto* objectBlur = MotionBlurSprite::create(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
         if (!objectBlur) {
-            rt->release();
             capture.renderTexture = nullptr;
             capture.enabled = false;
             out.objects[static_cast<size_t>(i)] = capture;
@@ -439,11 +424,10 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     rb.disarm();
     // ok reflects shared pipeline only, individual object captures may still be nullptr
     out.ok = true;
-    out.blurProgram = blurProgram;
-    out.locBlurDir = locBlurDir;
-    out.whiteFlashProgram = whiteFlashProgram;
-    out.colorInvertProgram = colorInvertProgram;
-    out.unifiedMergeTexture = unifiedTexture;
+    out.blurProgram = rb.blurProgram.take();
+    out.whiteFlashProgram = rb.whiteFlashProgram.take();
+    out.colorInvertProgram = rb.colorInvertProgram.take();
+    out.unifiedMergeTexture = rb.unifiedTexture.take();
     out.mergeRoot = mergeRoot;
     out.finalCompositeSprite = finalComposite;
     out.whiteFlashSprite = whiteFlashSprite;
@@ -534,15 +518,14 @@ void globalScreenShake(float duration, float strength) {
     s_nextShakeAllowedSec =
         nowSec + static_cast<double>(totalShakeSec + kScreenShakeCooldownExtraSeconds);
 
-    static std::mt19937 rng{std::random_device{}()};
-    std::uniform_real_distribution<float> dist(kScreenShakeSampleMin, kScreenShakeSampleMax);
-
     CCArray* actions = CCArray::create();
     for (int i = 0; i < intervals; ++i) {
         float const t = static_cast<float>(i) / static_cast<float>(intervals);
         float const falloff = (1.0f - t) * (1.0f - t);
-        float const offX = dist(rng) * strength * falloff;
-        float const offY = dist(rng) * strength * falloff;
+        float const offX =
+            geode::utils::random::generate<float>(kScreenShakeSampleMin, kScreenShakeSampleMax) * strength * falloff;
+        float const offY =
+            geode::utils::random::generate<float>(kScreenShakeSampleMin, kScreenShakeSampleMax) * strength * falloff;
         actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x + offX, base.y + offY)));
     }
     actions->addObject(CCMoveTo::create(stepDuration, ccp(base.x, base.y)));
@@ -727,11 +710,14 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
     int const rw = std::max(8, static_cast<int>(std::ceil(winSize.width * kImpactNoiseRenderScale)));
     int const rh = std::max(8, static_cast<int>(std::ceil(winSize.height * kImpactNoiseRenderScale)));
 
-    CCRenderTexture* rt = CCRenderTexture::create(rw, rh, kCCTexture2DPixelFormat_RGBA8888);
+    CCRenderTexture* rtRaw = CCRenderTexture::create(rw, rh, kCCTexture2DPixelFormat_RGBA8888);
+    Ref<CCRenderTexture> rtHold{};
+    if (rtRaw) {
+        rtHold = Ref<CCRenderTexture>::adopt(rtRaw);
+    }
     CCSprite* composite = nullptr;
-    if (rt) {
-        rt->retain();
-        CCTexture2D* rtTex = rt->getSprite()->getTexture();
+    if (rtHold) {
+        CCTexture2D* rtTex = rtHold->getSprite()->getTexture();
         ccTexParams texParams{};
         texParams.minFilter = kImpactNoiseCompositeNearestFilter ? GL_NEAREST : GL_LINEAR;
         texParams.magFilter = kImpactNoiseCompositeNearestFilter ? GL_NEAREST : GL_LINEAR;
@@ -741,8 +727,7 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
 
         composite = CCSprite::createWithTexture(rtTex);
         if (!composite) {
-            rt->release();
-            rt = nullptr;
+            rtHold = nullptr;
         } else {
             composite->setID("impact-noise-composite"_spr);
             composite->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
@@ -761,12 +746,12 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
             sprite->setScaleX(cw > 0.0f ? static_cast<float>(rw) / cw : static_cast<float>(rw));
             sprite->setScaleY(ch > 0.0f ? static_cast<float>(rh) / ch : static_cast<float>(rh));
             overlayLayer->addChild(sprite, kImpactNoiseZOrder - 1);
-            out.renderTexture = rt;
+            out.renderTexture = rtHold.take();
             out.compositeSprite = composite;
         }
     }
 
-    if (!rt) {
+    if (!out.renderTexture) {
         float const cw = sprite->getContentSize().width;
         float const ch = sprite->getContentSize().height;
         sprite->setScaleX(cw > 0.0f ? winSize.width / cw : winSize.width);

@@ -2,9 +2,10 @@
 
 #include <Geode/Geode.hpp>
 
+#include <Geode/utils/random.hpp>
+
 #include <cmath>
 #include <numbers>
-#include <random>
 #include <string>
 
 #include "../ModTuning.h"
@@ -34,33 +35,29 @@ void applyTint(StarBurstState& state, overlay_rendering::ImpactFlashMode flashMo
 }
 
 void reposition(StarBurstState& state, cocos2d::CCSize winSize, overlay_rendering::ImpactFlashMode flashMode) {
-    static std::mt19937 rng{std::random_device{}()};
     float const screenSmaller = winSize.width < winSize.height ? winSize.width : winSize.height;
-    std::uniform_real_distribution<float> sectorJitter(0.0f, 1.0f);
-    std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * std::numbers::pi_v<float>);
-    std::uniform_real_distribution<float> varianceDist(-kStarScaleVariance, kStarScaleVariance);
-    std::uniform_real_distribution<float> bigRadDist(
-        screenSmaller * kBigStarRadiusMin,
-        screenSmaller * kBigStarRadiusMax
-    );
-    std::uniform_real_distribution<float> smallRadDist(
-        screenSmaller * kSmallStarRadiusMin,
-        screenSmaller * kSmallStarRadiusMax
-    );
+    float const twoPi = 2.0f * std::numbers::pi_v<float>;
 
     for (int i = 0; i < kBigStarCount; ++i) {
         auto* sprite = state.sprites[static_cast<size_t>(i)];
         if (!sprite) {
             continue;
         }
-        float const sector = (static_cast<float>(i) + sectorJitter(rng)) / static_cast<float>(kBigStarCount);
-        float const angle = sector * 2.0f * std::numbers::pi_v<float>;
-        float const radius = bigRadDist(rng);
+        float const sector =
+            (static_cast<float>(i) + geode::utils::random::generate<float>(0.0f, 1.0f)) / static_cast<float>(kBigStarCount);
+        float const angle = sector * twoPi;
+        float const radius = geode::utils::random::generate<float>(
+            screenSmaller * kBigStarRadiusMin,
+            screenSmaller * kBigStarRadiusMax
+        );
         float const cw = sprite->getContentSize().width;
         float const baseScale = cw > 0.0f ? (screenSmaller * kBigStarScreenFrac) / cw : 1.0f;
         sprite->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
         sprite->setRotation(0.0f);
-        sprite->setScale(baseScale * (1.0f + varianceDist(rng)));
+        sprite->setScale(
+            baseScale
+            * (1.0f + geode::utils::random::generate<float>(-kStarScaleVariance, kStarScaleVariance))
+        );
         sprite->setVisible(true);
     }
 
@@ -69,13 +66,19 @@ void reposition(StarBurstState& state, cocos2d::CCSize winSize, overlay_renderin
         if (!sprite) {
             continue;
         }
-        float const angle = angleDist(rng);
-        float const radius = smallRadDist(rng);
+        float const angle = geode::utils::random::generate<float>(0.0f, twoPi);
+        float const radius = geode::utils::random::generate<float>(
+            screenSmaller * kSmallStarRadiusMin,
+            screenSmaller * kSmallStarRadiusMax
+        );
         float const cw = sprite->getContentSize().width;
         float const baseScale = cw > 0.0f ? (screenSmaller * kSmallStarScreenFrac) / cw : 1.0f;
         sprite->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
         sprite->setRotation(0.0f);
-        sprite->setScale(baseScale * (1.0f + varianceDist(rng)));
+        sprite->setScale(
+            baseScale
+            * (1.0f + geode::utils::random::generate<float>(-kStarScaleVariance, kStarScaleVariance))
+        );
         sprite->setVisible(true);
     }
 

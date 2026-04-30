@@ -1,9 +1,11 @@
 #pragma once
 
 #include <Geode/cocos/base_nodes/CCNode.h>
+#include <Geode/cocos/misc_nodes/CCRenderTexture.h>
+#include <Geode/cocos/shaders/CCGLProgram.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/cocos/support/CCPointExtension.h>
-#include <Geode/cocos/shaders/CCGLProgram.h>
+#include <Geode/utils/cocos.hpp>
 
 #include <array>
 
@@ -20,9 +22,9 @@ struct ImpactFlashState {
 
 struct ImpactNoiseState {
     overlay_rendering::ImpactNoiseSprite* sprite = nullptr;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
+    geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
     cocos2d::CCSprite* composite = nullptr;
-    cocos2d::CCGLProgram* program = nullptr;
+    geode::Ref<cocos2d::CCGLProgram> program{};
     float remaining = 0.0f;
     float time = 0.0f;
     float extraTimeSkip = 0.0f;
@@ -42,19 +44,19 @@ struct SandevistanTrailState {
 
 struct FireAuraState {
     overlay_rendering::FireAuraSprite* sprite = nullptr;
-    cocos2d::CCGLProgram* program = nullptr;
+    geode::Ref<cocos2d::CCGLProgram> program{};
     float time = 0.0f;
 };
 
 struct ObjectMotionBlurPipelineState {
     std::array<overlay_rendering::MotionBlurObjectCapture, overlay_rendering::kMotionBlurObjectCount> objects = {};
-    cocos2d::CCNode* mergeRoot = nullptr;
-    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
-    cocos2d::CCSprite* finalCompositeSprite = nullptr;
-    cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    cocos2d::CCGLProgram* blurProgram = nullptr;
-    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
+    geode::Ref<cocos2d::CCNode> mergeRoot{};
+    geode::Ref<cocos2d::CCRenderTexture> unifiedMergeTexture{};
+    geode::Ref<cocos2d::CCSprite> finalCompositeSprite{};
+    geode::Ref<cocos2d::CCSprite> whiteFlashSprite{};
+    geode::Ref<cocos2d::CCGLProgram> blurProgram{};
+    geode::Ref<cocos2d::CCGLProgram> whiteFlashProgram{};
+    geode::Ref<cocos2d::CCGLProgram> colorInvertProgram{};
 };
 
 } // namespace vfx

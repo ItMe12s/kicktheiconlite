@@ -4,7 +4,7 @@
 #include <Geode/cocos/label_nodes/CCLabelBMFont.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
-#include <Geode/utils/cocos.hpp>
+#include <Geode/utils/string.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -35,12 +35,7 @@ inline GLubyte colorToByte(float channel) {
 } // namespace
 
 std::vector<std::string> const& PhysicsOverlay::splitDebugLinesInto(std::string const& text) {
-    m_debugLineScratch.clear();
-    std::istringstream stream(text);
-    std::string line;
-    while (std::getline(stream, line)) {
-        m_debugLineScratch.emplace_back(std::move(line));
-    }
+    m_debugLineScratch = geode::utils::string::split(text, "\n");
     if (m_debugLineScratch.empty()) {
         m_debugLineScratch.emplace_back("");
     }

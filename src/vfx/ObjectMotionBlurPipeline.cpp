@@ -1,5 +1,9 @@
 #include "ObjectMotionBlurPipeline.h"
 
+#include <Geode/utils/cocos.hpp>
+
+using namespace geode::prelude;
+
 namespace vfx::object_motion_blur {
 
 bool attach(
@@ -22,13 +26,13 @@ bool attach(
     }
 
     state.objects = result.objects;
-    state.mergeRoot = result.mergeRoot;
-    state.unifiedMergeTexture = result.unifiedMergeTexture;
-    state.finalCompositeSprite = result.finalCompositeSprite;
-    state.whiteFlashSprite = result.whiteFlashSprite;
-    state.blurProgram = result.blurProgram;
-    state.whiteFlashProgram = result.whiteFlashProgram;
-    state.colorInvertProgram = result.colorInvertProgram;
+    state.mergeRoot = Ref<cocos2d::CCNode>(result.mergeRoot);
+    state.unifiedMergeTexture = Ref<cocos2d::CCRenderTexture>::adopt(result.unifiedMergeTexture);
+    state.finalCompositeSprite = Ref<cocos2d::CCSprite>(result.finalCompositeSprite);
+    state.whiteFlashSprite = Ref<cocos2d::CCSprite>(result.whiteFlashSprite);
+    state.blurProgram = Ref<cocos2d::CCGLProgram>::adopt(result.blurProgram);
+    state.whiteFlashProgram = Ref<cocos2d::CCGLProgram>::adopt(result.whiteFlashProgram);
+    state.colorInvertProgram = Ref<cocos2d::CCGLProgram>::adopt(result.colorInvertProgram);
     return true;
 }
 
@@ -49,38 +53,7 @@ void refresh(
 }
 
 void release(ObjectMotionBlurPipelineState& state) {
-    if (state.blurProgram) {
-        state.blurProgram->release();
-        state.blurProgram = nullptr;
-    }
-    if (state.whiteFlashProgram) {
-        state.whiteFlashProgram->release();
-        state.whiteFlashProgram = nullptr;
-    }
-    if (state.colorInvertProgram) {
-        state.colorInvertProgram->release();
-        state.colorInvertProgram = nullptr;
-    }
-
-    state.mergeRoot = nullptr;
-    state.finalCompositeSprite = nullptr;
-    state.whiteFlashSprite = nullptr;
-
-    for (auto& object : state.objects) {
-        if (object.renderTexture) {
-            object.renderTexture->release();
-            object.renderTexture = nullptr;
-        }
-        object.blurSprite = nullptr;
-        object.sourceRoot = nullptr;
-        object.enabled = false;
-        object.velocity = {};
-    }
-
-    if (state.unifiedMergeTexture) {
-        state.unifiedMergeTexture->release();
-        state.unifiedMergeTexture = nullptr;
-    }
+    state = {};
 }
 
 } // namespace vfx::object_motion_blur

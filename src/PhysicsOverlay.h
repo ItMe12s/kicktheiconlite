@@ -17,7 +17,6 @@ class SimplePlayer;
 namespace cocos2d {
 class CCNode;
 class CCDrawNode;
-class CCRenderTexture;
 class CCGLProgram;
 class CCLabelBMFont;
 }
@@ -42,7 +41,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
     cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
     cocos2d::CCNode* m_debugLabelBackground = nullptr;
-    cocos2d::CCRenderTexture* m_debugLabelBackgroundTexture = nullptr;
+    geode::Ref<cocos2d::CCRenderTexture> m_debugLabelBackgroundTexture{};
     std::vector<cocos2d::CCSprite*> m_debugLabelBackgroundSprites;
     cocos2d::CCLabelBMFont* m_debugLabel = nullptr;
     cocos2d::CCLabelBMFont* m_debugLabelMeasure = nullptr;
