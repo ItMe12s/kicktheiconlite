@@ -190,8 +190,6 @@ struct ImpactNoiseAttachResult {
 
 ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
 
-void globalScreenShake(float duration, float strength);
-
 struct ObjectMotionBlurRefreshArgs {
     std::array<MotionBlurObjectCapture, kMotionBlurObjectCount>* objects = nullptr;
     cocos2d::CCNode* mergeRoot = nullptr;

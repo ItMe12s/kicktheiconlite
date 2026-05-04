@@ -25,6 +25,8 @@
   - It isn't out yet! you'll have to wait.
 - **Why is it taking so long for the full version?**
   - There's around 1-2 hours of content planned, including events, bossfights, easter eggs, cube's personality, lore and more. I'm a solo dev so I'm taking my time here.
+- **Why was screenshake removed?**
+  - Full version uses a newer screenshake system. Lite used an older system that broke levels and editor behavior.
 - **Isn't this just the Cube Abuse mod?**
   - The full version development started way before cube abuse was released.
 - **Can I fork this mod on GitHub and get the full version leak?**

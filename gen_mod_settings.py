@@ -35,11 +35,6 @@ GUARDRAILS = {
         "type": "double",
         "expr_template": "std::max(static_cast<float>({value}), 1.0f)",
     },
-    # Used as denominator in screen-shake timing and interpolation loops
-    "kScreenShakeIntervals": {
-        "type": "int64_t",
-        "expr_template": "std::max(static_cast<int>({value}), 1)",
-    },
     # Used as denominator for impact-noise alpha
     "kImpactNoiseFadeSeconds": {
         "type": "double",

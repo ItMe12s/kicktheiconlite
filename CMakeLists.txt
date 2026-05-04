@@ -8,7 +8,7 @@ else()
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(kicktheiconlite VERSION 1.0.0)
+project(kicktheiconlite VERSION 1.0.1)
 
 set(SOURCES
   src/main.cpp

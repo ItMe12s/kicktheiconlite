@@ -8,7 +8,7 @@
 	},
 	"id": "imes.kicktheiconlite",
 	"name": "Kick the Icon Lite Edition",
-	"version": "v1.0.0",
+	"version": "v1.0.1",
 	"developer": "imes",
 	"description": "Lite version of Kick the Icon mod",
 	"links": {
@@ -212,49 +212,10 @@
 			"name": "Player Impact Min Flash Speed",
 			"default": 1600.0
 		},
-		"player-impact-min-shake-speed": {
+		"player-impact-min-trail-speed": {
 			"type": "float",
-			"name": "Player Impact Min Shake Speed",
+			"name": "Player Impact Min Trail Speed",
 			"default": 300.0
-		},
-		"player-impact-shake-duration": {
-			"type": "float",
-			"name": "Player Impact Shake Duration",
-			"default": 0.25
-		},
-		"player-impact-shake-speed-to-strength": {
-			"type": "float",
-			"name": "Player Impact Shake Speed To Strength",
-			"default": 0.005
-		},
-		"player-impact-max-shake-strength": {
-			"type": "float",
-			"name": "Player Impact Max Shake Strength",
-			"default": 6.7
-		},
-		"title-screen-shake-0": {
-			"type": "title",
-			"name": "Screen Shake"
-		},
-		"screen-shake-intervals": {
-			"type": "int",
-			"name": "Screen Shake Intervals",
-			"default": 10
-		},
-		"screen-shake-sample-min": {
-			"type": "float",
-			"name": "Screen Shake Sample Min",
-			"default": -1.0
-		},
-		"screen-shake-sample-max": {
-			"type": "float",
-			"name": "Screen Shake Sample Max",
-			"default": 1.0
-		},
-		"screen-shake-cooldown-extra-seconds": {
-			"type": "float",
-			"name": "Screen Shake Cooldown Extra Seconds",
-			"default": 0.1
 		},
 		"title-impact-noise-0": {
 			"type": "title",
@@ -669,15 +630,6 @@
 			"type": "float",
 			"name": "Outside Barrier Slack",
 			"default": 1.2
-		},
-		"title-screen-shake-action-tag-0": {
-			"type": "title",
-			"name": "Screen Shake Action Tag"
-		},
-		"screen-shake-action-tag": {
-			"type": "int",
-			"name": "Screen Shake Action Tag",
-			"default": 1800620107
 		},
 		"title-b2-restitution-in-speed-threshold-0": {
 			"type": "title",

@@ -270,17 +270,9 @@ void PhysicsOverlay::stepPhysicsUnlessHitstop(float dt) {
         mergeImpactSnapshot(m_lastPlayerImpact, playerImpact);
         if (playerImpact.triggered) {
             float const playerImpactIntensityPx = std::max(playerImpact.postSpeedPx, playerImpact.impactSpeedPx);
-            if (playerImpactIntensityPx >= kPlayerImpactMinShakeSpeed) {
-                float const strength = std::min(
-                    kPlayerImpactMaxShakeStrength,
-                    playerImpactIntensityPx * kPlayerImpactShakeSpeedToStrength
-                );
-                overlay_rendering::globalScreenShake(kPlayerImpactShakeDuration, strength);
-            }
-
             if (
                 kEnablePlayerImpactTrail
-                && playerImpactIntensityPx >= kPlayerImpactMinShakeSpeed
+                && playerImpactIntensityPx >= kPlayerImpactMinTrailSpeed
                 && !m_grabActive
             ) {
                 m_trail.active = true;

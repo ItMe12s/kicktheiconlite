@@ -89,24 +89,8 @@ void bindAll() {
     // Player Impact
     kPlayerImpactMinFlashSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-flash-speed"));
     listenForSettingChanges<double>("player-impact-min-flash-speed", [](double v) { kPlayerImpactMinFlashSpeed = static_cast<float>(v); });
-    kPlayerImpactMinShakeSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-shake-speed"));
-    listenForSettingChanges<double>("player-impact-min-shake-speed", [](double v) { kPlayerImpactMinShakeSpeed = static_cast<float>(v); });
-    kPlayerImpactShakeDuration = static_cast<float>(mod->getSettingValue<double>("player-impact-shake-duration"));
-    listenForSettingChanges<double>("player-impact-shake-duration", [](double v) { kPlayerImpactShakeDuration = static_cast<float>(v); });
-    kPlayerImpactShakeSpeedToStrength = static_cast<float>(mod->getSettingValue<double>("player-impact-shake-speed-to-strength"));
-    listenForSettingChanges<double>("player-impact-shake-speed-to-strength", [](double v) { kPlayerImpactShakeSpeedToStrength = static_cast<float>(v); });
-    kPlayerImpactMaxShakeStrength = static_cast<float>(mod->getSettingValue<double>("player-impact-max-shake-strength"));
-    listenForSettingChanges<double>("player-impact-max-shake-strength", [](double v) { kPlayerImpactMaxShakeStrength = static_cast<float>(v); });
-
-    // Screen Shake
-    kScreenShakeIntervals = std::max(static_cast<int>(static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-intervals"))), 1);
-    listenForSettingChanges<int64_t>("screen-shake-intervals", [](int64_t v) { kScreenShakeIntervals = std::max(static_cast<int>(v), 1); });
-    kScreenShakeSampleMin = static_cast<float>(mod->getSettingValue<double>("screen-shake-sample-min"));
-    listenForSettingChanges<double>("screen-shake-sample-min", [](double v) { kScreenShakeSampleMin = static_cast<float>(v); });
-    kScreenShakeSampleMax = static_cast<float>(mod->getSettingValue<double>("screen-shake-sample-max"));
-    listenForSettingChanges<double>("screen-shake-sample-max", [](double v) { kScreenShakeSampleMax = static_cast<float>(v); });
-    kScreenShakeCooldownExtraSeconds = static_cast<float>(mod->getSettingValue<double>("screen-shake-cooldown-extra-seconds"));
-    listenForSettingChanges<double>("screen-shake-cooldown-extra-seconds", [](double v) { kScreenShakeCooldownExtraSeconds = static_cast<float>(v); });
+    kPlayerImpactMinTrailSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-trail-speed"));
+    listenForSettingChanges<double>("player-impact-min-trail-speed", [](double v) { kPlayerImpactMinTrailSpeed = static_cast<float>(v); });
 
     // Impact Noise
     kImpactNoiseFadeSeconds = std::max(static_cast<float>(static_cast<float>(mod->getSettingValue<double>("impact-noise-fade-seconds"))), 0.0001f);
@@ -277,10 +261,6 @@ void bindAll() {
     // Outside Barrier Slack
     kOutsideBarrierSlack = static_cast<float>(mod->getSettingValue<double>("outside-barrier-slack"));
     listenForSettingChanges<double>("outside-barrier-slack", [](double v) { kOutsideBarrierSlack = static_cast<float>(v); });
-
-    // Screen Shake Action Tag
-    kScreenShakeActionTag = static_cast<int>(mod->getSettingValue<int64_t>("screen-shake-action-tag"));
-    listenForSettingChanges<int64_t>("screen-shake-action-tag", [](int64_t v) { kScreenShakeActionTag = static_cast<int>(v); });
 
     // B2 Restitution In Speed Threshold
     kB2RestitutionInSpeedThreshold = static_cast<float>(mod->getSettingValue<double>("b2-restitution-in-speed-threshold"));

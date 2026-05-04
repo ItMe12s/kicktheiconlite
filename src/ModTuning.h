@@ -73,16 +73,7 @@ constexpr int kStarBurstMaxPhaseIndex =
 
 // Player Impact
 inline float kPlayerImpactMinFlashSpeed = 1600.0f;
-inline float kPlayerImpactMinShakeSpeed = 300.0f;
-inline float kPlayerImpactShakeDuration = 0.25f;
-inline float kPlayerImpactShakeSpeedToStrength = 0.005f;
-inline float kPlayerImpactMaxShakeStrength = 6.7f;
-
-// Screen Shake
-inline int kScreenShakeIntervals = 10;
-inline float kScreenShakeSampleMin = -1.0f;
-inline float kScreenShakeSampleMax = 1.0f;
-inline float kScreenShakeCooldownExtraSeconds = 0.1f;
+inline float kPlayerImpactMinTrailSpeed = 300.0f;
 
 // Impact Noise
 inline float kImpactNoiseFadeSeconds = 1.75f;
@@ -188,9 +179,6 @@ inline float kDefaultDragTargetYFrac = 0.5f;
 
 // Outside Barrier Slack
 inline float kOutsideBarrierSlack = 1.2f;
-
-// Screen Shake Action Tag
-inline int kScreenShakeActionTag = 0x6B53484B;
 
 // B2 Max Polygon Vertices
 constexpr int kB2MaxPolygonVertices = 16;
