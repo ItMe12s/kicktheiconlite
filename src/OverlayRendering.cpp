@@ -8,7 +8,6 @@
 #include <Geode/cocos/platform/CCGL.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/cocos/textures/CCTexture2D.h>
-#include <Geode/utils/cocos.hpp>
 
 #include <algorithm>
 #include <cmath>

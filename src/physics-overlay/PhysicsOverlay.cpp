@@ -1,12 +1,10 @@
 #include "PhysicsOverlay.h"
 
 #include <Geode/Enums.hpp>
-#include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/draw_nodes/CCDrawNode.h>
 #include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/cocos/label_nodes/CCLabelBMFont.h>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
-#include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/utils/cocos.hpp>
 #include <Geode/cocos/platform/CCEGLViewProtocol.h>
 

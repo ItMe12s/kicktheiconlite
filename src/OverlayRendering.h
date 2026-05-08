@@ -2,7 +2,6 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/utils/cocos.hpp>
-#include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 
 #include <array>

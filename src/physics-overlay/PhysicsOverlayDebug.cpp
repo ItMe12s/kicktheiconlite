@@ -1,8 +1,6 @@
 #include "PhysicsOverlay.h"
 
-#include <Geode/cocos/cocoa/CCArray.h>
 #include <Geode/cocos/label_nodes/CCLabelBMFont.h>
-#include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 #include <Geode/utils/string.hpp>
 

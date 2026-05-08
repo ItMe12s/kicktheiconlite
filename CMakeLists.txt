@@ -10,6 +10,8 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(kicktheiconlite VERSION 1.0.1)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(SOURCES
   src/main.cpp
   src/ModSettings.cpp

@@ -4,7 +4,6 @@
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
 #include <Geode/cocos/shaders/CCGLProgram.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
-#include <Geode/cocos/support/CCPointExtension.h>
 #include <Geode/utils/cocos.hpp>
 
 #include <array>

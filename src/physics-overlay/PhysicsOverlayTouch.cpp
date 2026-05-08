@@ -1,6 +1,5 @@
 #include "PhysicsOverlay.h"
 
-#include <Geode/cocos/layers_scenes_transitions_nodes/CCLayer.h>
 #include <Geode/utils/cocos.hpp>
 
 #include "OverlayRendering.h"
