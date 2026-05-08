@@ -21,7 +21,7 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
 
 - remove full version stuff that ain't used
   - ~~motion blur api~~
-  - backdrop draw nodes PhysicsOverlay
+  - ~~backdrop draw nodes PhysicsOverlay~~
 
 - kinda important
   - backport/rewrite mod settings stuff

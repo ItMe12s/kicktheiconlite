@@ -39,7 +39,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_targetSize = 0.0f;
     cocos2d::CCSize m_winSize{};
     cocos2d::CCDrawNode* m_flashBackdrop = nullptr;
-    cocos2d::CCDrawNode* m_flashBackdropWhite = nullptr;
+    overlay_rendering::ImpactFlashMode m_lastFlashBackdropMode = overlay_rendering::ImpactFlashMode::None;
     cocos2d::CCNode* m_debugLabelBackground = nullptr;
     geode::Ref<cocos2d::CCRenderTexture> m_debugLabelBackgroundTexture{};
     std::vector<cocos2d::CCSprite*> m_debugLabelBackgroundSprites;

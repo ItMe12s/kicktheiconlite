@@ -9,10 +9,11 @@ namespace impact_flash {
 void decrementCooldown(overlay_effects::ImpactFlashState& state, float dt);
 void decrementWhiteFlash(overlay_effects::ImpactFlashState& state, float dt);
 overlay_rendering::ImpactFlashMode currentMode(overlay_effects::ImpactFlashState const& state);
-void updateBackdrops(
+void updateFlashBackdrop(
     overlay_rendering::ImpactFlashMode mode,
-    cocos2d::CCDrawNode* blackBackdrop,
-    cocos2d::CCDrawNode* whiteBackdrop
+    cocos2d::CCDrawNode* backdrop,
+    cocos2d::CCSize winSize,
+    overlay_rendering::ImpactFlashMode& lastDrawnMode
 );
 
 } // namespace impact_flash

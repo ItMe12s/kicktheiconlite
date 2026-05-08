@@ -28,10 +28,6 @@ inline ccColor4F flashBackdropBlackFill() {
     return ccc4f(0, 0, 0, 1);
 }
 
-inline ccColor4F flashBackdropWhiteFill() {
-    return ccc4f(1, 1, 1, 1);
-}
-
 inline ccColor4F flashBackdropBorderTransparent() {
     return ccc4f(0, 0, 0, 0);
 }
@@ -169,20 +165,6 @@ bool PhysicsOverlay::init() {
         m_flashBackdrop->setPosition({0, 0});
         m_flashBackdrop->setVisible(false);
         this->addChild(m_flashBackdrop, kImpactFlashBackdropZOrder);
-    }
-
-    m_flashBackdropWhite = CCDrawNode::create();
-    if (m_flashBackdropWhite) {
-        m_flashBackdropWhite->setID("impact-flash-backdrop-white"_spr);
-        m_flashBackdropWhite->drawRect(
-            CCRectMake(0, 0, m_winSize.width, m_winSize.height),
-            flashBackdropWhiteFill(),
-            0.0f,
-            flashBackdropBorderTransparent()
-        );
-        m_flashBackdropWhite->setPosition({0, 0});
-        m_flashBackdropWhite->setVisible(false);
-        this->addChild(m_flashBackdropWhite, kImpactFlashBackdropZOrder);
     }
 
     auto const noiseAttach = overlay_rendering::attachImpactNoise(this, m_winSize);
@@ -359,7 +341,7 @@ void PhysicsOverlay::update(float dt) {
     sandevistan_trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
 
     overlay_rendering::ImpactFlashMode const flashMode = impact_flash::currentMode(m_impactFlash);
-    impact_flash::updateBackdrops(flashMode, m_flashBackdrop, m_flashBackdropWhite);
+    impact_flash::updateFlashBackdrop(flashMode, m_flashBackdrop, m_winSize, m_lastFlashBackdropMode);
 
     overlay_rendering::refreshFireAura({
         .fireAura = m_fireAura.sprite,
