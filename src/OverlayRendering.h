@@ -7,7 +7,7 @@
 #include <array>
 
 #include "ModTuning.h"
-#include "PhysicsWorld.h"
+#include "PhysicsTypes.h"
 
 namespace cocos2d {
 class CCSprite;
@@ -184,7 +184,7 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args);
 
 struct FireAuraRefreshArgs {
     OverlayShaderSprite* fireAura = nullptr;
-    PhysicsWorld* physics = nullptr;
+    PhysicsVelocity playerVelocity{};
     float dt = 0.0f;
     ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
     float* fireTime = nullptr;

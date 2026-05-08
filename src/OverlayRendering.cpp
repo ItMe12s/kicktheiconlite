@@ -1,7 +1,7 @@
 #include "OverlayRendering.h"
 #include "OverlayShaders.h"
 #include "ModTuning.h"
-#include "PhysicsWorld.h"
+#include "PhysicsTypes.h"
 
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/cocos/misc_nodes/CCRenderTexture.h>
@@ -548,12 +548,11 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
 
 void refreshFireAura(FireAuraRefreshArgs const& args) {
     OverlayShaderSprite* const fireAura = args.fireAura;
-    PhysicsWorld* const physics = args.physics;
     float const dt = args.dt;
     ImpactFlashMode const impactFlashMode = args.impactFlashMode;
     float* const fireTime = args.fireTime;
 
-    if (!fireAura || !physics || !fireTime) {
+    if (!fireAura || !fireTime) {
         return;
     }
 
@@ -563,7 +562,7 @@ void refreshFireAura(FireAuraRefreshArgs const& args) {
         return;
     }
 
-    PhysicsVelocity const vel = physics->getPlayerVelocityPixels();
+    PhysicsVelocity const vel = args.playerVelocity;
     float const speed = std::hypot(vel.vx, vel.vy);
     float const denom = kMaxFireAuraSpeedPx - kMinFireAuraSpeedPx;
     float intensity = 0.0f;

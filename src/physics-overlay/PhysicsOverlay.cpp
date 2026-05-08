@@ -343,17 +343,18 @@ void PhysicsOverlay::update(float dt) {
     overlay_rendering::ImpactFlashMode const flashMode = impact_flash::currentMode(m_impactFlash);
     impact_flash::updateFlashBackdrop(flashMode, m_flashBackdrop, m_winSize, m_lastFlashBackdropMode);
 
+    m_objectBlur.player.sourceRoot = m_playerRoot;
+    m_objectBlur.player.enabled = true;
+    PhysicsVelocity const playerVel = m_physics->getPlayerVelocityPixels();
+    m_objectBlur.player.velocity = playerVel;
+
     overlay_rendering::refreshFireAura({
         .fireAura = m_fireAura.sprite,
-        .physics = m_physics.get(),
+        .playerVelocity = playerVel,
         .dt = dt,
         .impactFlashMode = flashMode,
         .fireTime = &m_fireAura.time,
     });
-
-    m_objectBlur.player.sourceRoot = m_playerRoot;
-    m_objectBlur.player.enabled = true;
-    m_objectBlur.player.velocity = m_physics->getPlayerVelocityPixels();
 
     overlay_rendering::refreshPlayerMotionBlurComposite({
         .capture = &m_objectBlur.player,
