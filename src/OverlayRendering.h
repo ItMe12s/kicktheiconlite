@@ -18,70 +18,56 @@ class CCSpriteFrame;
 
 namespace overlay_rendering {
 
-class MotionBlurSprite : public cocos2d::CCSprite {
-    cocos2d::CCGLProgram* m_blurProg = nullptr;
-    GLint m_locBlurDir = -1;
-    float m_stepX = 0.0f;
-    float m_stepY = 0.0f;
+enum class ShaderSpriteMode {
+    MotionBlur,
+    ImpactNoise,
+    FireAura,
+};
 
-    void setBlurUniforms(cocos2d::CCGLProgram* prog, GLint locBlurDir);
+class OverlayShaderSprite : public cocos2d::CCSprite {
+    ShaderSpriteMode m_mode = ShaderSpriteMode::MotionBlur;
+    cocos2d::CCGLProgram* m_program = nullptr;
+
+    GLint m_blurLocDir = -1;
+    float m_blurStepX = 0.0f;
+    float m_blurStepY = 0.0f;
+
+    GLint m_noiseLocTime = -1;
+    GLint m_noiseLocAlpha = -1;
+    float m_noiseTime = 0.0f;
+    float m_noiseAlpha = 0.0f;
+
+    GLint m_fireLocVelocity = -1;
+    GLint m_fireLocTime = -1;
+    GLint m_fireLocIntensity = -1;
+    GLint m_fireLocColorPrimary = -1;
+    GLint m_fireLocColorSecondary = -1;
+    float m_fireVelX = 0.0f;
+    float m_fireVelY = 0.0f;
+    float m_fireTime = 0.0f;
+    float m_fireIntensity = 0.0f;
+    float m_fireColorPrimaryR = kFireAuraDefaultPrimaryR;
+    float m_fireColorPrimaryG = kFireAuraDefaultPrimaryG;
+    float m_fireColorPrimaryB = kFireAuraDefaultPrimaryB;
+    float m_fireColorSecondaryR = kFireAuraDefaultSecondaryR;
+    float m_fireColorSecondaryG = kFireAuraDefaultSecondaryG;
+    float m_fireColorSecondaryB = kFireAuraDefaultSecondaryB;
 
 public:
     void setBlurStep(float x, float y);
-    void draw() override;
-
-    static MotionBlurSprite* create(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locBlurDir);
-};
-
-class ImpactNoiseSprite : public cocos2d::CCSprite {
-    cocos2d::CCGLProgram* m_noiseProg = nullptr;
-    GLint m_locTime = -1;
-    GLint m_locAlpha = -1;
-    float m_time = 0.0f;
-    float m_alpha = 0.0f;
-
-    void setNoiseUniforms(cocos2d::CCGLProgram* prog, GLint locTime, GLint locAlpha);
-
-public:
     void setNoiseState(float time, float alpha);
-    void draw() override;
-
-    static ImpactNoiseSprite* create(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locTime, GLint locAlpha);
-};
-
-class FireAuraSprite : public cocos2d::CCSprite {
-    cocos2d::CCGLProgram* m_fireProg = nullptr;
-    GLint m_locVelocity = -1;
-    GLint m_locTime = -1;
-    GLint m_locIntensity = -1;
-    GLint m_locColorPrimary = -1;
-    GLint m_locColorSecondary = -1;
-    float m_velX = 0.0f;
-    float m_velY = 0.0f;
-    float m_time = 0.0f;
-    float m_intensity = 0.0f;
-    float m_colorPrimaryR = kFireAuraDefaultPrimaryR;
-    float m_colorPrimaryG = kFireAuraDefaultPrimaryG;
-    float m_colorPrimaryB = kFireAuraDefaultPrimaryB;
-    float m_colorSecondaryR = kFireAuraDefaultSecondaryR;
-    float m_colorSecondaryG = kFireAuraDefaultSecondaryG;
-    float m_colorSecondaryB = kFireAuraDefaultSecondaryB;
-
-    void setFireUniforms(
-        cocos2d::CCGLProgram* prog,
-        GLint locVelocity,
-        GLint locTime,
-        GLint locIntensity,
-        GLint locColorPrimary,
-        GLint locColorSecondary
-    );
-
-public:
     void setFireState(float velX, float velY, float time, float intensity);
     void setFireColors(cocos2d::ccColor3B primaryRgb, cocos2d::ccColor3B secondaryRgb);
     void draw() override;
 
-    static FireAuraSprite* create(
+    static OverlayShaderSprite* createMotionBlur(cocos2d::CCTexture2D* tex, cocos2d::CCGLProgram* prog, GLint locBlurDir);
+    static OverlayShaderSprite* createImpactNoise(
+        cocos2d::CCTexture2D* tex,
+        cocos2d::CCGLProgram* prog,
+        GLint locTime,
+        GLint locAlpha
+    );
+    static OverlayShaderSprite* createFireAura(
         cocos2d::CCTexture2D* tex,
         cocos2d::CCGLProgram* prog,
         GLint locVelocity,
@@ -151,14 +137,14 @@ struct MotionBlurObjectCapture {
     MotionBlurObjectId id = MotionBlurObjectId::Player;
     cocos2d::CCNode* sourceRoot = nullptr;
     geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
-    MotionBlurSprite* blurSprite = nullptr;
+    OverlayShaderSprite* blurSprite = nullptr;
     bool enabled = false;
     MotionBlurObjectTuning tuning = {};
     PhysicsVelocity velocity = {};
 };
 
 // ok: shared pipeline (programs + merge root + composites) built successfully
-// Per-object render textures / MotionBlurSprite in objects[] are best-effort, missing entries stay disabled
+// Per-object render textures / blur OverlayShaderSprite in objects[] are best-effort, missing entries stay disabled
 struct ObjectMotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCGLProgram* blurProgram = nullptr;
@@ -181,7 +167,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
 
 struct FireAuraAttachResult {
     bool ok = false;
-    FireAuraSprite* sprite = nullptr;
+    OverlayShaderSprite* sprite = nullptr;
     cocos2d::CCGLProgram* program = nullptr;
 };
 
@@ -189,7 +175,7 @@ FireAuraAttachResult attachFireAura(cocos2d::CCNode* playerRoot, float auraDiame
 
 struct ImpactNoiseAttachResult {
     bool ok = false;
-    ImpactNoiseSprite* sprite = nullptr;
+    OverlayShaderSprite* sprite = nullptr;
     cocos2d::CCGLProgram* program = nullptr;
     cocos2d::CCRenderTexture* renderTexture = nullptr;
     cocos2d::CCSprite* compositeSprite = nullptr;
@@ -211,7 +197,7 @@ struct ObjectMotionBlurRefreshArgs {
 void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args);
 
 struct FireAuraRefreshArgs {
-    FireAuraSprite* fireAura = nullptr;
+    OverlayShaderSprite* fireAura = nullptr;
     PhysicsWorld* physics = nullptr;
     float dt = 0.0f;
     ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
@@ -221,7 +207,7 @@ struct FireAuraRefreshArgs {
 void refreshFireAura(FireAuraRefreshArgs const& args);
 
 struct ImpactNoiseRefreshArgs {
-    ImpactNoiseSprite* sprite = nullptr;
+    OverlayShaderSprite* sprite = nullptr;
     cocos2d::CCRenderTexture* renderTexture = nullptr;
     cocos2d::CCSprite* compositeSprite = nullptr;
     float dt = 0.0f;

@@ -63,27 +63,80 @@ void resetObjectVisualState(MotionBlurObjectCapture& object) {
 
 } // namespace
 
-void MotionBlurSprite::setBlurUniforms(CCGLProgram* prog, GLint locBlurDir) {
-    m_blurProg = prog;
-    m_locBlurDir = locBlurDir;
+void OverlayShaderSprite::setBlurStep(float x, float y) {
+    m_blurStepX = x;
+    m_blurStepY = y;
 }
 
-void MotionBlurSprite::setBlurStep(float x, float y) {
-    m_stepX = x;
-    m_stepY = y;
+void OverlayShaderSprite::setNoiseState(float time, float alpha) {
+    m_noiseTime = time;
+    m_noiseAlpha = alpha;
 }
 
-void MotionBlurSprite::draw() {
-    if (m_blurProg && m_locBlurDir >= 0) {
-        m_blurProg->use();
-        m_blurProg->setUniformLocationWith2f(m_locBlurDir, m_stepX, m_stepY);
+void OverlayShaderSprite::setFireState(float velX, float velY, float time, float intensity) {
+    m_fireVelX = velX;
+    m_fireVelY = velY;
+    m_fireTime = time;
+    m_fireIntensity = intensity;
+}
+
+void OverlayShaderSprite::setFireColors(ccColor3B primaryRgb, ccColor3B secondaryRgb) {
+    constexpr float kInv = 1.0f / 255.0f;
+    m_fireColorPrimaryR = static_cast<float>(primaryRgb.r) * kInv;
+    m_fireColorPrimaryG = static_cast<float>(primaryRgb.g) * kInv;
+    m_fireColorPrimaryB = static_cast<float>(primaryRgb.b) * kInv;
+    m_fireColorSecondaryR = static_cast<float>(secondaryRgb.r) * kInv;
+    m_fireColorSecondaryG = static_cast<float>(secondaryRgb.g) * kInv;
+    m_fireColorSecondaryB = static_cast<float>(secondaryRgb.b) * kInv;
+}
+
+void OverlayShaderSprite::draw() {
+    switch (m_mode) {
+    case ShaderSpriteMode::MotionBlur:
+        if (m_program && m_blurLocDir >= 0) {
+            m_program->use();
+            m_program->setUniformLocationWith2f(m_blurLocDir, m_blurStepX, m_blurStepY);
+        }
+        break;
+    case ShaderSpriteMode::ImpactNoise:
+        if (m_program && m_noiseLocTime >= 0 && m_noiseLocAlpha >= 0) {
+            m_program->use();
+            m_program->setUniformLocationWith1f(m_noiseLocTime, m_noiseTime);
+            m_program->setUniformLocationWith1f(m_noiseLocAlpha, m_noiseAlpha);
+        }
+        break;
+    case ShaderSpriteMode::FireAura:
+        if (
+            m_program && m_fireLocVelocity >= 0 && m_fireLocTime >= 0 && m_fireLocIntensity >= 0
+            && m_fireLocColorPrimary >= 0 && m_fireLocColorSecondary >= 0
+        ) {
+            m_program->use();
+            m_program->setUniformLocationWith2f(m_fireLocVelocity, m_fireVelX, m_fireVelY);
+            m_program->setUniformLocationWith1f(m_fireLocTime, m_fireTime);
+            m_program->setUniformLocationWith1f(m_fireLocIntensity, m_fireIntensity);
+            m_program->setUniformLocationWith3f(
+                m_fireLocColorPrimary,
+                m_fireColorPrimaryR,
+                m_fireColorPrimaryG,
+                m_fireColorPrimaryB
+            );
+            m_program->setUniformLocationWith3f(
+                m_fireLocColorSecondary,
+                m_fireColorSecondaryR,
+                m_fireColorSecondaryG,
+                m_fireColorSecondaryB
+            );
+        }
+        break;
     }
     CCSprite::draw();
 }
 
-MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, GLint locBlurDir) {
-    auto* s = new MotionBlurSprite();
-    s->setBlurUniforms(prog, locBlurDir);
+OverlayShaderSprite* OverlayShaderSprite::createMotionBlur(CCTexture2D* tex, CCGLProgram* prog, GLint locBlurDir) {
+    auto* s = new OverlayShaderSprite();
+    s->m_mode = ShaderSpriteMode::MotionBlur;
+    s->m_program = prog;
+    s->m_blurLocDir = locBlurDir;
     if (s->initWithTexture(tex)) {
         s->autorelease();
         return s;
@@ -92,29 +145,12 @@ MotionBlurSprite* MotionBlurSprite::create(CCTexture2D* tex, CCGLProgram* prog, 
     return nullptr;
 }
 
-void ImpactNoiseSprite::setNoiseUniforms(CCGLProgram* prog, GLint locTime, GLint locAlpha) {
-    m_noiseProg = prog;
-    m_locTime = locTime;
-    m_locAlpha = locAlpha;
-}
-
-void ImpactNoiseSprite::setNoiseState(float time, float alpha) {
-    m_time = time;
-    m_alpha = alpha;
-}
-
-void ImpactNoiseSprite::draw() {
-    if (m_noiseProg && m_locTime >= 0 && m_locAlpha >= 0) {
-        m_noiseProg->use();
-        m_noiseProg->setUniformLocationWith1f(m_locTime, m_time);
-        m_noiseProg->setUniformLocationWith1f(m_locAlpha, m_alpha);
-    }
-    CCSprite::draw();
-}
-
-ImpactNoiseSprite* ImpactNoiseSprite::create(CCTexture2D* tex, CCGLProgram* prog, GLint locTime, GLint locAlpha) {
-    auto* s = new ImpactNoiseSprite();
-    s->setNoiseUniforms(prog, locTime, locAlpha);
+OverlayShaderSprite* OverlayShaderSprite::createImpactNoise(CCTexture2D* tex, CCGLProgram* prog, GLint locTime, GLint locAlpha) {
+    auto* s = new OverlayShaderSprite();
+    s->m_mode = ShaderSpriteMode::ImpactNoise;
+    s->m_program = prog;
+    s->m_noiseLocTime = locTime;
+    s->m_noiseLocAlpha = locAlpha;
     if (s->initWithTexture(tex)) {
         s->setColor(ccc3(255, 255, 255));
         s->autorelease();
@@ -124,63 +160,7 @@ ImpactNoiseSprite* ImpactNoiseSprite::create(CCTexture2D* tex, CCGLProgram* prog
     return nullptr;
 }
 
-void FireAuraSprite::setFireUniforms(
-    CCGLProgram* prog,
-    GLint locVelocity,
-    GLint locTime,
-    GLint locIntensity,
-    GLint locColorPrimary,
-    GLint locColorSecondary
-) {
-    m_fireProg = prog;
-    m_locVelocity = locVelocity;
-    m_locTime = locTime;
-    m_locIntensity = locIntensity;
-    m_locColorPrimary = locColorPrimary;
-    m_locColorSecondary = locColorSecondary;
-}
-
-void FireAuraSprite::setFireState(float velX, float velY, float time, float intensity) {
-    m_velX = velX;
-    m_velY = velY;
-    m_time = time;
-    m_intensity = intensity;
-}
-
-void FireAuraSprite::setFireColors(ccColor3B primaryRgb, ccColor3B secondaryRgb) {
-    constexpr float kInv = 1.0f / 255.0f;
-    m_colorPrimaryR = static_cast<float>(primaryRgb.r) * kInv;
-    m_colorPrimaryG = static_cast<float>(primaryRgb.g) * kInv;
-    m_colorPrimaryB = static_cast<float>(primaryRgb.b) * kInv;
-    m_colorSecondaryR = static_cast<float>(secondaryRgb.r) * kInv;
-    m_colorSecondaryG = static_cast<float>(secondaryRgb.g) * kInv;
-    m_colorSecondaryB = static_cast<float>(secondaryRgb.b) * kInv;
-}
-
-void FireAuraSprite::draw() {
-    if (m_fireProg && m_locVelocity >= 0 && m_locTime >= 0 && m_locIntensity >= 0 && m_locColorPrimary >= 0
-        && m_locColorSecondary >= 0) {
-        m_fireProg->use();
-        m_fireProg->setUniformLocationWith2f(m_locVelocity, m_velX, m_velY);
-        m_fireProg->setUniformLocationWith1f(m_locTime, m_time);
-        m_fireProg->setUniformLocationWith1f(m_locIntensity, m_intensity);
-        m_fireProg->setUniformLocationWith3f(
-            m_locColorPrimary,
-            m_colorPrimaryR,
-            m_colorPrimaryG,
-            m_colorPrimaryB
-        );
-        m_fireProg->setUniformLocationWith3f(
-            m_locColorSecondary,
-            m_colorSecondaryR,
-            m_colorSecondaryG,
-            m_colorSecondaryB
-        );
-    }
-    CCSprite::draw();
-}
-
-FireAuraSprite* FireAuraSprite::create(
+OverlayShaderSprite* OverlayShaderSprite::createFireAura(
     CCTexture2D* tex,
     CCGLProgram* prog,
     GLint locVelocity,
@@ -189,8 +169,14 @@ FireAuraSprite* FireAuraSprite::create(
     GLint locColorPrimary,
     GLint locColorSecondary
 ) {
-    auto* s = new FireAuraSprite();
-    s->setFireUniforms(prog, locVelocity, locTime, locIntensity, locColorPrimary, locColorSecondary);
+    auto* s = new OverlayShaderSprite();
+    s->m_mode = ShaderSpriteMode::FireAura;
+    s->m_program = prog;
+    s->m_fireLocVelocity = locVelocity;
+    s->m_fireLocTime = locTime;
+    s->m_fireLocIntensity = locIntensity;
+    s->m_fireLocColorPrimary = locColorPrimary;
+    s->m_fireLocColorSecondary = locColorSecondary;
     if (s->initWithTexture(tex)) {
         s->setColor(ccc3(255, 255, 255));
         s->autorelease();
@@ -388,7 +374,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
         }
         capture.renderTexture = rt;
 
-        auto* objectBlur = MotionBlurSprite::create(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
+        auto* objectBlur = OverlayShaderSprite::createMotionBlur(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
         if (!objectBlur) {
             capture.renderTexture = nullptr;
             capture.enabled = false;
@@ -457,7 +443,7 @@ FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
         return out;
     }
 
-    FireAuraSprite* sprite = FireAuraSprite::create(
+    OverlayShaderSprite* sprite = OverlayShaderSprite::createFireAura(
         tex,
         program,
         locVelocity,
@@ -576,7 +562,7 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
 }
 
 void refreshFireAura(FireAuraRefreshArgs const& args) {
-    FireAuraSprite* const fireAura = args.fireAura;
+    OverlayShaderSprite* const fireAura = args.fireAura;
     PhysicsWorld* const physics = args.physics;
     float const dt = args.dt;
     ImpactFlashMode const impactFlashMode = args.impactFlashMode;
@@ -646,7 +632,7 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
         return out;
     }
 
-    ImpactNoiseSprite* sprite = ImpactNoiseSprite::create(tex, program, locTime, locAlpha);
+    OverlayShaderSprite* sprite = OverlayShaderSprite::createImpactNoise(tex, program, locTime, locAlpha);
     if (!sprite) {
         program->release();
         return out;
@@ -717,7 +703,7 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
 }
 
 void refreshImpactNoise(ImpactNoiseRefreshArgs const& args) {
-    ImpactNoiseSprite* const sprite = args.sprite;
+    OverlayShaderSprite* const sprite = args.sprite;
     float* const timePtr = args.time;
     if (!sprite || !timePtr) {
         return;

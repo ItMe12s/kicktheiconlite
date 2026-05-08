@@ -21,7 +21,7 @@ struct ImpactFlashState {
 };
 
 struct ImpactNoiseState {
-    overlay_rendering::ImpactNoiseSprite* sprite = nullptr;
+    overlay_rendering::OverlayShaderSprite* sprite = nullptr;
     geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
     cocos2d::CCSprite* composite = nullptr;
     geode::Ref<cocos2d::CCGLProgram> program{};
@@ -43,7 +43,7 @@ struct SandevistanTrailState {
 };
 
 struct FireAuraState {
-    overlay_rendering::FireAuraSprite* sprite = nullptr;
+    overlay_rendering::OverlayShaderSprite* sprite = nullptr;
     geode::Ref<cocos2d::CCGLProgram> program{};
     float time = 0.0f;
 };

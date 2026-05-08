@@ -16,7 +16,7 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
 
 - remove missed deadcode
   - ~~objectCompositeOrder~~
-  - OverlayRendering 3 sprite subclasses is just ass
+  - ~~OverlayRendering 3 sprite subclasses is just ass~~
   - there's a lot of unused includes
 
 - remove full version stuff that ain't used
