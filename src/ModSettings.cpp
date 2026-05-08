@@ -14,10 +14,6 @@ namespace mod_settings {
 void bindAll() {
     auto* mod = Mod::get();
 
-    // Important
-    kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
-    listenForSettingChanges<bool>("hide-mod-overlay", [](bool v) { kHideModOverlay = v; });
-
     // Player Visual
     player_visual::kMaxWorldBoundsTreeDepth = static_cast<int>(mod->getSettingValue<int64_t>("player-visual-max-world-bounds-tree-depth"));
     listenForSettingChanges<int64_t>("player-visual-max-world-bounds-tree-depth", [](int64_t v) { player_visual::kMaxWorldBoundsTreeDepth = static_cast<int>(v); });

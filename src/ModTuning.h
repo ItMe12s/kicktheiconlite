@@ -8,7 +8,7 @@
 // SPLIT: constexpr = compile-time-required (array sizes, static_asserts, derived)
 //        inline    = runtime-tunable via Geode settings (seeded by ModSettings.cpp)
 
-// Important
+// Important (hide-mod-overlay binds only in RuntimeRestart.cpp)
 constexpr float kHideModOverlayOffsetX = 676767.0f;
 constexpr float kHideModOverlayOffsetY = 676767.0f;
 inline bool kHideModOverlay = false;
