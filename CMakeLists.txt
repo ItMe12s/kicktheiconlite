@@ -8,7 +8,7 @@ else()
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(kicktheiconlite VERSION 1.0.1)
+project(kicktheiconlite VERSION 1.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
