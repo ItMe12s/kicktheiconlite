@@ -48,7 +48,7 @@ struct FireAuraState {
 };
 
 struct ObjectMotionBlurPipelineState {
-    std::array<overlay_rendering::MotionBlurObjectCapture, overlay_rendering::kMotionBlurObjectCount> objects = {};
+    overlay_rendering::PlayerMotionBlurCapture player{};
     geode::Ref<cocos2d::CCNode> mergeRoot{};
     geode::Ref<cocos2d::CCRenderTexture> unifiedMergeTexture{};
     geode::Ref<cocos2d::CCSprite> finalCompositeSprite{};

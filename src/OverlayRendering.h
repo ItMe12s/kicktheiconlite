@@ -110,13 +110,7 @@ inline cocos2d::CCNode* overlayLayerRoot(
     return roots.at(static_cast<size_t>(id));
 }
 
-enum class MotionBlurObjectId : int {
-    Player = 0,
-};
-
-constexpr int kMotionBlurObjectCount = 1;
-
-struct MotionBlurObjectTuning {
+struct PlayerMotionBlurTuning {
     float minBlurSpeedPx = 0.0f;
     float maxBlurSpeedPx = 1.0f;
     float blurUvSpread = 0.0f;
@@ -125,26 +119,18 @@ struct MotionBlurObjectTuning {
     bool alwaysCaptureWhenEnabled = false;
 };
 
-struct MotionBlurObjectSeed {
-    MotionBlurObjectId id = MotionBlurObjectId::Player;
-    cocos2d::CCNode* sourceRoot = nullptr;
-    bool enabled = false;
-    MotionBlurObjectTuning tuning = {};
-};
-
-struct MotionBlurObjectCapture {
-    MotionBlurObjectId id = MotionBlurObjectId::Player;
+struct PlayerMotionBlurCapture {
     cocos2d::CCNode* sourceRoot = nullptr;
     geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
     OverlayShaderSprite* blurSprite = nullptr;
     bool enabled = false;
-    MotionBlurObjectTuning tuning = {};
+    PlayerMotionBlurTuning tuning = {};
     PhysicsVelocity velocity = {};
 };
 
 // ok: shared pipeline (programs + merge root + composites) built successfully
-// Per-object render textures / blur OverlayShaderSprite in objects[] are best-effort, missing entries stay disabled
-struct ObjectMotionBlurAttachResult {
+// Player render texture / blur sprite are best-effort, capture may be partially null
+struct PlayerMotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCGLProgram* blurProgram = nullptr;
     cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
@@ -153,15 +139,16 @@ struct ObjectMotionBlurAttachResult {
     cocos2d::CCNode* mergeRoot = nullptr;
     cocos2d::CCSprite* finalCompositeSprite = nullptr;
     cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    std::array<MotionBlurObjectCapture, kMotionBlurObjectCount> objects = {};
+    PlayerMotionBlurCapture capture = {};
 };
 
-ObjectMotionBlurAttachResult attachObjectMotionBlur(
+PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     cocos2d::CCNode* overlayLayer,
     cocos2d::CCSize captureSize,
     cocos2d::CCSize outputSize,
     int outputZOrder,
-    std::array<MotionBlurObjectSeed, kMotionBlurObjectCount> const& objectSeeds
+    cocos2d::CCNode* sourceRoot,
+    PlayerMotionBlurTuning const& tuning
 );
 
 struct FireAuraAttachResult {
@@ -182,8 +169,8 @@ struct ImpactNoiseAttachResult {
 
 ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
 
-struct ObjectMotionBlurRefreshArgs {
-    std::array<MotionBlurObjectCapture, kMotionBlurObjectCount>* objects = nullptr;
+struct PlayerMotionBlurRefreshArgs {
+    PlayerMotionBlurCapture* capture = nullptr;
     cocos2d::CCNode* mergeRoot = nullptr;
     cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
     cocos2d::CCSprite* finalCompositeSprite = nullptr;
@@ -193,7 +180,7 @@ struct ObjectMotionBlurRefreshArgs {
     ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
 };
 
-void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args);
+void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args);
 
 struct FireAuraRefreshArgs {
     OverlayShaderSprite* fireAura = nullptr;

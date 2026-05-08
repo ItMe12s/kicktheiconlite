@@ -369,14 +369,12 @@ void PhysicsOverlay::update(float dt) {
         .fireTime = &m_fireAura.time,
     });
 
-    auto& playerCapture =
-        m_objectBlur.objects[static_cast<size_t>(overlay_rendering::MotionBlurObjectId::Player)];
-    playerCapture.sourceRoot = m_playerRoot;
-    playerCapture.enabled = true;
-    playerCapture.velocity = m_physics->getPlayerVelocityPixels();
+    m_objectBlur.player.sourceRoot = m_playerRoot;
+    m_objectBlur.player.enabled = true;
+    m_objectBlur.player.velocity = m_physics->getPlayerVelocityPixels();
 
-    overlay_rendering::refreshObjectMotionBlurComposite({
-        .objects = &m_objectBlur.objects,
+    overlay_rendering::refreshPlayerMotionBlurComposite({
+        .capture = &m_objectBlur.player,
         .mergeRoot = m_objectBlur.mergeRoot,
         .unifiedMergeTexture = m_objectBlur.unifiedMergeTexture,
         .finalCompositeSprite = m_objectBlur.finalCompositeSprite,
@@ -488,13 +486,11 @@ void PhysicsOverlay::onExit() {
         (void)m_impactNoise.renderTexture.take();
         (void)m_fireAura.program.take();
         (void)m_impactNoise.program.take();
-        for (auto& o : m_objectBlur.objects) {
-            (void)o.renderTexture.take();
-            o.blurSprite = nullptr;
-            o.sourceRoot = nullptr;
-            o.enabled = false;
-            o.velocity = {};
-        }
+        (void)m_objectBlur.player.renderTexture.take();
+        m_objectBlur.player.blurSprite = nullptr;
+        m_objectBlur.player.sourceRoot = nullptr;
+        m_objectBlur.player.enabled = false;
+        m_objectBlur.player.velocity = {};
         (void)m_objectBlur.mergeRoot.take();
         (void)m_objectBlur.unifiedMergeTexture.take();
         (void)m_objectBlur.blurProgram.take();

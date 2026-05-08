@@ -26,33 +26,28 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     cocos2d::CCSize const blurCaptureSize = m_winSize;
-    std::array<overlay_rendering::MotionBlurObjectSeed, overlay_rendering::kMotionBlurObjectCount> seeds{};
-    seeds[0] = overlay_rendering::MotionBlurObjectSeed{
-        .id = overlay_rendering::MotionBlurObjectId::Player,
-        .sourceRoot = pr.root,
-        .enabled = true,
-        .tuning = {
-            .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
-            .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
-            .blurUvSpread = kPlayerBlurUvSpread,
-            .blurStepDivisor = kPlayerBlurStepDivisor,
-            .keepBaseVisible = kPlayerKeepBaseVisible,
-            .alwaysCaptureWhenEnabled = false,
-        },
+    overlay_rendering::PlayerMotionBlurTuning const blurTuning{
+        .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
+        .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
+        .blurUvSpread = kPlayerBlurUvSpread,
+        .blurStepDivisor = kPlayerBlurStepDivisor,
+        .keepBaseVisible = kPlayerKeepBaseVisible,
+        .alwaysCaptureWhenEnabled = false,
     };
 
-    auto const blurResult = overlay_rendering::attachObjectMotionBlur(
+    auto const blurResult = overlay_rendering::attachPlayerMotionBlur(
         this,
         blurCaptureSize,
         m_winSize,
         kUnifiedBlurCompositeZOrder,
-        seeds
+        pr.root,
+        blurTuning
     );
     if (!blurResult.ok) {
         pr.root->removeFromParentAndCleanup(true);
         return;
     }
-    m_objectBlur.objects = blurResult.objects;
+    m_objectBlur.player = blurResult.capture;
     m_objectBlur.mergeRoot = Ref<cocos2d::CCNode>(blurResult.mergeRoot);
     m_objectBlur.unifiedMergeTexture = Ref<cocos2d::CCRenderTexture>::adopt(blurResult.unifiedMergeTexture);
     m_objectBlur.finalCompositeSprite = Ref<cocos2d::CCSprite>(blurResult.finalCompositeSprite);

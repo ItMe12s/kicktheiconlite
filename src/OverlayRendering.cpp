@@ -51,12 +51,12 @@ CCTexture2D* createOneByOneWhiteTexture() {
     return tex.release();
 }
 
-void resetObjectVisualState(MotionBlurObjectCapture& object) {
-    if (object.sourceRoot) {
-        object.sourceRoot->setVisible(true);
+void resetPlayerMotionBlurVisualState(PlayerMotionBlurCapture& capture) {
+    if (capture.sourceRoot) {
+        capture.sourceRoot->setVisible(true);
     }
-    if (object.blurSprite) {
-        object.blurSprite->setVisible(false);
+    if (capture.blurSprite) {
+        capture.blurSprite->setVisible(false);
     }
 }
 
@@ -231,15 +231,16 @@ CCGLProgram* createFireAuraProgram(
     return p;
 }
 
-ObjectMotionBlurAttachResult attachObjectMotionBlur(
+PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     CCNode* overlayLayer,
     CCSize captureSize,
     CCSize outputSize,
     int outputZOrder,
-    std::array<MotionBlurObjectSeed, kMotionBlurObjectCount> const& objectSeeds
+    CCNode* sourceRoot,
+    PlayerMotionBlurTuning const& tuning
 ) {
-    ObjectMotionBlurAttachResult out{};
-    if (!overlayLayer || captureSize.width <= 0.0f || captureSize.height <= 0.0f || outputSize.width <= 0.0f
+    PlayerMotionBlurAttachResult out{};
+    if (!overlayLayer || !sourceRoot || captureSize.width <= 0.0f || captureSize.height <= 0.0f || outputSize.width <= 0.0f
         || outputSize.height <= 0.0f) {
         return out;
     }
@@ -354,52 +355,45 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
     overlayLayer->addChild(mergeRoot, outputZOrder - 1);
     rb.mergeRoot = mergeRoot;
 
-    for (int i = 0; i < kMotionBlurObjectCount; ++i) {
-        auto const& seed = objectSeeds[static_cast<size_t>(i)];
-        MotionBlurObjectCapture capture{};
-        capture.id = seed.id;
-        capture.sourceRoot = seed.sourceRoot;
-        capture.enabled = seed.enabled;
-        capture.tuning = seed.tuning;
+    PlayerMotionBlurCapture capture{};
+    capture.sourceRoot = sourceRoot;
+    capture.enabled = true;
+    capture.tuning = tuning;
 
-        auto* rt = CCRenderTexture::create(
-            static_cast<int>(std::ceil(captureSize.width)),
-            static_cast<int>(std::ceil(captureSize.height)),
-            kCCTexture2DPixelFormat_RGBA8888
-        );
-        if (!rt) {
-            out.objects[static_cast<size_t>(i)] = capture;
-            continue;
-        }
+    auto* rt = CCRenderTexture::create(
+        static_cast<int>(std::ceil(captureSize.width)),
+        static_cast<int>(std::ceil(captureSize.height)),
+        kCCTexture2DPixelFormat_RGBA8888
+    );
+    if (rt) {
         capture.renderTexture = rt;
-
         auto* objectBlur = OverlayShaderSprite::createMotionBlur(rt->getSprite()->getTexture(), blurProgram, locBlurDir);
-        if (!objectBlur) {
+        if (objectBlur) {
+            objectBlur->setID("object-motion-blur-sprite"_spr);
+            objectBlur->setShaderProgram(blurProgram);
+            objectBlur->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
+            objectBlur->setAnchorPoint({0.0f, 0.0f});
+            objectBlur->setPosition({0.0f, 0.0f});
+            objectBlur->setVisible(true);
+            objectBlur->setFlipY(true);
+            {
+                float const cw = objectBlur->getContentSize().width;
+                float const ch = objectBlur->getContentSize().height;
+                objectBlur->setScaleX(cw > 0.0f ? captureSize.width / cw : captureSize.width);
+                objectBlur->setScaleY(ch > 0.0f ? captureSize.height / ch : captureSize.height);
+            }
+            mergeRoot->addChild(objectBlur, 0);
+            capture.blurSprite = objectBlur;
+        } else {
             capture.renderTexture = nullptr;
             capture.enabled = false;
-            out.objects[static_cast<size_t>(i)] = capture;
-            continue;
         }
-        objectBlur->setID("object-motion-blur-sprite"_spr);
-        objectBlur->setShaderProgram(blurProgram);
-        objectBlur->setBlendFunc({GL_ONE, GL_ONE_MINUS_SRC_ALPHA});
-        objectBlur->setAnchorPoint({0.0f, 0.0f});
-        objectBlur->setPosition({0.0f, 0.0f});
-        objectBlur->setVisible(true);
-        objectBlur->setFlipY(true);
-        {
-            float const cw = objectBlur->getContentSize().width;
-            float const ch = objectBlur->getContentSize().height;
-            objectBlur->setScaleX(cw > 0.0f ? captureSize.width / cw : captureSize.width);
-            objectBlur->setScaleY(ch > 0.0f ? captureSize.height / ch : captureSize.height);
-        }
-        mergeRoot->addChild(objectBlur, 0);
-        capture.blurSprite = objectBlur;
-        out.objects[static_cast<size_t>(i)] = capture;
     }
 
+    out.capture = capture;
+
     rb.disarm();
-    // ok reflects shared pipeline only, individual object captures may still be nullptr
+    // ok reflects shared pipeline only; capture render texture / blur sprite may still be null
     out.ok = true;
     out.blurProgram = rb.blurProgram.take();
     out.whiteFlashProgram = rb.whiteFlashProgram.take();
@@ -470,8 +464,8 @@ FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
     return out;
 }
 
-void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
-    auto* objects = args.objects;
+void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
+    auto* capture = args.capture;
     CCNode* const mergeRoot = args.mergeRoot;
     CCRenderTexture* const unifiedMergeTexture = args.unifiedMergeTexture;
     CCSprite* const finalCompositeSprite = args.finalCompositeSprite;
@@ -480,31 +474,25 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
     CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
     ImpactFlashMode const impactFlashMode = args.impactFlashMode;
 
-    if (!objects || !mergeRoot || !unifiedMergeTexture || !finalCompositeSprite) {
+    if (!capture || !mergeRoot || !unifiedMergeTexture || !finalCompositeSprite) {
         return;
     }
 
     bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
     bool needCapture = impactFlashActive;
-    for (auto const& object : *objects) {
-        if (!object.enabled || !object.sourceRoot) {
-            continue;
-        }
-        if (object.tuning.alwaysCaptureWhenEnabled) {
+    if (capture->enabled && capture->sourceRoot) {
+        if (capture->tuning.alwaysCaptureWhenEnabled) {
             needCapture = true;
-            break;
-        }
-        float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
-        if (speed >= object.tuning.minBlurSpeedPx) {
-            needCapture = true;
-            break;
+        } else {
+            float const speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
+            if (speed >= capture->tuning.minBlurSpeedPx) {
+                needCapture = true;
+            }
         }
     }
 
     if (!needCapture) {
-        for (auto& object : *objects) {
-            resetObjectVisualState(object);
-        }
+        resetPlayerMotionBlurVisualState(*capture);
         finalCompositeSprite->setVisible(false);
         if (whiteFlashSprite) {
             whiteFlashSprite->setVisible(false);
@@ -513,29 +501,27 @@ void refreshObjectMotionBlurComposite(ObjectMotionBlurRefreshArgs const& args) {
         return;
     }
 
-    for (auto& object : *objects) {
-        if (!object.enabled || !object.sourceRoot || !object.renderTexture || !object.blurSprite) {
-            resetObjectVisualState(object);
-            continue;
-        }
-        object.blurSprite->setVisible(true);
+    if (!capture->enabled || !capture->sourceRoot || !capture->renderTexture || !capture->blurSprite) {
+        resetPlayerMotionBlurVisualState(*capture);
+    } else {
+        capture->blurSprite->setVisible(true);
 
-        float const speed = std::hypot(object.velocity.vx, object.velocity.vy);
-        float const maxSpeed = std::max(object.tuning.maxBlurSpeedPx, object.tuning.minBlurSpeedPx + 1.0f);
+        float const speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
+        float const maxSpeed = std::max(capture->tuning.maxBlurSpeedPx, capture->tuning.minBlurSpeedPx + 1.0f);
         float const normT = std::clamp(speed / maxSpeed, 0.0f, 1.0f);
-        float const spreadUv = normT * object.tuning.blurUvSpread;
+        float const spreadUv = normT * capture->tuning.blurUvSpread;
         float const invSpeed = speed > kMinSpeedForInverse ? 1.0f / speed : 0.0f;
-        float const nx = -object.velocity.vx * invSpeed;
-        float const ny = -object.velocity.vy * invSpeed;
-        int const divisor = std::max(object.tuning.blurStepDivisor, 1);
+        float const nx = -capture->velocity.vx * invSpeed;
+        float const ny = -capture->velocity.vy * invSpeed;
+        int const divisor = std::max(capture->tuning.blurStepDivisor, 1);
         float const stepUv = spreadUv * (1.0f / static_cast<float>(divisor));
-        object.blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
+        capture->blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
 
-        object.sourceRoot->setVisible(true);
-        object.renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
-        object.sourceRoot->visit();
-        object.renderTexture->end();
-        object.sourceRoot->setVisible(object.tuning.keepBaseVisible && !impactFlashActive);
+        capture->sourceRoot->setVisible(true);
+        capture->renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+        capture->sourceRoot->visit();
+        capture->renderTexture->end();
+        capture->sourceRoot->setVisible(capture->tuning.keepBaseVisible && !impactFlashActive);
     }
 
     mergeRoot->setVisible(true);
