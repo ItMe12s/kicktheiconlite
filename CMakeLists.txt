@@ -15,7 +15,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
   src/main.cpp
   src/ModSettings.cpp
-  src/OverlayRendering.cpp
+  src/overlay-rendering/OverlayPrograms.cpp
+  src/overlay-rendering/OverlayShaderSprite.cpp
+  src/overlay-rendering/OverlayMotionBlur.cpp
+  src/overlay-rendering/OverlayFireAura.cpp
+  src/overlay-rendering/OverlayImpactNoise.cpp
   src/physics-overlay/PhysicsOverlay.cpp
   src/physics-overlay/PhysicsOverlayInit.cpp
   src/physics-overlay/PhysicsOverlayLifecycle.cpp
