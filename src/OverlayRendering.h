@@ -118,6 +118,13 @@ enum class OverlayLayerId : int {
 
 constexpr int kOverlayLayerCount = 3;
 
+inline cocos2d::CCNode* overlayLayerRoot(
+    std::array<cocos2d::CCNode*, kOverlayLayerCount> const& roots,
+    OverlayLayerId id
+) {
+    return roots.at(static_cast<size_t>(id));
+}
+
 enum class MotionBlurObjectId : int {
     Player = 0,
 };

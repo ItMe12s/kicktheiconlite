@@ -16,7 +16,7 @@ Oh yeah also ignore the vibecoded python script :skull:
 ## To-do
 
 - dedupe
-  - overlayLayerRoot
+  - ~~overlayLayerRoot~~
   - why was there 2 installPhysicsOverlay
   - vfx wrappers not needed in lite
 

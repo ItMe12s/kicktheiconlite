@@ -11,17 +11,6 @@
 
 using namespace geode::prelude;
 
-namespace {
-
-cocos2d::CCNode* overlayLayerRoot(
-    std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> const& roots,
-    overlay_rendering::OverlayLayerId id
-) {
-    return roots.at(static_cast<size_t>(id));
-}
-
-} // namespace
-
 void PhysicsOverlay::tryBuildPlayerVisual() {
     if (m_visualBuilt) {
         return;
@@ -67,7 +56,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     m_playerRoot = pr.root;
-    auto* worldRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
+    auto* worldRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
     if (worldRoot) {
         Ref<cocos2d::CCNode> hold(m_playerRoot);
         this->removeChild(m_playerRoot, false);

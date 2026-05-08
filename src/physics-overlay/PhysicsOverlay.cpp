@@ -47,13 +47,6 @@ inline void mergeImpactSnapshot(PhysicsImpactEvent& total, PhysicsImpactEvent co
     total.impactSpeedPx = std::max(total.impactSpeedPx, current.impactSpeedPx);
 }
 
-cocos2d::CCNode* overlayLayerRoot(
-    std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> const& roots,
-    overlay_rendering::OverlayLayerId id
-) {
-    return roots.at(static_cast<size_t>(id));
-}
-
 } // namespace
 
 PhysicsOverlay::PhysicsOverlay() = default;
@@ -122,7 +115,7 @@ bool PhysicsOverlay::init() {
     m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
-    auto* uiLayerRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    auto* uiLayerRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
 
     auto* uiRoot = uiLayerRoot;
     if (uiRoot) {
@@ -208,7 +201,7 @@ bool PhysicsOverlay::init() {
     if (m_trail.layer) {
         m_trail.layer->setID("sandevistan-trail-layer"_spr);
         m_trail.layer->setPosition({0, 0});
-        auto* trailRoot = overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Trail);
+        auto* trailRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Trail);
         if (trailRoot) {
             trailRoot->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         } else {
