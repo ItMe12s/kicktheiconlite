@@ -11,26 +11,9 @@
 #include <vector>
 
 #include "PhysicsWorld.h"
+#include "ColorConvert.h"
 
 using namespace geode::prelude;
-
-namespace {
-
-inline ccColor4F debugLabelBoxFill() {
-    return ccc4f(
-        kDebugLabelBoxColorR,
-        kDebugLabelBoxColorG,
-        kDebugLabelBoxColorB,
-        kDebugLabelBoxAlpha
-    );
-}
-
-inline GLubyte colorToByte(float channel) {
-    float const clamped = std::max(0.0f, std::min(channel, 1.0f));
-    return static_cast<GLubyte>(clamped * 255.0f);
-}
-
-} // namespace
 
 std::vector<std::string> const& PhysicsOverlay::splitDebugLinesInto(std::string const& text) {
     m_debugLineScratch = geode::utils::string::split(text, "\n");
@@ -102,13 +85,9 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
             lines.empty() ? 0.0f : (scaledTotalHeight / static_cast<float>(lines.size()));
         float const baseX = kDebugLabelMarginX;
         float const topY = m_winSize.height - kDebugLabelMarginY;
-        ccColor4F const boxFill = debugLabelBoxFill();
-        ccColor3B const boxColor = ccc3(
-            colorToByte(boxFill.r),
-            colorToByte(boxFill.g),
-            colorToByte(boxFill.b)
-        );
-        GLubyte const boxOpacity = colorToByte(boxFill.a);
+        ccColor3B const boxColor =
+            rgbFToColor3B(kDebugLabelBoxColorR, kDebugLabelBoxColorG, kDebugLabelBoxColorB);
+        GLubyte const boxOpacity = colorChannelFToByte(kDebugLabelBoxAlpha);
         auto* textureSprite = m_debugLabelBackgroundTexture ? m_debugLabelBackgroundTexture->getSprite() : nullptr;
         auto* boxTexture = textureSprite ? textureSprite->getTexture() : nullptr;
 
