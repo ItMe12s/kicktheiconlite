@@ -11,7 +11,6 @@
 $on_mod(Loaded) {
     mod_settings::bindAll();
     runtime_restart::bindHideModOverlaySync();
-    runtime_restart::installPhysicsOverlay();
 }
 
 #ifdef __clang__

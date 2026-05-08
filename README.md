@@ -17,7 +17,7 @@ Oh yeah also ignore the vibecoded python script :skull:
 
 - dedupe
   - ~~overlayLayerRoot~~
-  - why was there 2 installPhysicsOverlay
+  - ~~why was there 2 installPhysicsOverlay~~
   - vfx wrappers not needed in lite
 
 - remove missed deadcode
