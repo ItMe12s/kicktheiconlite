@@ -1,26 +1,26 @@
 #include "ImpactFlash.h"
 
-#include "../ModTuning.h"
+#include "ModTuning.h"
 
 #include <algorithm>
 
-namespace vfx::impact_flash {
+namespace impact_flash {
 
-void decrementCooldown(ImpactFlashState& state, float dt) {
+void decrementCooldown(overlay_effects::ImpactFlashState& state, float dt) {
     if (state.impactFlashCooldownRemaining > 0.0f) {
         state.impactFlashCooldownRemaining -= dt;
         state.impactFlashCooldownRemaining = std::max(0.0f, state.impactFlashCooldownRemaining);
     }
 }
 
-void decrementWhiteFlash(ImpactFlashState& state, float dt) {
+void decrementWhiteFlash(overlay_effects::ImpactFlashState& state, float dt) {
     if (state.whiteFlashRemaining > 0.0f) {
         state.whiteFlashRemaining -= dt;
         state.whiteFlashRemaining = std::max(0.0f, state.whiteFlashRemaining);
     }
 }
 
-overlay_rendering::ImpactFlashMode currentMode(ImpactFlashState const& state) {
+overlay_rendering::ImpactFlashMode currentMode(overlay_effects::ImpactFlashState const& state) {
     if (state.whiteFlashRemaining <= 0.0f) {
         return overlay_rendering::ImpactFlashMode::None;
     }
@@ -48,4 +48,4 @@ void updateBackdrops(
     }
 }
 
-} // namespace vfx::impact_flash
+} // namespace impact_flash

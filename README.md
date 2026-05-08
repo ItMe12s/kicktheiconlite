@@ -12,7 +12,7 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
 - dedupe
   - ~~overlayLayerRoot~~
   - ~~why was there 2 installPhysicsOverlay~~
-  - vfx wrappers not needed in lite
+  - ~~vfx wrappers not needed in lite~~ actually reworked it a little too
 
 - remove missed deadcode
   - objectCompositeOrder

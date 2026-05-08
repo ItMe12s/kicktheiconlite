@@ -9,10 +9,10 @@
 
 #include <array>
 
-#include "../OverlayRendering.h"
-#include "../ModTuning.h"
+#include "OverlayRendering.h"
+#include "ModTuning.h"
 
-namespace vfx {
+namespace overlay_effects {
 
 struct ImpactFlashState {
     float hitstopRemaining = 0.0f;
@@ -59,4 +59,4 @@ struct ObjectMotionBlurPipelineState {
     geode::Ref<cocos2d::CCGLProgram> colorInvertProgram{};
 };
 
-} // namespace vfx
+} // namespace overlay_effects

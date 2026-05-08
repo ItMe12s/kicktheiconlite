@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "OverlayRendering.h"
+#include "OverlayEffectState.h"
 #include "PhysicsWorld.h"
-#include "vfx/VfxTypes.h"
 
 class SimplePlayer;
 
@@ -24,13 +24,13 @@ class CCLabelBMFont;
 class PhysicsOverlay : public cocos2d::CCLayer {
     std::unique_ptr<PhysicsWorld> m_physics;
     std::array<cocos2d::CCNode*, overlay_rendering::kOverlayLayerCount> m_layerRoots{};
-    vfx::ObjectMotionBlurPipelineState m_objectBlur{};
-    vfx::StarBurstState m_starBurst{};
+    overlay_effects::ObjectMotionBlurPipelineState m_objectBlur{};
+    overlay_effects::StarBurstState m_starBurst{};
     cocos2d::CCNode* m_playerRoot = nullptr;
     SimplePlayer* m_player = nullptr;
-    vfx::FireAuraState m_fireAura{};
-    vfx::ImpactNoiseState m_impactNoise{};
-    vfx::ImpactFlashState m_impactFlash{};
+    overlay_effects::FireAuraState m_fireAura{};
+    overlay_effects::ImpactNoiseState m_impactNoise{};
+    overlay_effects::ImpactFlashState m_impactFlash{};
 
     int m_frameId = 0;
     int m_iconTypeInt = 0;
@@ -49,7 +49,7 @@ class PhysicsOverlay : public cocos2d::CCLayer {
     float m_physicsAccumulator = 0.0f;
     int m_lastPhysicsSubsteps = 0;
     PhysicsImpactEvent m_lastPlayerImpact{};
-    vfx::SandevistanTrailState m_trail{};
+    overlay_effects::SandevistanTrailState m_trail{};
     std::vector<std::string> m_debugLineScratch{};
 
     bool m_selfDestructRequested = false;

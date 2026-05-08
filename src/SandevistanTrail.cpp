@@ -2,18 +2,18 @@
 
 #include <Geode/cocos/cocoa/CCArray.h>
 
-#include "../ModTuning.h"
+#include "ModTuning.h"
 
-namespace vfx::trail {
+namespace sandevistan_trail {
 
-void stopIfSlowOrGrab(SandevistanTrailState& state, bool grabActive, float playerSpeedPx) {
+void stopIfSlowOrGrab(overlay_effects::SandevistanTrailState& state, bool grabActive, float playerSpeedPx) {
     if (grabActive || playerSpeedPx < kSandevistanEndSpeedPx) {
         state.active = false;
     }
 }
 
 void updateAndSpawn(
-    SandevistanTrailState& state,
+    overlay_effects::SandevistanTrailState& state,
     cocos2d::CCNode* playerRoot,
     SimplePlayer* player,
     float targetSize,
@@ -48,4 +48,4 @@ void updateAndSpawn(
     }
 }
 
-} // namespace vfx::trail
+} // namespace sandevistan_trail

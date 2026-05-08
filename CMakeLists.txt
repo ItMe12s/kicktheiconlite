@@ -20,11 +20,9 @@ set(SOURCES
   src/PhysicsWorld.cpp
   src/PlayerVisual.cpp
   src/RuntimeRestart.cpp
-  src/vfx/ImpactFlash.cpp
-  src/vfx/ImpactNoise.cpp
-  src/vfx/ObjectMotionBlurPipeline.cpp
-  src/vfx/SandevistanTrail.cpp
-  src/vfx/StarBurst.cpp
+  src/ImpactFlash.cpp
+  src/SandevistanTrail.cpp
+  src/StarBurst.cpp
   src/box2d-lite/Arbiter.cpp
   src/box2d-lite/Body.cpp
   src/box2d-lite/Collide.cpp

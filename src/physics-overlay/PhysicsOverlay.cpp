@@ -18,11 +18,9 @@
 #include "PlayerVisual.h"
 #include "RuntimeRestart.h"
 #include "ModTuning.h"
-#include "vfx/ImpactFlash.h"
-#include "vfx/ImpactNoise.h"
-#include "vfx/ObjectMotionBlurPipeline.h"
-#include "vfx/SandevistanTrail.h"
-#include "vfx/StarBurst.h"
+#include "ImpactFlash.h"
+#include "SandevistanTrail.h"
+#include "StarBurst.h"
 
 using namespace geode::prelude;
 
@@ -229,7 +227,7 @@ bool PhysicsOverlay::init() {
 }
 
 void PhysicsOverlay::decrementCooldowns(float dt) {
-    vfx::impact_flash::decrementCooldown(m_impactFlash, dt);
+    impact_flash::decrementCooldown(m_impactFlash, dt);
 }
 
 void PhysicsOverlay::tryBuildVisualIfNeeded() {
@@ -352,18 +350,18 @@ void PhysicsOverlay::update(float dt) {
         m_debugLabelAccumulator = 0.0f;
     }
 
-    vfx::trail::stopIfSlowOrGrab(m_trail, m_grabActive, m_physics->getPlayerSpeed());
+    sandevistan_trail::stopIfSlowOrGrab(m_trail, m_grabActive, m_physics->getPlayerSpeed());
 
     if (!m_playerRoot || !m_player) {
-        vfx::impact_flash::decrementWhiteFlash(m_impactFlash, dt);
+        impact_flash::decrementWhiteFlash(m_impactFlash, dt);
         return;
     }
 
     syncPlayerNodeFromPhysics();
-    vfx::trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
+    sandevistan_trail::updateAndSpawn(m_trail, m_playerRoot, m_player, m_targetSize, m_frameId, m_iconTypeInt, dt);
 
-    overlay_rendering::ImpactFlashMode const flashMode = vfx::impact_flash::currentMode(m_impactFlash);
-    vfx::impact_flash::updateBackdrops(flashMode, m_flashBackdrop, m_flashBackdropWhite);
+    overlay_rendering::ImpactFlashMode const flashMode = impact_flash::currentMode(m_impactFlash);
+    impact_flash::updateBackdrops(flashMode, m_flashBackdrop, m_flashBackdropWhite);
 
     overlay_rendering::refreshFireAura({
         .fireAura = m_fireAura.sprite,
@@ -379,11 +377,40 @@ void PhysicsOverlay::update(float dt) {
     playerCapture.enabled = true;
     playerCapture.velocity = m_physics->getPlayerVelocityPixels();
 
-    vfx::object_motion_blur::refresh(m_objectBlur, flashMode);
+    overlay_rendering::refreshObjectMotionBlurComposite({
+        .objects = &m_objectBlur.objects,
+        .mergeRoot = m_objectBlur.mergeRoot,
+        .unifiedMergeTexture = m_objectBlur.unifiedMergeTexture,
+        .finalCompositeSprite = m_objectBlur.finalCompositeSprite,
+        .whiteFlashSprite = m_objectBlur.whiteFlashSprite,
+        .whiteFlashProgram = m_objectBlur.whiteFlashProgram,
+        .colorInvertProgram = m_objectBlur.colorInvertProgram,
+        .impactFlashMode = flashMode,
+    });
 
-    vfx::impact_flash::decrementWhiteFlash(m_impactFlash, dt);
-    vfx::impact_noise::update(m_impactNoise, dt, m_impactFlash.whiteFlashRemaining > 0.0f);
-    vfx::star_burst::update(m_starBurst, m_impactFlash.whiteFlashRemaining, m_winSize, flashMode);
+    impact_flash::decrementWhiteFlash(m_impactFlash, dt);
+    {
+        bool const flashActive = m_impactFlash.whiteFlashRemaining > 0.0f;
+        if (!flashActive && m_impactNoise.remaining > 0.0f) {
+            m_impactNoise.remaining -= dt;
+            m_impactNoise.remaining = std::max(0.0f, m_impactNoise.remaining);
+        }
+        float const alpha = std::clamp(m_impactNoise.remaining / kImpactNoiseFadeSeconds, 0.0f, 1.0f);
+        bool const visible = !flashActive && m_impactNoise.remaining > 0.0f;
+        float const extraSkip = m_impactNoise.extraTimeSkip;
+        m_impactNoise.extraTimeSkip = 0.0f;
+        overlay_rendering::refreshImpactNoise({
+            .sprite = m_impactNoise.sprite,
+            .renderTexture = m_impactNoise.renderTexture,
+            .compositeSprite = m_impactNoise.composite,
+            .dt = dt,
+            .extraTimeSkip = extraSkip,
+            .time = &m_impactNoise.time,
+            .alpha = alpha,
+            .visible = visible,
+        });
+    }
+    star_burst::update(m_starBurst, m_impactFlash.whiteFlashRemaining, m_winSize, flashMode);
 }
 
 void PhysicsOverlay::onEnter() {
@@ -481,7 +508,7 @@ void PhysicsOverlay::onExit() {
         m_impactNoise.renderTexture = nullptr;
         m_fireAura.program = nullptr;
         m_impactNoise.program = nullptr;
-        vfx::object_motion_blur::release(m_objectBlur);
+        m_objectBlur = {};
     }
     CCLayer::onExit();
 }

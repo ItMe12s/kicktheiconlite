@@ -4,15 +4,16 @@
 
 #include <Geode/utils/random.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 #include <string>
 
-#include "../ModTuning.h"
+#include "ModTuning.h"
 
 using namespace geode::prelude;
 
-namespace vfx::star_burst {
+namespace star_burst {
 namespace {
 
 int computeCurrentPhase(float whiteFlashRemaining) {
@@ -24,7 +25,7 @@ int computeCurrentPhase(float whiteFlashRemaining) {
     return std::min(phase, kStarBurstMaxPhaseIndex);
 }
 
-void applyTint(StarBurstState& state, overlay_rendering::ImpactFlashMode flashMode) {
+void applyTint(overlay_effects::StarBurstState& state, overlay_rendering::ImpactFlashMode flashMode) {
     bool const whiteBackdrop = flashMode == overlay_rendering::ImpactFlashMode::InvertSilhouette;
     cocos2d::ccColor3B const tint = whiteBackdrop ? ccc3(0, 0, 0) : ccc3(255, 255, 255);
     for (auto* sprite : state.sprites) {
@@ -34,7 +35,7 @@ void applyTint(StarBurstState& state, overlay_rendering::ImpactFlashMode flashMo
     }
 }
 
-void reposition(StarBurstState& state, cocos2d::CCSize winSize, overlay_rendering::ImpactFlashMode flashMode) {
+void reposition(overlay_effects::StarBurstState& state, cocos2d::CCSize winSize, overlay_rendering::ImpactFlashMode flashMode) {
     float const screenSmaller = winSize.width < winSize.height ? winSize.width : winSize.height;
     float const twoPi = 2.0f * std::numbers::pi_v<float>;
 
@@ -87,7 +88,7 @@ void reposition(StarBurstState& state, cocos2d::CCSize winSize, overlay_renderin
 
 } // namespace
 
-void createSprites(StarBurstState& state) {
+void createSprites(overlay_effects::StarBurstState& state) {
     if (!state.layer) {
         return;
     }
@@ -104,7 +105,7 @@ void createSprites(StarBurstState& state) {
     }
 }
 
-void hideAll(StarBurstState& state) {
+void hideAll(overlay_effects::StarBurstState& state) {
     for (auto* sprite : state.sprites) {
         if (!sprite) {
             continue;
@@ -114,13 +115,13 @@ void hideAll(StarBurstState& state) {
     }
 }
 
-void reset(StarBurstState& state) {
+void reset(overlay_effects::StarBurstState& state) {
     hideAll(state);
     state.phaseIndex = -1;
 }
 
 void update(
-    StarBurstState& state,
+    overlay_effects::StarBurstState& state,
     float whiteFlashRemaining,
     cocos2d::CCSize winSize,
     overlay_rendering::ImpactFlashMode flashMode
@@ -141,4 +142,4 @@ void update(
     }
 }
 
-} // namespace vfx::star_burst
+} // namespace star_burst

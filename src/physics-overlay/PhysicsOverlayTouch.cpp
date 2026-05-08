@@ -6,8 +6,7 @@
 #include "OverlayRendering.h"
 #include "PhysicsWorld.h"
 #include "PlayerVisual.h"
-#include "vfx/ObjectMotionBlurPipeline.h"
-#include "vfx/StarBurst.h"
+#include "StarBurst.h"
 
 using namespace geode::prelude;
 
@@ -43,17 +42,25 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         },
     };
 
-    if (!vfx::object_motion_blur::attach(
-            m_objectBlur,
-            this,
-            blurCaptureSize,
-            m_winSize,
-            kUnifiedBlurCompositeZOrder,
-            seeds
-        )) {
+    auto const blurResult = overlay_rendering::attachObjectMotionBlur(
+        this,
+        blurCaptureSize,
+        m_winSize,
+        kUnifiedBlurCompositeZOrder,
+        seeds
+    );
+    if (!blurResult.ok) {
         pr.root->removeFromParentAndCleanup(true);
         return;
     }
+    m_objectBlur.objects = blurResult.objects;
+    m_objectBlur.mergeRoot = Ref<cocos2d::CCNode>(blurResult.mergeRoot);
+    m_objectBlur.unifiedMergeTexture = Ref<cocos2d::CCRenderTexture>::adopt(blurResult.unifiedMergeTexture);
+    m_objectBlur.finalCompositeSprite = Ref<cocos2d::CCSprite>(blurResult.finalCompositeSprite);
+    m_objectBlur.whiteFlashSprite = Ref<cocos2d::CCSprite>(blurResult.whiteFlashSprite);
+    m_objectBlur.blurProgram = Ref<cocos2d::CCGLProgram>::adopt(blurResult.blurProgram);
+    m_objectBlur.whiteFlashProgram = Ref<cocos2d::CCGLProgram>::adopt(blurResult.whiteFlashProgram);
+    m_objectBlur.colorInvertProgram = Ref<cocos2d::CCGLProgram>::adopt(blurResult.colorInvertProgram);
 
     m_playerRoot = pr.root;
     auto* worldRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
@@ -72,7 +79,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
         m_fireAura.program = Ref<CCGLProgram>::adopt(fa.program);
     }
 
-    vfx::star_burst::createSprites(m_starBurst);
+    star_burst::createSprites(m_starBurst);
 
     m_visualBuilt = true;
 }
@@ -98,7 +105,7 @@ bool PhysicsOverlay::tryBeginGrab(CCPoint const& locationInNode) {
 
     m_impactFlash.hitstopRemaining = 0.0f;
     m_impactFlash.whiteFlashRemaining = 0.0f;
-    vfx::star_burst::reset(m_starBurst);
+    star_burst::reset(m_starBurst);
     if (m_objectBlur.whiteFlashSprite) {
         m_objectBlur.whiteFlashSprite->stopAllActions();
     }
