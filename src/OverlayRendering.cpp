@@ -52,10 +52,6 @@ CCTexture2D* createOneByOneWhiteTexture() {
     return tex.release();
 }
 
-int objectCompositeOrder(MotionBlurObjectId) {
-    return 0;
-}
-
 void resetObjectVisualState(MotionBlurObjectCapture& object) {
     if (object.sourceRoot) {
         object.sourceRoot->setVisible(true);
@@ -412,7 +408,7 @@ ObjectMotionBlurAttachResult attachObjectMotionBlur(
             objectBlur->setScaleX(cw > 0.0f ? captureSize.width / cw : captureSize.width);
             objectBlur->setScaleY(ch > 0.0f ? captureSize.height / ch : captureSize.height);
         }
-        mergeRoot->addChild(objectBlur, objectCompositeOrder(capture.id));
+        mergeRoot->addChild(objectBlur, 0);
         capture.blurSprite = objectBlur;
         out.objects[static_cast<size_t>(i)] = capture;
     }

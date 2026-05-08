@@ -15,7 +15,7 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
   - ~~vfx wrappers not needed in lite~~ actually reworked it a little too
 
 - remove missed deadcode
-  - objectCompositeOrder
+  - ~~objectCompositeOrder~~
   - OverlayRendering 3 sprite subclasses is just ass
   - there's a lot of unused includes
 
