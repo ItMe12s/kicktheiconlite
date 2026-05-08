@@ -1,7 +1,6 @@
 #include "RuntimeRestart.h"
 
 #include <Geode/Geode.hpp>
-#include <Geode/modify/MenuLayer.hpp>
 #include <Geode/ui/OverlayManager.hpp>
 #ifdef GEODE_IS_WINDOWS
 #include <Geode/modify/CCEGLView.hpp>
@@ -45,7 +44,13 @@ void installPhysicsOverlay() {
         if (g_restartRequired.load() || g_overlay.load(std::memory_order_relaxed)) {
             return;
         }
-
+        if (!GameManager::get()) {
+            return;
+        }
+        auto* manager = OverlayManager::get();
+        if (!manager) {
+            return;
+        }
         auto* overlay = PhysicsOverlay::create();
         if (!overlay) {
             return;
@@ -55,7 +60,7 @@ void installPhysicsOverlay() {
             return;
         }
         overlay->setZOrder(kPhysicsOverlayZOrder);
-        OverlayManager::get()->addChild(overlay);
+        manager->addChild(overlay);
     });
 }
 
@@ -104,16 +109,6 @@ bool isRestartRequired() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 #endif
-
-struct $modify(KickTheIconMenuLayerHook, MenuLayer) {
-    bool init() {
-        if (!MenuLayer::init()) {
-            return false;
-        }
-        runtime_restart::installPhysicsOverlay();
-        return true;
-    }
-};
 
 #ifdef GEODE_IS_WINDOWS
 struct $modify(KickTheIconFullscreenHook, CCEGLView) {

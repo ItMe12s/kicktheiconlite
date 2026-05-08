@@ -1,6 +1,6 @@
 # Important
 
-Do not fork this, it's incomplete and the codebase is super outdated from the full version.
+Please do not fork this, it's incomplete in terms of feature and the codebase is super outdated from the full version.
 
 ## Resources
 
