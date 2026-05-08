@@ -39,13 +39,21 @@ void reposition(overlay_effects::StarBurstState& state, cocos2d::CCSize winSize,
     float const screenSmaller = winSize.width < winSize.height ? winSize.width : winSize.height;
     float const twoPi = 2.0f * std::numbers::pi_v<float>;
 
-    for (int i = 0; i < kBigStarCount; ++i) {
+    int const cap = kStarBurstSpriteSlots;
+    int nBig = std::clamp(kBigStarCount, 0, cap);
+    int nSmall = std::clamp(kSmallStarCount, 0, cap);
+    if (nBig + nSmall > cap) {
+        nSmall = std::max(0, cap - nBig);
+    }
+    float const bigDivisor = std::max(1, nBig);
+
+    for (int i = 0; i < nBig; ++i) {
         auto* sprite = state.sprites[static_cast<size_t>(i)];
         if (!sprite) {
             continue;
         }
         float const sector =
-            (static_cast<float>(i) + geode::utils::random::generate<float>(0.0f, 1.0f)) / static_cast<float>(kBigStarCount);
+            (static_cast<float>(i) + geode::utils::random::generate<float>(0.0f, 1.0f)) / static_cast<float>(bigDivisor);
         float const angle = sector * twoPi;
         float const radius = geode::utils::random::generate<float>(
             screenSmaller * kBigStarRadiusMin,
@@ -62,8 +70,8 @@ void reposition(overlay_effects::StarBurstState& state, cocos2d::CCSize winSize,
         sprite->setVisible(true);
     }
 
-    for (int i = 0; i < kSmallStarCount; ++i) {
-        auto* sprite = state.sprites[static_cast<size_t>(kBigStarCount + i)];
+    for (int i = 0; i < nSmall; ++i) {
+        auto* sprite = state.sprites[static_cast<size_t>(nBig + i)];
         if (!sprite) {
             continue;
         }

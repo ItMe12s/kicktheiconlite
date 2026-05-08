@@ -36,5 +36,4 @@
 
 ## Technical notes
 
-- This mod uses a modified Box2D-Lite for physics.
-- `mod.json` settings are auto-generated.
+- This mod uses a modified Box2D-Lite for physics. We love Erin Catto.

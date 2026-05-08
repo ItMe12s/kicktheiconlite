@@ -6,8 +6,6 @@
 #include <Geode/modify/CCEGLView.hpp>
 #endif
 
-#include <Geode/loader/SettingV3.hpp>
-
 #include <atomic>
 #include <string>
 
@@ -73,11 +71,6 @@ void syncHideModOverlayFromSettings() {
             overlay->applyHideModOverlayFromTuning();
         }
     });
-}
-
-void bindHideModOverlaySync() {
-    listenForSettingChanges<bool>("hide-mod-overlay", [](bool) { syncHideModOverlayFromSettings(); });
-    syncHideModOverlayFromSettings();
 }
 
 void registerPhysicsOverlay(PhysicsOverlay* overlay) {

@@ -24,11 +24,11 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
   - ~~backdrop draw nodes PhysicsOverlay~~
 
 - kinda important
-  - backport/rewrite mod settings stuff
+  - ~~backport/rewrite mod settings stuff~~
   - ~~unify hide-mod-overlay updates~~
 
 - i'll do this later
   - ~~refactor PhysicsOverlay~~
-  - refactor OverlayRendering
+  - ~~refactor OverlayRendering~~
   - ~~free function for rgb float to draw color~~
   - ~~less physics for OverlayRendering~~
