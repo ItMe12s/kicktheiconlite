@@ -18,16 +18,16 @@ namespace runtime_restart {
 namespace {
 std::atomic_bool g_restartRequired = false;
 std::atomic_bool g_teardownQueued = false;
-// Pointer only read/written from main thread (register/unregister, queueInMainThread callbacks)
-std::atomic<PhysicsOverlay*> g_overlay{nullptr};
+// Main thread only: register/unregister, and lambdas queued with queueInMainThread.
+static PhysicsOverlay* g_overlay = nullptr;
 
 void performOverlayTeardown(char const* source) {
     std::string const reason = source ? source : "fullscreen toggle";
     log::warn("requesting Kick the Icon self-destruct after {}", reason);
 
     queueInMainThread([] {
-        if (auto* overlay = g_overlay.load(std::memory_order_relaxed)) {
-            overlay->beginFullscreenSelfDestruct();
+        if (g_overlay) {
+            g_overlay->beginFullscreenSelfDestruct();
         }
     });
 }
@@ -39,7 +39,7 @@ void installPhysicsOverlay() {
     }
 
     queueInMainThread([] {
-        if (g_restartRequired.load() || g_overlay.load(std::memory_order_relaxed)) {
+        if (g_restartRequired.load() || g_overlay) {
             return;
         }
         if (!GameManager::get()) {
@@ -64,23 +64,19 @@ void installPhysicsOverlay() {
 
 void syncHideModOverlayFromSettings() {
     queueInMainThread([] {
-        if (auto* mod = Mod::get()) {
-            kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
-        }
-        if (auto* overlay = g_overlay.load(std::memory_order_relaxed)) {
-            overlay->applyHideModOverlayFromTuning();
+        if (g_overlay) {
+            g_overlay->applyHideModOverlayFromTuning();
         }
     });
 }
 
 void registerPhysicsOverlay(PhysicsOverlay* overlay) {
-    g_overlay.store(overlay, std::memory_order_relaxed);
+    g_overlay = overlay;
 }
 
 void unregisterPhysicsOverlay(PhysicsOverlay* overlay) {
-    auto* cur = g_overlay.load(std::memory_order_relaxed);
-    if (cur == overlay) {
-        g_overlay.store(nullptr, std::memory_order_relaxed);
+    if (g_overlay == overlay) {
+        g_overlay = nullptr;
     }
 }
 

@@ -7,6 +7,7 @@
 #include <Geode/cocos/platform/CCGL.h>
 #include <Geode/cocos/sprite_nodes/CCSprite.h>
 
+#include <algorithm>
 #include <cmath>
 
 using namespace geode::prelude;
@@ -90,10 +91,12 @@ void refreshFireAura(FireAuraRefreshArgs const& args) {
 
     PhysicsVelocity const vel = args.playerVelocity;
     float const speed = std::hypot(vel.vx, vel.vy);
-    float const denom = kMaxFireAuraSpeedPx - kMinFireAuraSpeedPx;
+    float const lo = std::min(kMinFireAuraSpeedPx, kMaxFireAuraSpeedPx);
+    float const hi = std::max(kMinFireAuraSpeedPx, kMaxFireAuraSpeedPx);
+    float const denom = hi - lo;
     float intensity = 0.0f;
-    if (denom > 1e-5f && speed > kMinFireAuraSpeedPx) {
-        intensity = (speed - kMinFireAuraSpeedPx) / denom;
+    if (denom > 1e-5f && speed > lo) {
+        intensity = (speed - lo) / denom;
         if (intensity > 1.0f) {
             intensity = 1.0f;
         }

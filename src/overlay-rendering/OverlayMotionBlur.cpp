@@ -215,14 +215,13 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
 
     bool const impactFlashActive = impactFlashMode != ImpactFlashMode::None;
     bool needCapture = impactFlashActive;
+    float speed = 0.0f;
     if (capture->enabled && capture->sourceRoot) {
+        speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
         if (capture->tuning.alwaysCaptureWhenEnabled) {
             needCapture = true;
-        } else {
-            float const speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
-            if (speed >= capture->tuning.minBlurSpeedPx) {
-                needCapture = true;
-            }
+        } else if (speed >= capture->tuning.minBlurSpeedPx) {
+            needCapture = true;
         }
     }
 
@@ -241,7 +240,6 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
     } else {
         capture->blurSprite->setVisible(true);
 
-        float const speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
         float const maxSpeed = std::max(capture->tuning.maxBlurSpeedPx, capture->tuning.minBlurSpeedPx + 1.0f);
         float const normT = std::clamp(speed / maxSpeed, 0.0f, 1.0f);
         float const spreadUv = normT * capture->tuning.blurUvSpread;

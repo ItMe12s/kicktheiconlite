@@ -1,7 +1,7 @@
 # NOTICE
 
 - **Epilepsy warning:** This mod contains flashing lights and intense visual effects!
-- **Game restart required:** You must restart the game after switching between **Fullscreen** and **Windowed** (Mod rendering issues) and some settings requires a restart.
+- **Game restart required:** You must restart the game after switching between **Fullscreen** and **Windowed** or closing the game on your phone (Mod rendering issues) and some settings requires a restart.
 
 ---
 
