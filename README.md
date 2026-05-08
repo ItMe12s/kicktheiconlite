@@ -28,7 +28,7 @@ and "resources": { "files": [ ] } because I want to keep the data and textures r
   - ~~unify hide-mod-overlay updates~~
 
 - i'll do this later
-  - refactor PhysicsOverlay
+  - ~~refactor PhysicsOverlay~~
   - refactor OverlayRendering
   - ~~free function for rgb float to draw color~~
   - ~~less physics for OverlayRendering~~

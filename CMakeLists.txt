@@ -17,6 +17,8 @@ set(SOURCES
   src/ModSettings.cpp
   src/OverlayRendering.cpp
   src/physics-overlay/PhysicsOverlay.cpp
+  src/physics-overlay/PhysicsOverlayInit.cpp
+  src/physics-overlay/PhysicsOverlayLifecycle.cpp
   src/physics-overlay/PhysicsOverlayTouch.cpp
   src/physics-overlay/PhysicsOverlayDebug.cpp
   src/PhysicsWorld.cpp

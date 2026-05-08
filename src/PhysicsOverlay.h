@@ -83,6 +83,11 @@ private:
     void tryBuildVisualIfNeeded();
     void stepPhysicsUnlessHitstop(float dt);
     void syncPlayerNodeFromPhysics();
+    void detachOverlaySceneNodes();
+    void clearOverlayGraphicsRefs();
+    bool updateEarlyGuards(float& dt);
+    void updateSimulationAndDebug(float dt);
+    void updateVisualPipeline(float dt);
     void updateDebugOverlayText(float dt);
     std::vector<std::string> const& splitDebugLinesInto(std::string const& text);
 };
