@@ -103,33 +103,14 @@ enum class OverlayLayerId : int {
 
 constexpr int kOverlayLayerCount = 3;
 
-inline cocos2d::CCNode* overlayLayerRoot(
-    std::array<cocos2d::CCNode*, kOverlayLayerCount> const& roots,
-    OverlayLayerId id
-) {
-    return roots.at(static_cast<size_t>(id));
-}
-
-struct PlayerMotionBlurTuning {
-    float minBlurSpeedPx = 0.0f;
-    float maxBlurSpeedPx = 1.0f;
-    float blurUvSpread = 0.0f;
-    int blurStepDivisor = 1;
-    bool keepBaseVisible = false;
-    bool alwaysCaptureWhenEnabled = false;
-};
-
 struct PlayerMotionBlurCapture {
     cocos2d::CCNode* sourceRoot = nullptr;
     geode::Ref<cocos2d::CCRenderTexture> renderTexture{};
     OverlayShaderSprite* blurSprite = nullptr;
     bool enabled = false;
-    PlayerMotionBlurTuning tuning = {};
     PhysicsVelocity velocity = {};
 };
 
-// ok: shared pipeline (programs + merge root + composites) built successfully
-// Player render texture / blur sprite are best-effort, capture may be partially null
 struct PlayerMotionBlurAttachResult {
     bool ok = false;
     cocos2d::CCGLProgram* blurProgram = nullptr;
@@ -147,8 +128,7 @@ PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     cocos2d::CCSize captureSize,
     cocos2d::CCSize outputSize,
     int outputZOrder,
-    cocos2d::CCNode* sourceRoot,
-    PlayerMotionBlurTuning const& tuning
+    cocos2d::CCNode* sourceRoot
 );
 
 struct FireAuraAttachResult {
@@ -169,40 +149,40 @@ struct ImpactNoiseAttachResult {
 
 ImpactNoiseAttachResult attachImpactNoise(cocos2d::CCNode* overlayLayer, cocos2d::CCSize winSize);
 
-struct PlayerMotionBlurRefreshArgs {
-    PlayerMotionBlurCapture* capture = nullptr;
-    cocos2d::CCNode* mergeRoot = nullptr;
-    cocos2d::CCRenderTexture* unifiedMergeTexture = nullptr;
-    cocos2d::CCSprite* finalCompositeSprite = nullptr;
-    cocos2d::CCSprite* whiteFlashSprite = nullptr;
-    cocos2d::CCGLProgram* whiteFlashProgram = nullptr;
-    cocos2d::CCGLProgram* colorInvertProgram = nullptr;
-    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
-};
+void refreshPlayerMotionBlurComposite(
+    PlayerMotionBlurCapture* capture,
+    cocos2d::CCNode* mergeRoot,
+    cocos2d::CCRenderTexture* unifiedMergeTexture,
+    cocos2d::CCSprite* finalCompositeSprite,
+    cocos2d::CCSprite* whiteFlashSprite,
+    cocos2d::CCGLProgram* whiteFlashProgram,
+    cocos2d::CCGLProgram* colorInvertProgram,
+    ImpactFlashMode impactFlashMode
+);
 
-void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args);
+void refreshFireAura(
+    OverlayShaderSprite* fireAura,
+    PhysicsVelocity playerVelocity,
+    float dt,
+    ImpactFlashMode impactFlashMode,
+    float* fireTime
+);
 
-struct FireAuraRefreshArgs {
-    OverlayShaderSprite* fireAura = nullptr;
-    PhysicsVelocity playerVelocity{};
-    float dt = 0.0f;
-    ImpactFlashMode impactFlashMode = ImpactFlashMode::None;
-    float* fireTime = nullptr;
-};
+void refreshImpactNoise(
+    OverlayShaderSprite* sprite,
+    cocos2d::CCRenderTexture* renderTexture,
+    cocos2d::CCSprite* compositeSprite,
+    float dt,
+    float extraTimeSkip,
+    float* time,
+    float alpha,
+    bool visible
+);
 
-void refreshFireAura(FireAuraRefreshArgs const& args);
+namespace detail {
 
-struct ImpactNoiseRefreshArgs {
-    OverlayShaderSprite* sprite = nullptr;
-    cocos2d::CCRenderTexture* renderTexture = nullptr;
-    cocos2d::CCSprite* compositeSprite = nullptr;
-    float dt = 0.0f;
-    float extraTimeSkip = 0.0f;
-    float* time = nullptr;
-    float alpha = 0.0f;
-    bool visible = false;
-};
+cocos2d::CCTexture2D* createOneByOneWhiteTexture();
 
-void refreshImpactNoise(ImpactNoiseRefreshArgs const& args);
+}
 
 } // namespace overlay_rendering

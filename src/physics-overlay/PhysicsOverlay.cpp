@@ -194,24 +194,18 @@ void PhysicsOverlay::updateVisualPipeline(float dt) {
     PhysicsVelocity const playerVel = m_physics->getPlayerVelocityPixels();
     m_objectBlur.player.velocity = playerVel;
 
-    overlay_rendering::refreshFireAura({
-        .fireAura = m_fireAura.sprite,
-        .playerVelocity = playerVel,
-        .dt = dt,
-        .impactFlashMode = flashMode,
-        .fireTime = &m_fireAura.time,
-    });
+    overlay_rendering::refreshFireAura(m_fireAura.sprite, playerVel, dt, flashMode, &m_fireAura.time);
 
-    overlay_rendering::refreshPlayerMotionBlurComposite({
-        .capture = &m_objectBlur.player,
-        .mergeRoot = m_objectBlur.mergeRoot,
-        .unifiedMergeTexture = m_objectBlur.unifiedMergeTexture,
-        .finalCompositeSprite = m_objectBlur.finalCompositeSprite,
-        .whiteFlashSprite = m_objectBlur.whiteFlashSprite,
-        .whiteFlashProgram = m_objectBlur.whiteFlashProgram,
-        .colorInvertProgram = m_objectBlur.colorInvertProgram,
-        .impactFlashMode = flashMode,
-    });
+    overlay_rendering::refreshPlayerMotionBlurComposite(
+        &m_objectBlur.player,
+        m_objectBlur.mergeRoot,
+        m_objectBlur.unifiedMergeTexture,
+        m_objectBlur.finalCompositeSprite,
+        m_objectBlur.whiteFlashSprite,
+        m_objectBlur.whiteFlashProgram,
+        m_objectBlur.colorInvertProgram,
+        flashMode
+    );
 
     impact_flash::decrementWhiteFlash(m_impactFlash, dt);
     {
@@ -224,16 +218,16 @@ void PhysicsOverlay::updateVisualPipeline(float dt) {
         bool const visible = !flashActive && m_impactNoise.remaining > 0.0f;
         float const extraSkip = m_impactNoise.extraTimeSkip;
         m_impactNoise.extraTimeSkip = 0.0f;
-        overlay_rendering::refreshImpactNoise({
-            .sprite = m_impactNoise.sprite,
-            .renderTexture = m_impactNoise.renderTexture,
-            .compositeSprite = m_impactNoise.composite,
-            .dt = dt,
-            .extraTimeSkip = extraSkip,
-            .time = &m_impactNoise.time,
-            .alpha = alpha,
-            .visible = visible,
-        });
+        overlay_rendering::refreshImpactNoise(
+            m_impactNoise.sprite,
+            m_impactNoise.renderTexture,
+            m_impactNoise.composite,
+            dt,
+            extraSkip,
+            &m_impactNoise.time,
+            alpha,
+            visible
+        );
     }
     star_burst::update(m_starBurst, m_impactFlash.whiteFlashRemaining, m_winSize, flashMode);
 }

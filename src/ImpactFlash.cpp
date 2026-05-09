@@ -8,18 +8,23 @@
 
 namespace impact_flash {
 
-void decrementCooldown(overlay_effects::ImpactFlashState& state, float dt) {
-    if (state.impactFlashCooldownRemaining > 0.0f) {
-        state.impactFlashCooldownRemaining -= dt;
-        state.impactFlashCooldownRemaining = std::max(0.0f, state.impactFlashCooldownRemaining);
+namespace {
+
+void decrementPositiveRemain(float& slot, float dt) {
+    if (slot > 0.0f) {
+        slot -= dt;
+        slot = std::max(0.0f, slot);
     }
 }
 
+} // namespace
+
+void decrementCooldown(overlay_effects::ImpactFlashState& state, float dt) {
+    decrementPositiveRemain(state.impactFlashCooldownRemaining, dt);
+}
+
 void decrementWhiteFlash(overlay_effects::ImpactFlashState& state, float dt) {
-    if (state.whiteFlashRemaining > 0.0f) {
-        state.whiteFlashRemaining -= dt;
-        state.whiteFlashRemaining = std::max(0.0f, state.whiteFlashRemaining);
-    }
+    decrementPositiveRemain(state.whiteFlashRemaining, dt);
 }
 
 overlay_rendering::ImpactFlashMode currentMode(overlay_effects::ImpactFlashState const& state) {

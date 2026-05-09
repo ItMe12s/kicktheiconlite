@@ -1,4 +1,3 @@
-#include "overlay-rendering/OverlayRenderingInternal.h"
 #include "OverlayRendering.h"
 #include "ModTuning.h"
 #include "PhysicsTypes.h"
@@ -73,12 +72,13 @@ FireAuraAttachResult attachFireAura(CCNode* playerRoot, float auraDiameterPx) {
     return out;
 }
 
-void refreshFireAura(FireAuraRefreshArgs const& args) {
-    OverlayShaderSprite* const fireAura = args.fireAura;
-    float const dt = args.dt;
-    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
-    float* const fireTime = args.fireTime;
-
+void refreshFireAura(
+    OverlayShaderSprite* fireAura,
+    PhysicsVelocity playerVelocity,
+    float dt,
+    ImpactFlashMode impactFlashMode,
+    float* fireTime
+) {
     if (!fireAura || !fireTime) {
         return;
     }
@@ -89,7 +89,7 @@ void refreshFireAura(FireAuraRefreshArgs const& args) {
         return;
     }
 
-    PhysicsVelocity const vel = args.playerVelocity;
+    PhysicsVelocity const vel = playerVelocity;
     float const speed = std::hypot(vel.vx, vel.vy);
     float const lo = std::min(kMinFireAuraSpeedPx, kMaxFireAuraSpeedPx);
     float const hi = std::max(kMinFireAuraSpeedPx, kMaxFireAuraSpeedPx);

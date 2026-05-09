@@ -51,7 +51,7 @@ CCTexture2D* createOneByOneWhiteTexture() {
 } // namespace detail
 
 CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
-    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kMotionBlurFrag);
+    auto* p = createLinkedProgram(kMotionBlurVert, kMotionBlurFrag);
     if (!p) {
         return nullptr;
     }
@@ -60,15 +60,15 @@ CCGLProgram* createMotionBlurProgram(GLint* outBlurDir) {
 }
 
 CCGLProgram* createWhiteFlashProgram() {
-    return createLinkedProgram(shaders::kMotionBlurVert, shaders::kWhiteFlashFrag);
+    return createLinkedProgram(kMotionBlurVert, kWhiteFlashFrag);
 }
 
 CCGLProgram* createColorInvertProgram() {
-    return createLinkedProgram(shaders::kMotionBlurVert, shaders::kColorInvertFrag);
+    return createLinkedProgram(kMotionBlurVert, kColorInvertFrag);
 }
 
 CCGLProgram* createImpactNoiseProgram(GLint* outTime, GLint* outAlpha) {
-    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kImpactNoiseFrag);
+    auto* p = createLinkedProgram(kMotionBlurVert, kImpactNoiseFrag);
     if (!p) {
         return nullptr;
     }
@@ -84,7 +84,7 @@ CCGLProgram* createFireAuraProgram(
     GLint* outColorPrimary,
     GLint* outColorSecondary
 ) {
-    auto* p = createLinkedProgram(shaders::kMotionBlurVert, shaders::kFireAuraFrag);
+    auto* p = createLinkedProgram(kMotionBlurVert, kFireAuraFrag);
     if (!p) {
         return nullptr;
     }

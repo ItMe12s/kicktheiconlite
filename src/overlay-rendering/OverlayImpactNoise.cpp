@@ -1,4 +1,3 @@
-#include "overlay-rendering/OverlayRenderingInternal.h"
 #include "OverlayRendering.h"
 #include "ModTuning.h"
 
@@ -105,37 +104,45 @@ ImpactNoiseAttachResult attachImpactNoise(CCNode* overlayLayer, CCSize winSize) 
     return out;
 }
 
-void refreshImpactNoise(ImpactNoiseRefreshArgs const& args) {
-    OverlayShaderSprite* const sprite = args.sprite;
-    float* const timePtr = args.time;
+void refreshImpactNoise(
+    OverlayShaderSprite* sprite,
+    CCRenderTexture* renderTexture,
+    CCSprite* compositeSprite,
+    float dt,
+    float extraTimeSkip,
+    float* time,
+    float alpha,
+    bool visible
+) {
+    float* const timePtr = time;
     if (!sprite || !timePtr) {
         return;
     }
 
-    *timePtr += args.extraTimeSkip;
-    if (args.visible) {
-        *timePtr += args.dt;
+    *timePtr += extraTimeSkip;
+    if (visible) {
+        *timePtr += dt;
     }
 
-    if (!args.visible) {
+    if (!visible) {
         sprite->setVisible(false);
-        if (args.compositeSprite) {
-            args.compositeSprite->setVisible(false);
+        if (compositeSprite) {
+            compositeSprite->setVisible(false);
         }
         return;
     }
 
     float const tWrapped = std::fmod(*timePtr, 1000.0f);
 
-    sprite->setNoiseState(tWrapped, args.alpha);
+    sprite->setNoiseState(tWrapped, alpha);
 
-    if (args.renderTexture && args.compositeSprite) {
-        args.renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
+    if (renderTexture && compositeSprite) {
+        renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
         sprite->setVisible(true);
         sprite->visit();
         sprite->setVisible(false);
-        args.renderTexture->end();
-        args.compositeSprite->setVisible(true);
+        renderTexture->end();
+        compositeSprite->setVisible(true);
     } else {
         sprite->setVisible(true);
     }

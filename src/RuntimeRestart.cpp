@@ -16,30 +16,37 @@ using namespace geode::prelude;
 namespace runtime_restart {
 
 namespace {
-std::atomic_bool g_restartRequired = false;
-std::atomic_bool g_teardownQueued = false;
-// Main thread only: register/unregister, and lambdas queued with queueInMainThread.
-static PhysicsOverlay* g_overlay = nullptr;
+
+struct RestartState {
+    std::atomic_bool restartRequired = false;
+    std::atomic_bool teardownQueued = false;
+    PhysicsOverlay* overlay = nullptr;
+};
+
+RestartState& state() {
+    static RestartState s;
+    return s;
+}
 
 void performOverlayTeardown(char const* source) {
     std::string const reason = source ? source : "fullscreen toggle";
     log::warn("requesting Kick the Icon self-destruct after {}", reason);
 
     queueInMainThread([] {
-        if (g_overlay) {
-            g_overlay->beginFullscreenSelfDestruct();
+        if (state().overlay) {
+            state().overlay->beginFullscreenSelfDestruct();
         }
     });
 }
 } // namespace
 
 void installPhysicsOverlay() {
-    if (g_restartRequired.load()) {
+    if (state().restartRequired.load()) {
         return;
     }
 
     queueInMainThread([] {
-        if (g_restartRequired.load() || g_overlay) {
+        if (state().restartRequired.load() || state().overlay) {
             return;
         }
         if (!GameManager::get()) {
@@ -53,7 +60,7 @@ void installPhysicsOverlay() {
         if (!overlay) {
             return;
         }
-        if (g_restartRequired.load()) {
+        if (state().restartRequired.load()) {
             unregisterPhysicsOverlay(overlay);
             return;
         }
@@ -64,32 +71,32 @@ void installPhysicsOverlay() {
 
 void syncHideModOverlayFromSettings() {
     queueInMainThread([] {
-        if (g_overlay) {
-            g_overlay->applyHideModOverlayFromTuning();
+        if (state().overlay) {
+            state().overlay->applyHideModOverlayFromTuning();
         }
     });
 }
 
 void registerPhysicsOverlay(PhysicsOverlay* overlay) {
-    g_overlay = overlay;
+    state().overlay = overlay;
 }
 
 void unregisterPhysicsOverlay(PhysicsOverlay* overlay) {
-    if (g_overlay == overlay) {
-        g_overlay = nullptr;
+    if (state().overlay == overlay) {
+        state().overlay = nullptr;
     }
 }
 
 void requestFullscreenSelfDestruct(char const* source) {
-    g_restartRequired = true;
-    if (g_teardownQueued.exchange(true)) {
+    state().restartRequired = true;
+    if (state().teardownQueued.exchange(true)) {
         return;
     }
     performOverlayTeardown(source);
 }
 
 bool isRestartRequired() {
-    return g_restartRequired.load();
+    return state().restartRequired.load();
 }
 
 } // namespace runtime_restart

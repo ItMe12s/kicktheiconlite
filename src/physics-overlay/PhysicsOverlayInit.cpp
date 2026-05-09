@@ -75,7 +75,7 @@ bool PhysicsOverlay::init() {
     m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)] =
         createLayerRoot("layer-ui-root"_spr, kUnifiedWorldCaptureZOrder + kLayerUiZOrderOffset);
 
-    auto* uiLayerRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Ui);
+    auto* uiLayerRoot = m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Ui)];
 
     auto* uiRoot = uiLayerRoot;
     if (uiRoot) {
@@ -147,7 +147,7 @@ bool PhysicsOverlay::init() {
     if (m_trail.layer) {
         m_trail.layer->setID("sandevistan-trail-layer"_spr);
         m_trail.layer->setPosition({0, 0});
-        auto* trailRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::Trail);
+        auto* trailRoot = m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::Trail)];
         if (trailRoot) {
             trailRoot->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         } else {

@@ -26,22 +26,13 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     }
 
     cocos2d::CCSize const blurCaptureSize = m_winSize;
-    overlay_rendering::PlayerMotionBlurTuning const blurTuning{
-        .minBlurSpeedPx = kPlayerMinBlurSpeedPx,
-        .maxBlurSpeedPx = kPlayerMaxBlurSpeedPx,
-        .blurUvSpread = kPlayerBlurUvSpread,
-        .blurStepDivisor = kPlayerBlurStepDivisor,
-        .keepBaseVisible = kPlayerKeepBaseVisible,
-        .alwaysCaptureWhenEnabled = false,
-    };
 
     auto const blurResult = overlay_rendering::attachPlayerMotionBlur(
         this,
         blurCaptureSize,
         m_winSize,
         kUnifiedBlurCompositeZOrder,
-        pr.root,
-        blurTuning
+        pr.root
     );
     if (!blurResult.ok) {
         pr.root->removeFromParentAndCleanup(true);
@@ -57,7 +48,7 @@ void PhysicsOverlay::tryBuildPlayerVisual() {
     m_objectBlur.colorInvertProgram = Ref<cocos2d::CCGLProgram>::adopt(blurResult.colorInvertProgram);
 
     m_playerRoot = pr.root;
-    auto* worldRoot = overlay_rendering::overlayLayerRoot(m_layerRoots, overlay_rendering::OverlayLayerId::World);
+    auto* worldRoot = m_layerRoots[static_cast<size_t>(overlay_rendering::OverlayLayerId::World)];
     if (worldRoot) {
         Ref<cocos2d::CCNode> hold(m_playerRoot);
         this->removeChild(m_playerRoot, false);

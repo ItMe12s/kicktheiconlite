@@ -15,7 +15,6 @@
 #include <math.h>
 #include <float.h>
 #include <assert.h>
-#include <stdlib.h>
 
 namespace kti_b2l {
 
@@ -140,21 +139,6 @@ inline float Abs(float a)
 	return a > 0.0f ? a : -a;
 }
 
-inline Vec2 Abs(const Vec2& a)
-{
-	return Vec2(fabsf(a.x), fabsf(a.y));
-}
-
-inline Mat22 Abs(const Mat22& A)
-{
-	return Mat22(Abs(A.col1), Abs(A.col2));
-}
-
-inline float Sign(float x)
-{
-	return x < 0.0f ? -1.0f : 1.0f;
-}
-
 inline float Min(float a, float b)
 {
 	return a < b ? a : b;
@@ -175,23 +159,6 @@ template<typename T> inline void Swap(T& a, T& b)
 	T tmp = a;
 	a = b;
 	b = tmp;
-}
-
-// Random number in range [-1,1]
-inline float Random()
-{
-	float r = (float)rand();
-	r /= RAND_MAX;
-	r = 2.0f * r - 1.0f;
-	return r;
-}
-
-inline float Random(float lo, float hi)
-{
-	float r = (float)rand();
-	r /= RAND_MAX;
-	r = (hi - lo) * r + lo;
-	return r;
 }
 
 } // namespace kti_b2l

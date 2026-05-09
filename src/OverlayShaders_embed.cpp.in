@@ -1,6 +1,6 @@
 #include "OverlayShaders.h"
 
-namespace overlay_rendering::shaders {
+namespace overlay_rendering {
 
 char const kMotionBlurVert[] = R"OVLSH(@MOTION_BLUR_VERT@)OVLSH";
 char const kMotionBlurFrag[] = R"OVLSH(@MOTION_BLUR_FRAG@)OVLSH";
@@ -9,4 +9,4 @@ char const kColorInvertFrag[] = R"OVLSH(@COLOR_INVERT_FRAG@)OVLSH";
 char const kFireAuraFrag[] = R"OVLSH(@FIRE_AURA_FRAG@)OVLSH";
 char const kImpactNoiseFrag[] = R"OVLSH(@IMPACT_NOISE_FRAG@)OVLSH";
 
-} // namespace overlay_rendering::shaders
+} // namespace overlay_rendering

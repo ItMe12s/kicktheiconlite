@@ -50,6 +50,9 @@ void PhysicsOverlay::detachOverlaySceneNodes() {
     m_starBurst.phaseIndex = -1;
 }
 
+// When m_skipGraphicsCleanup is true (fullscreen/context teardown), release Ref-held GL objects with
+// .take() so destructors skip drawing APIs on invalid context, otherwise reset structs / assign nullptr.
+
 void PhysicsOverlay::clearOverlayGraphicsRefs() {
     if (m_skipGraphicsCleanup) {
         (void)m_objectBlur.finalCompositeSprite.take();

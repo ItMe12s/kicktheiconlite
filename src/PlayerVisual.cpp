@@ -74,40 +74,6 @@ ccColor3B sandevistanTrailColorAtUnit(float t) {
     return cyan;
 }
 
-class SandevistanPlayerHueAction : public CCActionInterval {
-public:
-    static SandevistanPlayerHueAction* create(float duration) {
-        auto a = std::unique_ptr<SandevistanPlayerHueAction>(new SandevistanPlayerHueAction());
-        if (!a->initWithDuration(duration)) {
-            return nullptr;
-        }
-        a->autorelease();
-        return a.release();
-    }
-
-    void update(float time) override {
-        auto* const p = typeinfo_cast<SimplePlayer*>(getTarget());
-        if (!p) {
-            return;
-        }
-        ccColor3B const col = sandevistanTrailColorAtUnit(time);
-        p->setColors(col, col);
-        p->setGlowOutline(col);
-        p->updateColors();
-    }
-};
-
-} // namespace
-
-namespace player_visual {
-
-void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt) {
-    if (!gm->isIconLoaded(iconId, typeInt)) {
-        int const requestId = gm->getIconRequestID();
-        gm->loadIcon(iconId, typeInt, requestId);
-    }
-}
-
 CCRect worldBoundsFromNode(CCNode* n) {
     CCRect const bb = n->boundingBox();
     CCNode* parent = n->getParent();
@@ -140,8 +106,8 @@ CCRect unionRects(CCRect const& a, CCRect const& b) {
     return CCRectMake(minX, minY, maxX - minX, maxY - minY);
 }
 
-CCRect unionWorldBoundsTree(CCNode* n, int depth) {
-    if (!n || depth > kMaxWorldBoundsTreeDepth) {
+CCRect unionWorldBoundsTree(CCNode* n, int depth = 0) {
+    if (!n || depth > player_visual::kMaxWorldBoundsTreeDepth) {
         return CCRectZero;
     }
     CCRect acc = worldBoundsFromNode(n);
@@ -161,11 +127,11 @@ CCRect unionWorldBoundsTree(CCNode* n, int depth) {
 float visualWidthForPlayer(SimplePlayer* player) {
     CCRect const world = unionWorldBoundsTree(player);
     float const ww = std::fabs(world.size.width);
-    if (ww > kMinVisualWidthPx) {
+    if (ww > player_visual::kMinVisualWidthPx) {
         return ww;
     }
     float const cw = player->getContentSize().width;
-    return cw > kMinVisualWidthPx ? cw : kMinVisualWidthPx;
+    return cw > player_visual::kMinVisualWidthPx ? cw : player_visual::kMinVisualWidthPx;
 }
 
 void applyGmColorsAndFrame(SimplePlayer* player, int frameId) {
@@ -185,6 +151,40 @@ void applyGmColorsAndFrame(SimplePlayer* player, int frameId) {
         player->disableGlowOutline();
     }
     player->updateColors();
+}
+
+class SandevistanPlayerHueAction : public CCActionInterval {
+public:
+    static SandevistanPlayerHueAction* create(float duration) {
+        auto a = std::unique_ptr<SandevistanPlayerHueAction>(new SandevistanPlayerHueAction());
+        if (!a->initWithDuration(duration)) {
+            return nullptr;
+        }
+        a->autorelease();
+        return a.release();
+    }
+
+    void update(float time) override {
+        auto* const p = typeinfo_cast<SimplePlayer*>(getTarget());
+        if (!p) {
+            return;
+        }
+        ccColor3B const col = sandevistanTrailColorAtUnit(time);
+        p->setColors(col, col);
+        p->setGlowOutline(col);
+        p->updateColors();
+    }
+};
+
+} // namespace
+
+namespace player_visual {
+
+void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt) {
+    if (!gm->isIconLoaded(iconId, typeInt)) {
+        int const requestId = gm->getIconRequestID();
+        gm->loadIcon(iconId, typeInt, requestId);
+    }
 }
 
 PlayerRootResult tryBuildPlayerRoot(

@@ -4,6 +4,8 @@
 
 namespace star_burst {
 
+void clampStarBurstCountsInPlace();
+
 void createSprites(overlay_effects::StarBurstState& state);
 void hideAll(overlay_effects::StarBurstState& state);
 void reset(overlay_effects::StarBurstState& state);

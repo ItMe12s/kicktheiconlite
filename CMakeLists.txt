@@ -14,6 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
   src/main.cpp
+  src/ModTuning.cpp
   src/ModSettings.cpp
   src/overlay-rendering/OverlayPrograms.cpp
   src/overlay-rendering/OverlayShaderSprite.cpp
@@ -34,7 +35,6 @@ set(SOURCES
   src/box2d-lite/Arbiter.cpp
   src/box2d-lite/Body.cpp
   src/box2d-lite/Collide.cpp
-  src/box2d-lite/Joint.cpp
   src/box2d-lite/World.cpp
 )
 add_library(${PROJECT_NAME} SHARED ${SOURCES})

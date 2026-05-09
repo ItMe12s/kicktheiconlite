@@ -7,27 +7,11 @@
 #include "ModSettings.h"
 #include "ModTuning.h"
 #include "RuntimeRestart.h"
+#include "StarBurst.h"
 
 using namespace geode;
 
-namespace {
-
-void clampStarBurstCountsInPlace() {
-    constexpr int cap = kStarBurstSpriteSlots;
-    int nBig = std::clamp(kBigStarCount, 0, cap);
-    int nSmall = std::clamp(kSmallStarCount, 0, cap);
-    if (nBig + nSmall > cap) {
-        nSmall = std::max(0, cap - nBig);
-    }
-    kBigStarCount = nBig;
-    kSmallStarCount = nSmall;
-}
-
-} // namespace
-
-namespace mod_settings {
-
-void bindAll() {
+void bindModSettings() {
     auto* mod = Mod::get();
 
     kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
@@ -65,14 +49,14 @@ void bindAll() {
 
     kBigStarCount = static_cast<int>(mod->getSettingValue<int64_t>("big-star-count"));
     kSmallStarCount = static_cast<int>(mod->getSettingValue<int64_t>("small-star-count"));
-    clampStarBurstCountsInPlace();
+    star_burst::clampStarBurstCountsInPlace();
     listenForSettingChanges<int64_t>("big-star-count", [](int64_t v) {
         kBigStarCount = static_cast<int>(v);
-        clampStarBurstCountsInPlace();
+        star_burst::clampStarBurstCountsInPlace();
     });
     listenForSettingChanges<int64_t>("small-star-count", [](int64_t v) {
         kSmallStarCount = static_cast<int>(v);
-        clampStarBurstCountsInPlace();
+        star_burst::clampStarBurstCountsInPlace();
     });
     kBigStarRadiusMin = static_cast<float>(mod->getSettingValue<double>("big-star-radius-min"));
     listenForSettingChanges<double>("big-star-radius-min", [](double v) { kBigStarRadiusMin = static_cast<float>(v); });
@@ -151,5 +135,3 @@ void bindAll() {
 
     runtime_restart::syncHideModOverlayFromSettings();
 }
-
-} // namespace mod_settings

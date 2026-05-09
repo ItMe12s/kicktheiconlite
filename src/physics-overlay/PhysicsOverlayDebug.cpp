@@ -10,10 +10,23 @@
 #include <string>
 #include <vector>
 
+#include <Geode/cocos/platform/CCGL.h>
+
 #include "PhysicsWorld.h"
-#include "ColorConvert.h"
 
 using namespace geode::prelude;
+
+namespace {
+
+inline GLubyte debugChannelByte(float channel) {
+    return static_cast<GLubyte>(std::clamp(channel, 0.0f, 1.0f) * 255.0f);
+}
+
+inline ccColor3B debugRgbFToColor3B(float r, float g, float b) {
+    return ccc3(debugChannelByte(r), debugChannelByte(g), debugChannelByte(b));
+}
+
+} // namespace
 
 std::vector<std::string> const& PhysicsOverlay::splitDebugLinesInto(std::string const& text) {
     m_debugLineScratch = geode::utils::string::split(text, "\n");
@@ -86,8 +99,8 @@ void PhysicsOverlay::updateDebugOverlayText(float intervalSec) {
         float const baseX = kDebugLabelMarginX;
         float const topY = m_winSize.height - kDebugLabelMarginY;
         ccColor3B const boxColor =
-            rgbFToColor3B(kDebugLabelBoxColorR, kDebugLabelBoxColorG, kDebugLabelBoxColorB);
-        GLubyte const boxOpacity = colorChannelFToByte(kDebugLabelBoxAlpha);
+            debugRgbFToColor3B(kDebugLabelBoxColorR, kDebugLabelBoxColorG, kDebugLabelBoxColorB);
+        GLubyte const boxOpacity = debugChannelByte(kDebugLabelBoxAlpha);
         auto* textureSprite = m_debugLabelBackgroundTexture ? m_debugLabelBackgroundTexture->getSprite() : nullptr;
         auto* boxTexture = textureSprite ? textureSprite->getTexture() : nullptr;
 

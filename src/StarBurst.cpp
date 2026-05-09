@@ -14,6 +14,18 @@
 using namespace geode::prelude;
 
 namespace star_burst {
+
+void clampStarBurstCountsInPlace() {
+    constexpr int cap = kStarBurstSpriteSlots;
+    int nBig = std::clamp(kBigStarCount, 0, cap);
+    int nSmall = std::clamp(kSmallStarCount, 0, cap);
+    if (nBig + nSmall > cap) {
+        nSmall = std::max(0, cap - nBig);
+    }
+    kBigStarCount = nBig;
+    kSmallStarCount = nSmall;
+}
+
 namespace {
 
 int computeCurrentPhase(float whiteFlashRemaining) {
@@ -35,23 +47,40 @@ void applyTint(overlay_effects::StarBurstState& state, overlay_rendering::Impact
     }
 }
 
+void layoutBurstSprite(
+    cocos2d::CCSprite* sprite,
+    float screenSmaller,
+    float angle,
+    float radius,
+    float screenFrac
+) {
+    if (!sprite) {
+        return;
+    }
+    float const cw = sprite->getContentSize().width;
+    float const baseScale = cw > 0.0f ? (screenSmaller * screenFrac) / cw : 1.0f;
+    sprite->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
+    sprite->setRotation(0.0f);
+    sprite->setScale(
+        baseScale
+        * (1.0f + geode::utils::random::generate<float>(-kStarScaleVariance, kStarScaleVariance))
+    );
+    sprite->setVisible(true);
+}
+
 void reposition(overlay_effects::StarBurstState& state, cocos2d::CCSize winSize, overlay_rendering::ImpactFlashMode flashMode) {
+    clampStarBurstCountsInPlace();
+
     float const screenSmaller = winSize.width < winSize.height ? winSize.width : winSize.height;
     float const twoPi = 2.0f * std::numbers::pi_v<float>;
 
     int const cap = kStarBurstSpriteSlots;
-    int nBig = std::clamp(kBigStarCount, 0, cap);
-    int nSmall = std::clamp(kSmallStarCount, 0, cap);
-    if (nBig + nSmall > cap) {
-        nSmall = std::max(0, cap - nBig);
-    }
+    int const nBig = std::clamp(kBigStarCount, 0, cap);
+    int const nSmall = std::clamp(kSmallStarCount, 0, cap);
     float const bigDivisor = std::max(1, nBig);
 
     for (int i = 0; i < nBig; ++i) {
         auto* sprite = state.sprites[static_cast<size_t>(i)];
-        if (!sprite) {
-            continue;
-        }
         float const sector =
             (static_cast<float>(i) + geode::utils::random::generate<float>(0.0f, 1.0f)) / static_cast<float>(bigDivisor);
         float const angle = sector * twoPi;
@@ -59,36 +88,17 @@ void reposition(overlay_effects::StarBurstState& state, cocos2d::CCSize winSize,
             screenSmaller * kBigStarRadiusMin,
             screenSmaller * kBigStarRadiusMax
         );
-        float const cw = sprite->getContentSize().width;
-        float const baseScale = cw > 0.0f ? (screenSmaller * kBigStarScreenFrac) / cw : 1.0f;
-        sprite->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
-        sprite->setRotation(0.0f);
-        sprite->setScale(
-            baseScale
-            * (1.0f + geode::utils::random::generate<float>(-kStarScaleVariance, kStarScaleVariance))
-        );
-        sprite->setVisible(true);
+        layoutBurstSprite(sprite, screenSmaller, angle, radius, kBigStarScreenFrac);
     }
 
     for (int i = 0; i < nSmall; ++i) {
         auto* sprite = state.sprites[static_cast<size_t>(nBig + i)];
-        if (!sprite) {
-            continue;
-        }
         float const angle = geode::utils::random::generate<float>(0.0f, twoPi);
         float const radius = geode::utils::random::generate<float>(
             screenSmaller * kSmallStarRadiusMin,
             screenSmaller * kSmallStarRadiusMax
         );
-        float const cw = sprite->getContentSize().width;
-        float const baseScale = cw > 0.0f ? (screenSmaller * kSmallStarScreenFrac) / cw : 1.0f;
-        sprite->setPosition({std::cos(angle) * radius, std::sin(angle) * radius});
-        sprite->setRotation(0.0f);
-        sprite->setScale(
-            baseScale
-            * (1.0f + geode::utils::random::generate<float>(-kStarScaleVariance, kStarScaleVariance))
-        );
-        sprite->setVisible(true);
+        layoutBurstSprite(sprite, screenSmaller, angle, radius, kSmallStarScreenFrac);
     }
 
     applyTint(state, flashMode);
@@ -100,7 +110,7 @@ void createSprites(overlay_effects::StarBurstState& state) {
     if (!state.layer) {
         return;
     }
-    for (int i = 0; i < kStarBurstCount; ++i) {
+    for (int i = 0; i < kStarBurstSpriteSlots; ++i) {
         auto* star = cocos2d::CCSprite::create("img_star1.png"_spr);
         if (!star) {
             continue;

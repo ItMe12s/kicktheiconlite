@@ -9,7 +9,7 @@
 #endif
 
 $on_mod(Loaded) {
-    mod_settings::bindAll();
+    bindModSettings();
     runtime_restart::installPhysicsOverlay();
 }
 

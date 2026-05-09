@@ -31,8 +31,7 @@ PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     CCSize captureSize,
     CCSize outputSize,
     int outputZOrder,
-    CCNode* sourceRoot,
-    PlayerMotionBlurTuning const& tuning
+    CCNode* sourceRoot
 ) {
     PlayerMotionBlurAttachResult out{};
     if (!overlayLayer || !sourceRoot || captureSize.width <= 0.0f || captureSize.height <= 0.0f || outputSize.width <= 0.0f
@@ -153,7 +152,6 @@ PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     PlayerMotionBlurCapture capture{};
     capture.sourceRoot = sourceRoot;
     capture.enabled = true;
-    capture.tuning = tuning;
 
     auto* rt = CCRenderTexture::create(
         static_cast<int>(std::ceil(captureSize.width)),
@@ -199,16 +197,16 @@ PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     return out;
 }
 
-void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
-    auto* capture = args.capture;
-    CCNode* const mergeRoot = args.mergeRoot;
-    CCRenderTexture* const unifiedMergeTexture = args.unifiedMergeTexture;
-    CCSprite* const finalCompositeSprite = args.finalCompositeSprite;
-    CCSprite* const whiteFlashSprite = args.whiteFlashSprite;
-    CCGLProgram* const whiteFlashProgram = args.whiteFlashProgram;
-    CCGLProgram* const colorInvertProgram = args.colorInvertProgram;
-    ImpactFlashMode const impactFlashMode = args.impactFlashMode;
-
+void refreshPlayerMotionBlurComposite(
+    PlayerMotionBlurCapture* capture,
+    CCNode* mergeRoot,
+    CCRenderTexture* unifiedMergeTexture,
+    CCSprite* finalCompositeSprite,
+    CCSprite* whiteFlashSprite,
+    CCGLProgram* whiteFlashProgram,
+    CCGLProgram* colorInvertProgram,
+    ImpactFlashMode impactFlashMode
+) {
     if (!capture || !mergeRoot || !unifiedMergeTexture || !finalCompositeSprite) {
         return;
     }
@@ -218,9 +216,7 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
     float speed = 0.0f;
     if (capture->enabled && capture->sourceRoot) {
         speed = std::hypot(capture->velocity.vx, capture->velocity.vy);
-        if (capture->tuning.alwaysCaptureWhenEnabled) {
-            needCapture = true;
-        } else if (speed >= capture->tuning.minBlurSpeedPx) {
+        if (speed >= kPlayerMinBlurSpeedPx) {
             needCapture = true;
         }
     }
@@ -240,13 +236,13 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
     } else {
         capture->blurSprite->setVisible(true);
 
-        float const maxSpeed = std::max(capture->tuning.maxBlurSpeedPx, capture->tuning.minBlurSpeedPx + 1.0f);
+        float const maxSpeed = std::max(kPlayerMaxBlurSpeedPx, kPlayerMinBlurSpeedPx + 1.0f);
         float const normT = std::clamp(speed / maxSpeed, 0.0f, 1.0f);
-        float const spreadUv = normT * capture->tuning.blurUvSpread;
+        float const spreadUv = normT * kPlayerBlurUvSpread;
         float const invSpeed = speed > kMinSpeedForInverse ? 1.0f / speed : 0.0f;
         float const nx = -capture->velocity.vx * invSpeed;
         float const ny = -capture->velocity.vy * invSpeed;
-        int const divisor = std::max(capture->tuning.blurStepDivisor, 1);
+        int const divisor = std::max(kPlayerBlurStepDivisor, 1);
         float const stepUv = spreadUv * (1.0f / static_cast<float>(divisor));
         capture->blurSprite->setBlurStep(nx * stepUv, ny * stepUv);
 
@@ -254,7 +250,7 @@ void refreshPlayerMotionBlurComposite(PlayerMotionBlurRefreshArgs const& args) {
         capture->renderTexture->beginWithClear(0.0f, 0.0f, 0.0f, 0.0f);
         capture->sourceRoot->visit();
         capture->renderTexture->end();
-        capture->sourceRoot->setVisible(capture->tuning.keepBaseVisible && !impactFlashActive);
+        capture->sourceRoot->setVisible(kPlayerKeepBaseVisible && !impactFlashActive);
     }
 
     mergeRoot->setVisible(true);

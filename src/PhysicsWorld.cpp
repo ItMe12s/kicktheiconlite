@@ -37,6 +37,11 @@ static float relativeSpeedPx(Body const& a, Body const& b) {
     return std::hypot(rvx, rvy) * kPixelsPerMeter;
 }
 
+static void clampPointToRect(float& x, float& y, float minX, float minY, float maxX, float maxY) {
+    x = std::clamp(x, minX, maxX);
+    y = std::clamp(y, minY, maxY);
+}
+
 struct DragTuning {
     float spring = 0.0f;
     float damping = 0.0f;
@@ -218,20 +223,7 @@ void PhysicsWorld::setDragGrabOffsetPixels(float offsetX, float offsetY) {
 }
 
 void PhysicsWorld::setDragTargetPixels(float x, float y) {
-    float const minX = 0.0f;
-    float const minY = 0.0f;
-    float const maxX = m_worldW;
-    float const maxY = m_worldH;
-    if (x < minX) {
-        x = minX;
-    } else if (x > maxX) {
-        x = maxX;
-    }
-    if (y < minY) {
-        y = minY;
-    } else if (y > maxY) {
-        y = maxY;
-    }
+    clampPointToRect(x, y, 0.0f, 0.0f, m_worldW, m_worldH);
     m_dragTargetX = x;
     m_dragTargetY = y;
 }
