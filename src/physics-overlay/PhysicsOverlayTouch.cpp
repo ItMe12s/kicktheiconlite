@@ -9,6 +9,10 @@
 
 using namespace geode::prelude;
 
+// Touch uses node space (convertTouchToNodeSpace). Grab hit test: distance to physics
+// body vs m_targetSize * kGrabRadiusFraction. Same TU defines tryBuildPlayerVisual
+// (attach motion blur, reparent player to world layer, fire aura, star sprites).
+
 void PhysicsOverlay::tryBuildPlayerVisual() {
     if (m_visualBuilt) {
         return;

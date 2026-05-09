@@ -8,6 +8,8 @@
 
 namespace player_visual {
 
+// SimplePlayer tree setup and trail ghosts: typeinfo_cast walk for blend, ghost ids use GEODE_MOD_ID + serial.
+
 void requestCubeIconLoad(GameManager* gm, int iconId, int typeInt);
 
 struct PlayerRootResult {

@@ -14,20 +14,24 @@ using namespace geode;
 void bindModSettings() {
     auto* mod = Mod::get();
 
+    // Important (mod.json)
     kHideModOverlay = mod->getSettingValue<bool>("hide-mod-overlay");
     listenForSettingChanges<bool>("hide-mod-overlay", [](bool v) {
         kHideModOverlay = v;
         runtime_restart::syncHideModOverlayFromSettings();
     });
 
+    // Visuals
     player_visual::kPlayerTargetSizeFraction = static_cast<float>(mod->getSettingValue<double>("player-visual-player-target-size-fraction"));
     listenForSettingChanges<double>("player-visual-player-target-size-fraction", [](double v) { player_visual::kPlayerTargetSizeFraction = static_cast<float>(v); });
 
+    // Impact toggles
     kEnablePlayerImpactTrail = mod->getSettingValue<bool>("enable-player-impact-trail");
     listenForSettingChanges<bool>("enable-player-impact-trail", [](bool v) { kEnablePlayerImpactTrail = v; });
     kEnablePlayerImpactFlashStack = mod->getSettingValue<bool>("enable-player-impact-flash-stack");
     listenForSettingChanges<bool>("enable-player-impact-flash-stack", [](bool v) { kEnablePlayerImpactFlashStack = v; });
 
+    // Impact flash
     kImpactHitstopSeconds = static_cast<float>(mod->getSettingValue<double>("impact-hitstop-seconds"));
     listenForSettingChanges<double>("impact-hitstop-seconds", [](double v) { kImpactHitstopSeconds = static_cast<float>(v); });
     kImpactFlashCooldownSeconds = static_cast<float>(mod->getSettingValue<double>("impact-flash-cooldown-seconds"));
@@ -35,11 +39,13 @@ void bindModSettings() {
     kImpactFlashInvertPhaseEndPhaseCount = static_cast<int>(mod->getSettingValue<int64_t>("impact-flash-invert-phase-end-phase-count"));
     listenForSettingChanges<int64_t>("impact-flash-invert-phase-end-phase-count", [](int64_t v) { kImpactFlashInvertPhaseEndPhaseCount = static_cast<int>(v); });
 
+    // Impact thresholds
     kPlayerImpactMinFlashSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-flash-speed"));
     listenForSettingChanges<double>("player-impact-min-flash-speed", [](double v) { kPlayerImpactMinFlashSpeed = static_cast<float>(v); });
     kPlayerImpactMinTrailSpeed = static_cast<float>(mod->getSettingValue<double>("player-impact-min-trail-speed"));
     listenForSettingChanges<double>("player-impact-min-trail-speed", [](double v) { kPlayerImpactMinTrailSpeed = static_cast<float>(v); });
 
+    // Impact noise
     kImpactNoiseFadeSeconds = std::max(static_cast<float>(mod->getSettingValue<double>("impact-noise-fade-seconds")), 0.0001f);
     listenForSettingChanges<double>("impact-noise-fade-seconds", [](double v) { kImpactNoiseFadeSeconds = std::max(static_cast<float>(v), 0.0001f); });
     kImpactNoiseCompositeNearestFilter = mod->getSettingValue<bool>("impact-noise-composite-nearest-filter");
@@ -47,6 +53,7 @@ void bindModSettings() {
     kImpactNoiseRenderScale = static_cast<float>(mod->getSettingValue<double>("impact-noise-render-scale"));
     listenForSettingChanges<double>("impact-noise-render-scale", [](double v) { kImpactNoiseRenderScale = static_cast<float>(v); });
 
+    // Star burst
     kBigStarCount = static_cast<int>(mod->getSettingValue<int64_t>("big-star-count"));
     kSmallStarCount = static_cast<int>(mod->getSettingValue<int64_t>("small-star-count"));
     star_burst::clampStarBurstCountsInPlace();
@@ -73,6 +80,7 @@ void bindModSettings() {
     kStarScaleVariance = static_cast<float>(mod->getSettingValue<double>("star-scale-variance"));
     listenForSettingChanges<double>("star-scale-variance", [](double v) { kStarScaleVariance = static_cast<float>(v); });
 
+    // Sandevistan
     kSandevistanEndSpeedPx = static_cast<float>(mod->getSettingValue<double>("sandevistan-end-speed-px"));
     listenForSettingChanges<double>("sandevistan-end-speed-px", [](double v) { kSandevistanEndSpeedPx = static_cast<float>(v); });
     kSandevistanSpawnIntervalSec = static_cast<float>(mod->getSettingValue<double>("sandevistan-spawn-interval-sec"));
@@ -102,6 +110,7 @@ void bindModSettings() {
     kSandevistanTrailHueCyanB = static_cast<int>(mod->getSettingValue<int64_t>("sandevistan-trail-hue-cyan-b"));
     listenForSettingChanges<int64_t>("sandevistan-trail-hue-cyan-b", [](int64_t v) { kSandevistanTrailHueCyanB = static_cast<int>(v); });
 
+    // Fire aura
     kMinFireAuraSpeedPx = static_cast<float>(mod->getSettingValue<double>("min-fire-aura-speed-px"));
     listenForSettingChanges<double>("min-fire-aura-speed-px", [](double v) { kMinFireAuraSpeedPx = static_cast<float>(v); });
     kMaxFireAuraSpeedPx = static_cast<float>(mod->getSettingValue<double>("max-fire-aura-speed-px"));
@@ -123,6 +132,7 @@ void bindModSettings() {
     kFireAuraDefaultSecondaryB = static_cast<float>(mod->getSettingValue<double>("fire-aura-default-secondary-b"));
     listenForSettingChanges<double>("fire-aura-default-secondary-b", [](double v) { kFireAuraDefaultSecondaryB = static_cast<float>(v); });
 
+    // Motion blur
     kPlayerMinBlurSpeedPx = static_cast<float>(mod->getSettingValue<double>("player-min-blur-speed-px"));
     listenForSettingChanges<double>("player-min-blur-speed-px", [](double v) { kPlayerMinBlurSpeedPx = static_cast<float>(v); });
     kPlayerMaxBlurSpeedPx = static_cast<float>(mod->getSettingValue<double>("player-max-blur-speed-px"));
@@ -130,6 +140,7 @@ void bindModSettings() {
     kPlayerBlurUvSpread = static_cast<float>(mod->getSettingValue<double>("player-blur-uv-spread"));
     listenForSettingChanges<double>("player-blur-uv-spread", [](double v) { kPlayerBlurUvSpread = static_cast<float>(v); });
 
+    // Debug
     kDebugLabelEnabled = mod->getSettingValue<bool>("debug-label-enabled");
     listenForSettingChanges<bool>("debug-label-enabled", [](bool v) { kDebugLabelEnabled = v; });
 

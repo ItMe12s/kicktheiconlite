@@ -26,6 +26,8 @@ void resetPlayerMotionBlurVisualState(PlayerMotionBlurCapture& capture) {
 
 } // namespace
 
+// Renders player icon to a render texture, stacks white/invert flash passes, outputs one composite sprite.
+
 PlayerMotionBlurAttachResult attachPlayerMotionBlur(
     CCNode* overlayLayer,
     CCSize captureSize,

@@ -14,6 +14,11 @@
 
 class SimplePlayer;
 
+// Top-level CCLayer: owns PhysicsWorld plus VFX state (motion blur pipeline, flashes,
+// trail, noise, star burst). m_selfDestructRequested / fullscreen self-destruct path tears
+// down GL-backed nodes before invalid context, m_skipGraphicsCleanup avoids draw calls
+// during that teardown (see RuntimeRestart, PhysicsOverlayLifecycle).
+
 namespace cocos2d {
 class CCNode;
 class CCDrawNode;

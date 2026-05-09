@@ -9,6 +9,12 @@
 #include "ModTuning.h"
 #include "PhysicsTypes.h"
 
+// Full-screen overlay shaders and attach helpers. Layer indices: OverlayLayerId 0=World,
+// 1=Trail, 2=Ui (kOverlayLayerCount). OverlayShaderSprite dispatches draw to motion blur,
+// impact noise, or fire aura programs. attachPlayerMotionBlur builds the render-texture
+// capture + merge + flash stack, attachFireAura / attachImpactNoise hang sprites on the
+// overlay tree from PhysicsOverlay init / tryBuildPlayerVisual.
+
 namespace cocos2d {
 class CCSprite;
 class CCRenderTexture;

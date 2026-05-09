@@ -4,6 +4,8 @@
 
 #include "PhysicsTypes.h"
 
+// box2d-lite arena, drag spring on the player body, consumePlayerImpactAny reports post-impact speeds for VFX.
+
 class PhysicsWorld {
 public:
     PhysicsWorld(float worldW, float worldH, float bodyW, float bodyH);

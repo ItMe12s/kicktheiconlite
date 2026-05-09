@@ -6,6 +6,8 @@
 
 namespace impact_flash {
 
+// Hitstop / cooldown timers and full-screen flash backdrop mode (white vs color invert).
+
 void decrementCooldown(overlay_effects::ImpactFlashState& state, float dt);
 void decrementWhiteFlash(overlay_effects::ImpactFlashState& state, float dt);
 overlay_rendering::ImpactFlashMode currentMode(overlay_effects::ImpactFlashState const& state);

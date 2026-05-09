@@ -1,5 +1,8 @@
 #pragma once
 
+// Shared physics snapshots (all use pixel space and radians for angle).
+// PhysicsImpactEvent: per-substep collision feedback, PhysicsOverlay merges multiple
+// substeps into m_lastPlayerImpact via max speeds (see mergeImpactSnapshot).
 struct PhysicsState {
     float x, y, angle;
 };

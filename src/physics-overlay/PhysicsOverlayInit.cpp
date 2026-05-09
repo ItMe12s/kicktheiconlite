@@ -27,6 +27,8 @@ inline ccColor4F flashBackdropBorderTransparent() {
 
 } // namespace
 
+// Three child roots (World, Trail, Ui) separate capture, trail ghosts, and debug UI z-order.
+
 bool PhysicsOverlay::init() {
     if (!CCLayer::init()) {
         return false;
@@ -151,7 +153,7 @@ bool PhysicsOverlay::init() {
         if (trailRoot) {
             trailRoot->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         } else {
-            log::warn("world capture root missing; sandevistan trail will bypass blur capture");
+            log::warn("missing trail root, trail blur bypassed");
             this->addChild(m_trail.layer, kSandevistanTrailLayerZOrder);
         }
     }

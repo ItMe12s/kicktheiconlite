@@ -4,6 +4,8 @@
 
 namespace star_burst {
 
+// Sprite pool toggled with impact-flash phases, clamp counts to kStarBurstSpriteSlots.
+
 void clampStarBurstCountsInPlace();
 
 void createSprites(overlay_effects::StarBurstState& state);

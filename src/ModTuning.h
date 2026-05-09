@@ -8,7 +8,8 @@
 // SPLIT: constexpr = compile-time-required (array sizes, static_asserts, derived)
 //        extern    = runtime-tunable definitions in ModTuning.cpp (Geode settings seed via ModSettings.cpp)
 
-// Important (hide-mod-overlay bound in ModSettings.cpp, overlay apply in RuntimeRestart)
+// Important (hide-mod-overlay bound in ModSettings.cpp, overlay apply in RuntimeRestart).
+// Huge offset parks the layer off-screen without relying on visibility flags everywhere.
 constexpr float kHideModOverlayOffsetX = 676767.0f;
 constexpr float kHideModOverlayOffsetY = 676767.0f;
 extern bool kHideModOverlay;

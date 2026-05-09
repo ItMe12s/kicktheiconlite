@@ -28,6 +28,8 @@ inline ccColor3B debugRgbFToColor3B(float r, float g, float b) {
 
 } // namespace
 
+// Multi-line BMFont HUD plus stretched 1x1-quad rows for line backgrounds (toggled in mod settings).
+
 std::vector<std::string> const& PhysicsOverlay::splitDebugLinesInto(std::string const& text) {
     m_debugLineScratch = geode::utils::string::split(text, "\n");
     if (m_debugLineScratch.empty()) {
